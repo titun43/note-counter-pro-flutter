@@ -1,0 +1,70 @@
+name: Build Flutter APK and AAB
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: stable
+        cache: true
+
+    - name: Get dependencies
+      run: flutter pub get
+
+    - name: Analyze code
+      run: flutter analyze || true
+
+    - name: Build APK
+      run: flutter build apk --release --no-tree-shake-icons
+
+    - name: Build AAB
+      run: flutter build appbundle --release --no-tree-shake-icons
+
+    - name: Rename artifacts
+      run: |
+        mv build/app/outputs/flutter-apk/app-release.apk note-counter-pro.apk
+        mv build/app/outputs/bundle/release/app-release.aab note-counter-pro.aab
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: note-counter-pro-apk
+        path: note-counter-pro.apk
+
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: note-counter-pro-aab
+        path: note-counter-pro.aab
+
+    - name: Create Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        NOTES=$(printf '# Note Counter Pro v3.0.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Package: com.lokhnathtechnical.notecounterpro\n- Version: 3.0.0 (versionCode: 30)\n- Technology: Flutter (Dart)\n- Source: Fully rebuilt from scratch\n\n## Features\n- Note Counter (multi-currency)\n- Calculator\n- Customer Management\n- Khata (Lend/Borrow)\n- Bills\n- Reports\n- UPI QR Code generation\n- CSV Export (entries + customers)\n- Rate Us / Share App\n- Settings with full customization\n- AdMob integration\n- Dark/Light theme\n- Multi-language support\n\n## How to Upload to Play Store\n1. Download note-counter-pro.aab\n2. Go to https://play.google.com/console\n3. Production -> Create new release\n4. Upload the .aab file\n5. Add release notes\n6. Review and rollout')
+        gh release create v3.0.0-flutter \
+          note-counter-pro.apk \
+          note-counter-pro.aab \
+          --title "Note Counter Pro v3.0.0 (Flutter Rebuild)" \
+          --notes "$NOTES" \
+          --latest

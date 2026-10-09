@@ -1,0 +1,54 @@
+name: note_counter_pro
+description: Professional Cash Note Counter App - Multi-currency support with business mode
+publish_to: 'none'
+version: 3.0.0+30
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  
+  # UI
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.18.1
+  
+  # PDF Export
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  
+  # Share & Files
+  share_plus: ^7.2.1
+  path_provider: ^2.1.1
+  
+  # AdMob
+  google_mobile_ads: ^4.0.0
+  
+  # QR Code
+  qr_flutter: ^4.1.0
+  
+  # URL Launcher
+  url_launcher: ^6.2.1
+  
+  # Package Info
+  package_info_plus: ^5.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/icons/
