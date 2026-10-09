@@ -16,12 +16,7 @@ dependencies:
   
   # Local Storage
   shared_preferences: ^2.2.2
-  
-  # UI
-  flutter_localizations:
-    sdk: flutter
-  intl: ^0.18.1
-  
+
   # PDF Export
   pdf: ^3.10.7
   printing: ^5.11.1
