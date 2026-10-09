@@ -1,0 +1,129 @@
+name: note_counter_pro
+description: Professional Cash Note Counter App - Multi-currency support with business mode
+publish_to: 'none'
+version: 3.38.0+204
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+
+  # PDF Export
+  pdf: ^3.10.7
+  
+  # Share & Files
+  share_plus: ^7.2.1
+  path_provider: ^2.1.1
+  
+  # QR Code
+  qr_flutter: ^4.1.0
+  barcode_widget: ^2.0.4
+  
+  # URL Launcher
+  url_launcher: ^6.2.1
+  
+  # Package Info
+  package_info_plus: ^8.1.2
+
+  # Permissions
+  permission_handler: ^11.1.0
+
+  # Fingerprint/Biometric lock
+  local_auth: ^2.1.8
+
+  # Splash screen
+  flutter_native_splash: ^2.4.0
+
+  # AdMob (stable version 3.x - no crash)
+  google_mobile_ads: ^3.1.0
+
+  # File picker (for restore backup)
+  file_picker: ^8.1.2
+
+  # Text-to-Speech (voice announcement on save)
+  # Using 3.x for Kotlin 2.0.21 compatibility (4.x requires Kotlin 2.2+)
+  flutter_tts: ^3.8.1
+
+  # Screenshot (capture receipt as image for share)
+  screenshot: ^3.0.0
+
+  # Local notifications (for reminder scheduling)
+  flutter_local_notifications: ^17.2.2
+
+  # Time zone support for scheduled notifications
+  flutter_timezone: ^3.0.1
+  timezone: ^0.9.4
+
+  # In-App Purchase temporarily removed — Play Billing 16 KB + version
+  # conflict with Flutter 3.35.5. Will re-add when Flutter ships 16 KB
+  # compatible .so files. Premium is now local-only (no purchase flow).
+
+  # Cloud Backup (Google Drive) — premium feature
+  google_sign_in: ^6.2.1
+  googleapis: ^13.0.0
+  googleapis_auth: ^1.6.0
+  http: ^1.2.0
+  # Bridge package: converts GoogleSignInAccount into an authenticated
+  # http.Client that googleapis can use directly.
+  extension_google_sign_in_as_googleapis_auth: ^2.0.13
+
+  # Bluetooth Receipt Printer — premium feature
+  # Using _plus variants which are compatible with image 4.x
+  esc_pos_printer_plus: ^0.1.1
+  esc_pos_utils_plus: ^2.0.2
+
+  # QR Scanner (gallery image → decode QR → extract UPI ID)
+  mobile_scanner: ^6.0.11
+
+  # Refer & Earn — unique code generation
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+dependency_overrides:
+  archive: ^3.6.1
+  image: 4.1.7
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+
+  fonts:
+    - family: KhataHandwriting
+      fonts:
+        - asset: assets/fonts/Caveat-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Caveat-Regular.ttf
+          weight: 500
+        - asset: assets/fonts/Caveat-Regular.ttf
+          weight: 600
+        - asset: assets/fonts/Caveat-Regular.ttf
+          weight: 700
+
+flutter_native_splash:
+  color: "#0A0A1A"
+  color_dark: "#0A0A1A"
+  image: assets/icons/app_logo.png
+  branding: assets/icons/branding.png
+  branding_dark: assets/icons/branding.png
+  android_12:
+    image: assets/icons/app_logo.png
+    color: "#0A0A1A"
+    branding: assets/icons/branding.png
+  android: true
+  ios: false
+  fullscreen: false

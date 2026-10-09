@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "501718040651",
+    "project_id": "note-counter-pro",
+    "storage_bucket": "note-counter-pro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:501718040651:android:11391ecbff20a5ea1f8dce",
+        "android_client_info": {
+          "package_name": "com.lokhnathtechnical.notecounterpro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "501718040651-j8a2i7j6f1jmli84fu0fm0uo5ta71k23.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lokhnathtechnical.notecounterpro",
+            "certificate_hash": "82de9f9136a248009bc2ee92268b7f97fb3827ce"
+          }
+        },
+        {
+          "client_id": "501718040651-ngc1602tl7ivc46npqjgh777j57m53mc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLe29gsQTsZ7DLlJBWSQw-vzVwJTle9gI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "501718040651-ngc1602tl7ivc46npqjgh777j57m53mc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
