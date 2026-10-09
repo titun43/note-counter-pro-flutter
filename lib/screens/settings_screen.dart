@@ -157,7 +157,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (value) => storage.setDarkMode(value),
           ),
           ListTile(
-            leading: const Icon(Icons.haptic_feedback),
+            leading: const Icon(Icons.vibration),
             title: const Text('Haptic Feedback'),
             trailing: Switch(
               value: storage.hapticFeedback,
