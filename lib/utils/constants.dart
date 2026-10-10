@@ -61,18 +61,108 @@ class AppConstants {
     {'code': 'NPR', 'name': 'Nepalese Rupee', 'symbol': 'रू', 'country': 'Nepal'},
   ];
   
-  // Indian currency denominations
+  // Get currency symbol by code
+  static String getCurrencySymbol(String code) {
+    final currency = currencies.firstWhere(
+      (c) => c['code'] == code,
+      orElse: () => {'symbol': '₹'},
+    );
+    return currency['symbol']!;
+  }
+  
+  // Get currency name by code
+  static String getCurrencyName(String code) {
+    final currency = currencies.firstWhere(
+      (c) => c['code'] == code,
+      orElse: () => {'name': 'Indian Rupee'},
+    );
+    return currency['name']!;
+  }
+  
+  // All currency denominations
+  static const Map<String, List<Map<String, dynamic>>> denominations = {
+    'INR': [
+      {'value': 2000, 'name': '₹2000', 'color': 0xFF8B5CF6},
+      {'value': 500, 'name': '₹500', 'color': 0xFF10B981},
+      {'value': 200, 'name': '₹200', 'color': 0xFFF59E0B},
+      {'value': 100, 'name': '₹100', 'color': 0xFF3B82F6},
+      {'value': 50, 'name': '₹50', 'color': 0xFF06B6D4},
+      {'value': 20, 'name': '₹20', 'color': 0xFFEC4899},
+      {'value': 10, 'name': '₹10', 'color': 0xFF6B7280},
+      {'value': 5, 'name': '₹5', 'color': 0xFF8B5CF6},
+      {'value': 2, 'name': '₹2', 'color': 0xFF10B981},
+      {'value': 1, 'name': '₹1', 'color': 0xFFF59E0B},
+    ],
+    'USD': [
+      {'value': 100, 'name': '\$100', 'color': 0xFF10B981},
+      {'value': 50, 'name': '\$50', 'color': 0xFF3B82F6},
+      {'value': 20, 'name': '\$20', 'color': 0xFFF59E0B},
+      {'value': 10, 'name': '\$10', 'color': 0xFF8B5CF6},
+      {'value': 5, 'name': '\$5', 'color': 0xFF06B6D4},
+      {'value': 2, 'name': '\$2', 'color': 0xFFEC4899},
+      {'value': 1, 'name': '\$1', 'color': 0xFF6B7280},
+    ],
+    'EUR': [
+      {'value': 500, 'name': '€500', 'color': 0xFF8B5CF6},
+      {'value': 200, 'name': '€200', 'color': 0xFF10B981},
+      {'value': 100, 'name': '€100', 'color': 0xFF3B82F6},
+      {'value': 50, 'name': '€50', 'color': 0xFFF59E0B},
+      {'value': 20, 'name': '€20', 'color': 0xFF06B6D4},
+      {'value': 10, 'name': '€10', 'color': 0xFFEC4899},
+      {'value': 5, 'name': '€5', 'color': 0xFF6B7280},
+      {'value': 2, 'name': '€2', 'color': 0xFF8B5CF6},
+      {'value': 1, 'name': '€1', 'color': 0xFF10B981},
+    ],
+    'GBP': [
+      {'value': 50, 'name': '£50', 'color': 0xFF8B5CF6},
+      {'value': 20, 'name': '£20', 'color': 0xFF10B981},
+      {'value': 10, 'name': '£10', 'color': 0xFF3B82F6},
+      {'value': 5, 'name': '£5', 'color': 0xFFF59E0B},
+      {'value': 2, 'name': '£2', 'color': 0xFF06B6D4},
+      {'value': 1, 'name': '£1', 'color': 0xFFEC4899},
+    ],
+    'BDT': [
+      {'value': 1000, 'name': '৳1000', 'color': 0xFF8B5CF6},
+      {'value': 500, 'name': '৳500', 'color': 0xFF10B981},
+      {'value': 200, 'name': '৳200', 'color': 0xFFF59E0B},
+      {'value': 100, 'name': '৳100', 'color': 0xFF3B82F6},
+      {'value': 50, 'name': '৳50', 'color': 0xFF06B6D4},
+      {'value': 20, 'name': '৳20', 'color': 0xFFEC4899},
+      {'value': 10, 'name': '৳10', 'color': 0xFF6B7280},
+      {'value': 5, 'name': '৳5', 'color': 0xFF8B5CF6},
+      {'value': 2, 'name': '৳2', 'color': 0xFF10B981},
+      {'value': 1, 'name': '৳1', 'color': 0xFFF59E0B},
+    ],
+    'NPR': [
+      {'value': 1000, 'name': 'रू1000', 'color': 0xFF8B5CF6},
+      {'value': 500, 'name': 'रू500', 'color': 0xFF10B981},
+      {'value': 100, 'name': 'रू100', 'color': 0xFF3B82F6},
+      {'value': 50, 'name': 'रू50', 'color': 0xFFF59E0B},
+      {'value': 20, 'name': 'रू20', 'color': 0xFF06B6D4},
+      {'value': 10, 'name': 'रू10', 'color': 0xFFEC4899},
+      {'value': 5, 'name': 'रू5', 'color': 0xFF6B7280},
+      {'value': 2, 'name': 'रू2', 'color': 0xFF8B5CF6},
+      {'value': 1, 'name': 'रू1', 'color': 0xFF10B981},
+    ],
+  };
+  
+  // Get denominations for a currency (fallback to INR)
+  static List<Map<String, dynamic>> getDenominations(String currencyCode) {
+    return denominations[currencyCode] ?? denominations['INR']!;
+  }
+  
+  // Indian currency denominations (kept for backward compat)
   static const List<Map<String, dynamic>> inrDenominations = [
-    {'value': 2000, 'name': '₹2000', 'color': '#FF8B5CF6'},
-    {'value': 500, 'name': '₹500', 'color': '#FF10B981'},
-    {'value': 200, 'name': '₹200', 'color': '#FFF59E0B'},
-    {'value': 100, 'name': '₹100', 'color': '#FF3B82F6'},
-    {'value': 50, 'name': '₹50', 'color': '#FF06B6D4'},
-    {'value': 20, 'name': '₹20', 'color': '#FFEC4899'},
-    {'value': 10, 'name': '₹10', 'color': '#FF6B7280'},
-    {'value': 5, 'name': '₹5', 'color': '#FF8B5CF6'},
-    {'value': 2, 'name': '₹2', 'color': '#FF10B981'},
-    {'value': 1, 'name': '₹1', 'color': '#FFF59E0B'},
+    {'value': 2000, 'name': '₹2000', 'color': 0xFF8B5CF6},
+    {'value': 500, 'name': '₹500', 'color': 0xFF10B981},
+    {'value': 200, 'name': '₹200', 'color': 0xFFF59E0B},
+    {'value': 100, 'name': '₹100', 'color': 0xFF3B82F6},
+    {'value': 50, 'name': '₹50', 'color': 0xFF06B6D4},
+    {'value': 20, 'name': '₹20', 'color': 0xFFEC4899},
+    {'value': 10, 'name': '₹10', 'color': 0xFF6B7280},
+    {'value': 5, 'name': '₹5', 'color': 0xFF8B5CF6},
+    {'value': 2, 'name': '₹2', 'color': 0xFF10B981},
+    {'value': 1, 'name': '₹1', 'color': 0xFFF59E0B},
   ];
   
   // Languages

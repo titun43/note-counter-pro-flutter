@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 
 class CalculatorScreen extends StatefulWidget {
-  const CalculatorScreen({super.key});
+  final double? initialValue;
+  
+  const CalculatorScreen({super.key, this.initialValue});
   
   @override
   State<CalculatorScreen> createState() => _CalculatorScreenState();
@@ -13,6 +15,21 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String _expression = '';
   final List<String> _history = [];
   
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialValue != null && widget.initialValue! > 0) {
+      final value = widget.initialValue!.toStringAsFixed(2);
+      // Remove trailing .00 if whole number
+      if (value.endsWith('.00')) {
+        _display = value.substring(0, value.length - 3);
+      } else {
+        _display = value;
+      }
+      _expression = _display;
+    }
+  }
+  
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
@@ -22,8 +39,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         try {
           final result = _evaluate(_expression);
           _history.insert(0, '$_expression = $result');
-          _display = result.toString();
-          _expression = result.toString();
+          if (_history.length > 10) _history.removeLast();
+          _display = _formatResult(result);
+          _expression = _display;
         } catch (e) {
           _display = 'Error';
           _expression = '';
@@ -40,10 +58,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     });
   }
   
+  String _formatResult(double value) {
+    if (value == value.toInt()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(2);
+  }
+  
   double _evaluate(String expr) {
     expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
-    // Simple evaluation using dart's expression evaluation
-    // For production, use a proper expression parser
     final sanitized = expr.replaceAll(RegExp(r'[^0-9+\-*/.]'), '');
     final tokens = _tokenize(sanitized);
     return _parseExpression(tokens);
@@ -70,7 +93,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   double _parseExpression(List<String> tokens) {
     if (tokens.isEmpty) return 0;
     
-    // First pass: multiplication and division
     var i = 0;
     while (i < tokens.length) {
       if (tokens[i] == '*' || tokens[i] == '/') {
@@ -85,7 +107,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       }
     }
     
-    // Second pass: addition and subtraction
     var result = double.parse(tokens[0]);
     for (var j = 1; j < tokens.length; j += 2) {
       final op = tokens[j];
@@ -100,9 +121,20 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return result;
   }
   
+  void _copyToClipboard() {
+    // In a full app, would use clipboard package
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Value: $_display'),
+        backgroundColor: AppColors.info,
+      ),
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     final buttons = [
       ['C', '⌫', '÷', '×'],
@@ -113,9 +145,42 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     ];
     
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculator')),
+      appBar: AppBar(
+        title: const Text('Calculator'),
+        actions: [
+          if (widget.initialValue != null)
+            IconButton(
+              icon: const Icon(Icons.content_copy),
+              onPressed: _copyToClipboard,
+              tooltip: 'Copy value',
+            ),
+        ],
+      ),
       body: Column(
         children: [
+          // Initial value indicator
+          if (widget.initialValue != null && widget.initialValue! > 0)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              color: AppColors.info.withOpacity(0.2),
+              child: Row(
+                children: [
+                  const Icon(Icons.download, color: AppColors.info, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'From Counter: ₹${widget.initialValue!.toStringAsFixed(2)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.info,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          
           // History
           if (_history.isNotEmpty)
             Container(
@@ -144,6 +209,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 _display,
                 style: theme.textTheme.displayMedium?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
                 ),
               ),
             ),
