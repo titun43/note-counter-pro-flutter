@@ -19,7 +19,6 @@ dependencies:
 
   # PDF Export
   pdf: ^3.10.7
-  printing: ^5.11.1
   
   # Share & Files
   share_plus: ^7.2.1
