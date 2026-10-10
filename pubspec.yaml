@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.2.2+43
+version: 3.2.3+44
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -26,9 +26,6 @@ dependencies:
   
   # QR Code
   qr_flutter: ^4.1.0
-  
-  # AdMob (lazy init - no crash)
-  google_mobile_ads: ^4.0.0
   
   # URL Launcher
   url_launcher: ^6.2.1
