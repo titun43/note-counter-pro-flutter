@@ -1,16 +1,214 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fluttercontactpicker/fluttercontactpicker.dart';
 import '../services/storage_service.dart';
+import '../models/customer.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 import 'customer_detail_screen.dart';
 
-class KhataScreen extends StatelessWidget {
+class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
+  
+  @override
+  State<KhataScreen> createState() => _KhataScreenState();
+}
+
+class _KhataScreenState extends State<KhataScreen> {
+  Future<void> _addCustomer() async {
+    final loc = context.loc;
+    
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              loc.t('addCustomer'),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.contact_phone, color: AppColors.info, size: 32),
+              title: Text(loc.t('pickFromContacts')),
+              subtitle: Text('Pick from phone contacts'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.pop(context, true),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.person_add, color: AppColors.success, size: 32),
+              title: Text(loc.t('manualAdd')),
+              subtitle: Text('Enter details manually'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.pop(context, false),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+    
+    if (result == true) {
+      await _pickFromContacts();
+    } else if (result == false) {
+      await _manualAdd();
+    }
+  }
+  
+  Future<void> _pickFromContacts() async {
+    try {
+      final result = await FlutterContactPicker.pickPhoneContact();
+      
+      if (result != null) {
+        final name = result.fullName ?? '';
+        final phone = result.phoneNumber?.number ?? '';
+        
+        if (name.isNotEmpty) {
+          final storage = context.read<StorageService>();
+          final customer = Customer.create(
+            name: name,
+            phone: phone.replaceAll(RegExp(r'[^\d+]'), ''),
+          );
+          await storage.addCustomer(customer);
+          
+          if (mounted) {
+            final loc = context.loc;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${loc.t('saved')} $name'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _manualAdd() async {
+    final loc = context.loc;
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final emailController = TextEditingController();
+    final addressController = TextEditingController();
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.person_add, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(loc.t('addCustomer')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: '${loc.t('name')} *',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  labelText: loc.t('phone'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: loc.t('email'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(
+                  labelText: loc.t('address'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.location_on),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(loc.t('cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty) return;
+              Navigator.pop(context, true);
+            },
+            child: Text(loc.t('save')),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true) {
+      final storage = context.read<StorageService>();
+      final customer = Customer.create(
+        name: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        email: emailController.text.trim(),
+        address: addressController.text.trim(),
+      );
+      await storage.addCustomer(customer);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.t('saved')} ${nameController.text}'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+    
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    addressController.dispose();
+  }
   
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = context.loc;
     final storage = context.watch<StorageService>();
     final customers = storage.customers.where((c) => c.balance != 0).toList();
     
@@ -24,7 +222,14 @@ class KhataScreen extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Khata (Lend/Borrow)'),
+        title: Text('${loc.t('khata')} (Lend/Borrow)'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: _addCustomer,
+            tooltip: loc.t('addCustomer'),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -62,7 +267,7 @@ class KhataScreen extends StatelessWidget {
                             const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
                             const SizedBox(width: 6),
                             Text(
-                              'To Give',
+                              loc.t('toGive'),
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -80,7 +285,7 @@ class KhataScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'You will pay',
+                          loc.t('youWillPay'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white70,
                           ),
@@ -119,7 +324,7 @@ class KhataScreen extends StatelessWidget {
                             const Icon(Icons.arrow_downward, color: Colors.white, size: 20),
                             const SizedBox(width: 6),
                             Text(
-                              'To Take',
+                              loc.t('toTake'),
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -137,7 +342,7 @@ class KhataScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'You will receive',
+                          loc.t('youWillReceive'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white70,
                           ),
@@ -157,7 +362,7 @@ class KhataScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Pending Entries',
+                  loc.t('pendingEntries'),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -194,15 +399,16 @@ class KhataScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No pending entries',
+                          loc.t('noPendingEntries'),
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Add credit/debit from customer details',
-                          style: TextStyle(color: AppColors.textSecondary),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: _addCustomer,
+                          icon: const Icon(Icons.person_add),
+                          label: Text(loc.t('addCustomer')),
                         ),
                       ],
                     ),
@@ -264,7 +470,7 @@ class KhataScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        isPositive ? 'You will give' : 'You will take',
+                                        isPositive ? loc.t('youWillPay') : loc.t('youWillReceive'),
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: isPositive
                                               ? AppColors.danger
@@ -293,6 +499,11 @@ class KhataScreen extends StatelessWidget {
                   ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addCustomer,
+        icon: const Icon(Icons.person_add),
+        label: Text(loc.t('addCustomer')),
       ),
     );
   }

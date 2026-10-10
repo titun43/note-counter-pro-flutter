@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/storage_service.dart';
 import 'utils/themes.dart';
+import 'utils/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/customers_screen.dart';
@@ -40,13 +41,16 @@ class NoteCounterProApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<StorageService>(
       builder: (context, storage, child) {
-        return MaterialApp(
-          title: 'Note Counter Pro',
-          debugShowCheckedModeBanner: false,
-          theme: AppThemes.lightTheme,
-          darkTheme: AppThemes.darkTheme,
-          themeMode: storage.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          home: const MainScaffold(),
+        return LocalizationProvider(
+          languageCode: storage.languageCode,
+          child: MaterialApp(
+            title: 'Note Counter Pro',
+            debugShowCheckedModeBanner: false,
+            theme: AppThemes.lightTheme,
+            darkTheme: AppThemes.darkTheme,
+            themeMode: storage.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const MainScaffold(),
+          ),
         );
       },
     );
