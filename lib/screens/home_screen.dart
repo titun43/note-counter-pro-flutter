@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
@@ -15,8 +16,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCurrency = 'INR';
-  final Map<int, int> _denominationCounts = {};
-  String _transactionType = 'Payable'; // 'Payable' or 'Receivable'
+  final Map<int, TextEditingController> _countControllers = {};
+  String _transactionType = 'Payable';
   final TextEditingController _targetAmountController = TextEditingController();
   final TextEditingController _otherAmountController = TextEditingController();
   final TextEditingController _onlineAmountController = TextEditingController();
@@ -29,11 +30,30 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _selectedCurrency = storage.defaultCurrency;
       });
+      _initCountControllers();
     });
+  }
+  
+  void _initCountControllers() {
+    final denoms = AppConstants.getDenominations(_selectedCurrency);
+    for (final denom in denoms) {
+      final value = denom['value'] as int;
+      if (!_countControllers.containsKey(value)) {
+        _countControllers[value] = TextEditingController(text: '0');
+      }
+    }
+  }
+  
+  void _clearCountControllers() {
+    for (final controller in _countControllers.values) {
+      controller.dispose();
+    }
+    _countControllers.clear();
   }
   
   @override
   void dispose() {
+    _clearCountControllers();
     _targetAmountController.dispose();
     _otherAmountController.dispose();
     _onlineAmountController.dispose();
@@ -48,11 +68,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppConstants.getCurrencySymbol(_selectedCurrency);
   }
   
+  int _getCount(int value) {
+    final controller = _countControllers[value];
+    if (controller == null) return 0;
+    return int.tryParse(controller.text) ?? 0;
+  }
+  
   double get _cashTotal {
     double total = 0;
-    _denominationCounts.forEach((value, count) {
-      total += value * count;
-    });
+    for (final denom in _denominations) {
+      final value = denom['value'] as int;
+      total += value * _getCount(value);
+    }
     return total;
   }
   
@@ -69,100 +96,51 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   int get _totalNotes {
-    return _denominationCounts.values.fold(0, (sum, count) => sum + count);
+    int total = 0;
+    for (final denom in _denominations) {
+      total += _getCount(denom['value'] as int);
+    }
+    return total;
   }
   
   void _incrementCount(int value) {
-    setState(() {
-      _denominationCounts[value] = (_denominationCounts[value] ?? 0) + 1;
-    });
+    final controller = _countControllers[value];
+    if (controller == null) return;
+    final current = int.tryParse(controller.text) ?? 0;
+    controller.text = '${current + 1}';
+    setState(() {});
   }
   
   void _decrementCount(int value) {
-    setState(() {
-      final current = _denominationCounts[value] ?? 0;
-      if (current > 0) {
-        _denominationCounts[value] = current - 1;
-        if (_denominationCounts[value] == 0) {
-          _denominationCounts.remove(value);
-        }
-      }
-    });
-  }
-  
-  void _setCount(int value, int count) {
-    setState(() {
-      if (count <= 0) {
-        _denominationCounts.remove(value);
-      } else {
-        _denominationCounts[value] = count;
-      }
-    });
-  }
-  
-  Future<void> _editCount(int value, int currentCount) async {
-    final controller = TextEditingController(text: currentCount > 0 ? currentCount.toString() : '');
-    
-    final result = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Enter count for ${_currencySymbol}$value'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Count',
-            border: OutlineInputBorder(),
-            hintText: 'e.g. 5',
-          ),
-          keyboardType: TextInputType.number,
-          autofocus: true,
-        ),
-        actions: [
-          if (currentCount > 0)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, 0);
-              },
-              child: const Text('Clear'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final text = controller.text.trim();
-              final count = int.tryParse(text) ?? 0;
-              Navigator.pop(context, count);
-            },
-            child: const Text('Set'),
-          ),
-        ],
-      ),
-    );
-    
-    controller.dispose();
-    
-    if (result != null) {
-      _setCount(value, result);
+    final controller = _countControllers[value];
+    if (controller == null) return;
+    final current = int.tryParse(controller.text) ?? 0;
+    if (current > 0) {
+      controller.text = '${current - 1}';
+      setState(() {});
     }
   }
   
+  void _onCountChanged(int value) {
+    setState(() {});
+  }
+  
   void _reset() {
-    setState(() {
-      _denominationCounts.clear();
-      _targetAmountController.clear();
-      _otherAmountController.clear();
-      _onlineAmountController.clear();
-    });
+    for (final controller in _countControllers.values) {
+      controller.text = '0';
+    }
+    _targetAmountController.clear();
+    _otherAmountController.clear();
+    _onlineAmountController.clear();
+    setState(() {});
   }
   
   void _changeCurrency(String? currencyCode) {
     if (currencyCode == null || currencyCode == _selectedCurrency) return;
     setState(() {
       _selectedCurrency = currencyCode;
-      _denominationCounts.clear();
-      // Save to storage
+      _clearCountControllers();
+      _initCountControllers();
       context.read<StorageService>().setDefaultCurrency(currencyCode);
     });
   }
@@ -177,9 +155,13 @@ class _HomeScreenState extends State<HomeScreen> {
     
     final storage = context.read<StorageService>();
     final denominationMap = <String, int>{};
-    _denominationCounts.forEach((value, count) {
-      denominationMap[value.toString()] = count;
-    });
+    for (final denom in _denominations) {
+      final value = denom['value'] as int;
+      final count = _getCount(value);
+      if (count > 0) {
+        denominationMap[value.toString()] = count;
+      }
+    }
     
     final entry = Entry.create(
       type: isCashIn ? 'cash_in' : 'cash_out',
@@ -216,7 +198,10 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CalculatorScreen(initialValue: _grandTotal),
+        builder: (_) => CalculatorScreen(
+          initialValue: _grandTotal,
+          currencyCode: _selectedCurrency,
+        ),
       ),
     );
   }
@@ -235,44 +220,52 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _reset,
             tooltip: 'Reset',
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'upi') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UpiQrScreen()),
-                );
-              }
+          IconButton(
+            icon: const Icon(Icons.qr_code),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+              );
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'upi',
-                child: ListTile(
-                  leading: Icon(Icons.qr_code),
-                  title: Text('UPI QR Code'),
-                ),
-              ),
-            ],
+            tooltip: 'UPI QR',
           ),
         ],
       ),
       body: Column(
         children: [
-          // === TOP: Summary only (currency selector removed) ===
+          // === TOP: Currency selector + Summary ===
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
             child: Row(
               children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedCurrency,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: AppConstants.currencies.map((currency) {
+                      return DropdownMenuItem<String>(
+                        value: currency['code'],
+                        child: Text('${currency['code']} - ${currency['name']}'),
+                      );
+                    }).toList(),
+                    onChanged: _changeCurrency,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Column(
                       children: [
                         Text(
                           '$_totalNotes',
-                          style: theme.textTheme.titleLarge?.copyWith(
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                           ),
@@ -285,22 +278,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 4),
                 Card(
                   color: AppColors.primary,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Column(
                       children: [
                         Text(
                           '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                          style: theme.textTheme.headlineSmall?.copyWith(
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.bgDark,
                           ),
                         ),
                         Text(
-                          'Grand Total',
+                          'Total',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.bgDark,
                           ),
@@ -392,6 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 isDense: true,
               ),
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
             ),
           ),
           
@@ -410,6 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       isDense: true,
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
@@ -424,6 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       isDense: true,
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
@@ -431,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // === DENOMINATION LIST (vertical, scrollable) ===
+          // === DENOMINATION LIST (vertical, scrollable, inline editable) ===
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -441,11 +437,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 final value = denom['value'] as int;
                 final name = denom['name'] as String;
                 final color = Color(denom['color'] as int);
-                final count = _denominationCounts[value] ?? 0;
+                final count = _getCount(value);
                 final subtotal = value * count;
+                
+                // Ensure controller exists
+                if (!_countControllers.containsKey(value)) {
+                  _countControllers[value] = TextEditingController(text: '0');
+                }
                 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 4),
+                  elevation: 2,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     child: Row(
@@ -453,10 +455,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         // Denomination button (colored)
                         Container(
                           width: 72,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
                             color: color,
                             borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withOpacity(0.4),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Text(
                             name,
@@ -476,28 +485,42 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.danger,
                           iconSize: 28,
                         ),
-                        // Count display (tappable to edit)
-                        GestureDetector(
-                          onTap: () => _editCount(value, count),
-                          child: Container(
-                            width: 50,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.bgDarker : Colors.grey[200],
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: AppColors.primary.withOpacity(0.5),
-                                width: 1,
-                              ),
+                        // Count display - INLINE EDITABLE TextField
+                        // User can tap directly and type number with keyboard
+                        // No dialog box needed
+                        Container(
+                          width: 56,
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.bgDarker : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 1.5,
                             ),
-                            child: Text(
-                              '$count',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
+                          ),
+                          child: TextField(
+                            controller: _countControllers[value],
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
                             ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 8),
+                              border: InputBorder.none,
+                            ),
+                            onChanged: (_) => _onCountChanged(value),
+                            onTap: () {
+                              // Select all text when tapped for easy editing
+                              _countControllers[value]!.selection = TextSelection(
+                                baseOffset: 0,
+                                extentOffset: _countControllers[value]!.text.length,
+                              );
+                            },
                           ),
                         ),
                         // Plus button

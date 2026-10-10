@@ -3,8 +3,13 @@ import '../utils/constants.dart';
 
 class CalculatorScreen extends StatefulWidget {
   final double? initialValue;
+  final String currencyCode;
   
-  const CalculatorScreen({super.key, this.initialValue});
+  const CalculatorScreen({
+    super.key,
+    this.initialValue,
+    this.currencyCode = 'INR',
+  });
   
   @override
   State<CalculatorScreen> createState() => _CalculatorScreenState();
@@ -15,12 +20,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String _expression = '';
   final List<String> _history = [];
   
+  String get _currencySymbol => AppConstants.getCurrencySymbol(widget.currencyCode);
+  
   @override
   void initState() {
     super.initState();
     if (widget.initialValue != null && widget.initialValue! > 0) {
       final value = widget.initialValue!.toStringAsFixed(2);
-      // Remove trailing .00 if whole number
       if (value.endsWith('.00')) {
         _display = value.substring(0, value.length - 3);
       } else {
@@ -170,7 +176,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'From Counter: ₹${widget.initialValue!.toStringAsFixed(2)}',
+                      'From Counter: $_currencySymbol${widget.initialValue!.toStringAsFixed(2)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: AppColors.info,
                         fontWeight: FontWeight.bold,
@@ -205,12 +211,41 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             child: Container(
               padding: const EdgeInsets.all(24),
               alignment: Alignment.bottomRight,
-              child: Text(
-                _display,
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (_expression.isNotEmpty && _expression != _display)
+                    Text(
+                      _expression,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        _currencySymbol,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _display,
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

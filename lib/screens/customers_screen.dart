@@ -35,11 +35,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final emailController = TextEditingController();
+    final addressController = TextEditingController();
     
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Customer'),
+        title: Row(
+          children: [
+            Icon(Icons.person_add, color: AppColors.primary),
+            const SizedBox(width: 8),
+            const Text('Add Customer'),
+          ],
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -49,6 +56,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Name *',
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
                 ),
                 autofocus: true,
               ),
@@ -58,6 +66,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Phone',
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
                 ),
                 keyboardType: TextInputType.phone,
               ),
@@ -67,8 +76,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Email',
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email),
                 ),
                 keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+                maxLines: 2,
               ),
             ],
           ),
@@ -95,6 +115,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
         name: nameController.text.trim(),
         phone: phoneController.text.trim(),
         email: emailController.text.trim(),
+        address: addressController.text.trim(),
       );
       await storage.addCustomer(customer);
     }
@@ -102,20 +123,29 @@ class _CustomersScreenState extends State<CustomersScreen> {
     nameController.dispose();
     phoneController.dispose();
     emailController.dispose();
+    addressController.dispose();
   }
   
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customers'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: _showAddCustomerDialog,
+            tooltip: 'Add Customer',
+          ),
+        ],
       ),
       body: Column(
         children: [
           // Search bar
-          Padding(
+          Container(
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
@@ -123,6 +153,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 hintText: 'Search customers...',
                 prefixIcon: const Icon(Icons.search),
                 border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: isDark ? AppColors.bgCardDark : AppColors.bgCard,
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
@@ -150,7 +182,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.people_outline, size: 64, color: AppColors.textSecondary),
+                        Icon(
+                          Icons.people_outline,
+                          size: 80,
+                          color: AppColors.textSecondary.withOpacity(0.5),
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No customers yet',
@@ -161,8 +197,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         const SizedBox(height: 8),
                         FilledButton.icon(
                           onPressed: _showAddCustomerDialog,
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Customer'),
+                          icon: const Icon(Icons.person_add),
+                          label: const Text('Add First Customer'),
                         ),
                       ],
                     ),
@@ -176,40 +212,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     final customer = customers[index];
                     final balance = customer.balance;
                     final hasBalance = balance != 0;
+                    final isPositive = balance > 0;
                     
                     return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.primary,
-                          child: Text(
-                            customer.name.isNotEmpty
-                                ? customer.name[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              color: AppColors.bgDark,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(customer.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (customer.phone != null && customer.phone!.isNotEmpty)
-                              Text(customer.phone!),
-                            if (hasBalance)
-                              Text(
-                                'Balance: ₹${balance.abs().toStringAsFixed(2)} ${balance > 0 ? '(Credit)' : '(Debit)'}',
-                                style: TextStyle(
-                                  color: balance > 0
-                                      ? AppColors.success
-                                      : AppColors.danger,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
+                      elevation: 3,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
                         onTap: () {
                           Navigator.push(
                             context,
@@ -220,6 +232,95 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             ),
                           );
                         },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              // Avatar
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(28),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withOpacity(0.3),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    customer.name.isNotEmpty
+                                        ? customer.name[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: AppColors.bgDark,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      customer.name,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (customer.phone != null && customer.phone!.isNotEmpty)
+                                      Row(
+                                        children: [
+                                          Icon(Icons.phone, size: 14, color: AppColors.textSecondary),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            customer.phone!,
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    if (hasBalance) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isPositive
+                                              ? AppColors.success.withOpacity(0.15)
+                                              : AppColors.danger.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          '₹${balance.abs().toStringAsFixed(2)} ${isPositive ? 'Credit' : 'Debit'}',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: isPositive ? AppColors.success : AppColors.danger,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -229,9 +330,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddCustomerDialog,
-        child: const Icon(Icons.person_add),
+        icon: const Icon(Icons.person_add),
+        label: const Text('Add Customer'),
       ),
     );
   }

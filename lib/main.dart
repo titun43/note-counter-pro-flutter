@@ -63,16 +63,19 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
   
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const CalculatorScreen(),
-    const CustomersScreen(),
-    const KhataScreen(),
-    const ReportsScreen(),
-  ];
-  
   @override
   Widget build(BuildContext context) {
+    final storage = context.watch<StorageService>();
+    final currencyCode = storage.defaultCurrency;
+    
+    final List<Widget> _screens = [
+      const HomeScreen(),
+      CalculatorScreen(currencyCode: currencyCode),
+      const CustomersScreen(),
+      const KhataScreen(),
+      const ReportsScreen(),
+    ];
+    
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,

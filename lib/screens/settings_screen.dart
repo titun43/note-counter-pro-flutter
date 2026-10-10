@@ -165,16 +165,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           
-          // === CURRENCY ===
-          _sectionHeader('Currency'),
-          ListTile(
-            leading: const Icon(Icons.currency_rupee),
-            title: const Text('Default Currency'),
-            subtitle: Text(storage.defaultCurrency),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showCurrencyPicker(),
-          ),
-          
           // === LANGUAGE ===
           _sectionHeader('Language'),
           ListTile(
@@ -315,35 +305,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           fontSize: 12,
           letterSpacing: 1,
         ),
-      ),
-    );
-  }
-  
-  void _showCurrencyPicker() {
-    final storage = context.read<StorageService>();
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Select Currency'),
-        children: AppConstants.currencies.map((currency) {
-          return SimpleDialogOption(
-            onPressed: () {
-              storage.setDefaultCurrency(currency['code']!);
-              Navigator.pop(context);
-            },
-            child: ListTile(
-              leading: Text(
-                currency['symbol']!,
-                style: const TextStyle(fontSize: 24),
-              ),
-              title: Text(currency['name']!),
-              subtitle: Text(currency['code']!),
-              trailing: storage.defaultCurrency == currency['code']
-                  ? const Icon(Icons.check, color: AppColors.success)
-                  : null,
-            ),
-          );
-        }).toList(),
       ),
     );
   }
