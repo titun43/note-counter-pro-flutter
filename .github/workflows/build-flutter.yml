@@ -75,10 +75,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.3.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Package: com.lokhnathtechnical.notecounterpro\n- Version: 3.3.1 (versionCode: 46)\n- Signing: Upload key (Play Store ready)\n\n## 🆕 Complete Package in 3.3.1\n\n### 1. App Icon (from old repo)\n- Original app icon from old Capacitor repo\n- All density mipmap icons\n- Adaptive icon for Android 8+\n- Fixed: renamed app-logo.png to app_logo.png (Android doesnt allow hyphens)\n\n### 2. Splash Screen with Logo\n- flutter_native_splash generated\n- App logo on dark background (#0a0a1a)\n- Smooth transition\n\n### 3. AdMob (stable version 3.1.0)\n- Using google_mobile_ads 3.1.0 (stable, not 4.0.0 which crashes)\n- play-services-ads 22.6.0 (matching stable version)\n- Lazy init: 3 seconds after app starts\n- If AdMob fails, app continues (no crash)\n- Banner ads + Interstitial ads\n\n### 4. All Features\n- Note Counter (collapsible, inline editable, localized)\n- Calculator (bottom nav, currency, localized)\n- Customer Management (contacts, edit/delete, premium UI)\n- Khata (add customer, edit/delete, premium UI, localized)\n- Bills, Reports, UPI QR, CSV Export (all localized)\n- Settings (language EN/BN/HI, theme)\n- Dark/Light theme\n- App Icon + Splash Screen\n- AdMob (lazy, stable version)\n- Signed AAB (Play Store ready)\n\n## Play Store Upload\n1. Download note-counter-pro.aab\n2. Play Console -> Production -> Create new release\n3. Upload .aab (signed with upload key)\n4. Add release notes\n5. Review and rollout')
-        gh release create v3.3.1-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.3.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.3.2 (versionCode: 47)\n- Signing: Upload key (Play Store ready)\n- AdMob: 3.1.0 with namespace workaround\n\n## Complete Package\n- App Icon + Splash Screen\n- AdMob (stable 3.1.0, namespace workaround)\n- Note Counter, Calculator, Customers, Khata, Bills, Reports\n- UPI QR, CSV Export\n- Localization EN/BN/HI\n- Dark/Light theme')
+        gh release create v3.3.2-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.3.1 (Flutter - Complete Package)" \
+          --title "Note Counter Pro v3.3.2 (Flutter - Complete)" \
           --notes "$NOTES" \
           --latest

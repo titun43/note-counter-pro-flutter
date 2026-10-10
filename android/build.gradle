@@ -15,6 +15,19 @@ allprojects {
         google()
         mavenCentral()
     }
+    
+    // Workaround for namespace issue in older plugins (google_mobile_ads, etc.)
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            if (project.android.namespace == null) {
+                def manifest = new XmlSlurper().parse(file("${project.projectDir}/src/main/AndroidManifest.xml"))
+                def packageName = manifest.@package.toString()
+                if (packageName) {
+                    project.android.namespace = packageName
+                }
+            }
+        }
+    }
 }
 
 rootProject.buildDir = '../build'
