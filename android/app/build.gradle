@@ -24,7 +24,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.lokhnathtechnical.notecounterpro"
     compileSdk 36
-    ndkVersion "28.0.13004158"
+    ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
