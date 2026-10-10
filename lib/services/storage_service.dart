@@ -6,7 +6,7 @@ import '../models/customer.dart';
 import '../models/bill.dart';
 
 class StorageService extends ChangeNotifier {
-  final SharedPreferences _prefs;
+  final SharedPreferences? _prefs;
   
   List<Entry> _entries = [];
   List<Customer> _customers = [];
@@ -17,69 +17,90 @@ class StorageService extends ChangeNotifier {
   }
   
   void _loadData() {
-    // Load entries
-    final entriesJson = _prefs.getString('entries');
-    if (entriesJson != null) {
-      final list = jsonDecode(entriesJson) as List;
-      _entries = list.map((e) => Entry.fromJson(e as Map<String, dynamic>)).toList();
-    }
+    if (_prefs == null) return;
     
-    // Load customers
-    final customersJson = _prefs.getString('customers');
-    if (customersJson != null) {
-      final list = jsonDecode(customersJson) as List;
-      _customers = list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
-    }
-    
-    // Load bills
-    final billsJson = _prefs.getString('bills');
-    if (billsJson != null) {
-      final list = jsonDecode(billsJson) as List;
-      _bills = list.map((e) => Bill.fromJson(e as Map<String, dynamic>)).toList();
+    try {
+      // Load entries
+      final entriesJson = _prefs!.getString('entries');
+      if (entriesJson != null) {
+        final list = jsonDecode(entriesJson) as List;
+        _entries = list.map((e) => Entry.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      
+      // Load customers
+      final customersJson = _prefs!.getString('customers');
+      if (customersJson != null) {
+        final list = jsonDecode(customersJson) as List;
+        _customers = list.map((e) => Customer.fromJson(e as Map<String, dynamic>)).toList();
+      }
+      
+      // Load bills
+      final billsJson = _prefs!.getString('bills');
+      if (billsJson != null) {
+        final list = jsonDecode(billsJson) as List;
+        _bills = list.map((e) => Bill.fromJson(e as Map<String, dynamic>)).toList();
+      }
+    } catch (e) {
+      debugPrint('StorageService loadData failed: $e');
     }
   }
   
   Future<void> _saveEntries() async {
-    await _prefs.setString('entries', jsonEncode(_entries.map((e) => e.toJson()).toList()));
+    if (_prefs == null) return;
+    try {
+      await _prefs!.setString('entries', jsonEncode(_entries.map((e) => e.toJson()).toList()));
+    } catch (e) {
+      debugPrint('Save entries failed: $e');
+    }
   }
   
   Future<void> _saveCustomers() async {
-    await _prefs.setString('customers', jsonEncode(_customers.map((e) => e.toJson()).toList()));
+    if (_prefs == null) return;
+    try {
+      await _prefs!.setString('customers', jsonEncode(_customers.map((e) => e.toJson()).toList()));
+    } catch (e) {
+      debugPrint('Save customers failed: $e');
+    }
   }
   
   Future<void> _saveBills() async {
-    await _prefs.setString('bills', jsonEncode(_bills.map((e) => e.toJson()).toList()));
+    if (_prefs == null) return;
+    try {
+      await _prefs!.setString('bills', jsonEncode(_bills.map((e) => e.toJson()).toList()));
+    } catch (e) {
+      debugPrint('Save bills failed: $e');
+    }
   }
   
   // === Theme ===
-  bool get isDarkMode => _prefs.getBool('isDarkMode') ?? true;
+  bool get isDarkMode => _prefs?.getBool('isDarkMode') ?? true;
   
   Future<void> setDarkMode(bool value) async {
-    await _prefs.setBool('isDarkMode', value);
+    await _prefs?.setBool('isDarkMode', value);
     notifyListeners();
   }
   
   // === Currency ===
-  String get defaultCurrency => _prefs.getString('defaultCurrency') ?? 'INR';
+  String get defaultCurrency => _prefs?.getString('defaultCurrency') ?? 'INR';
   
   Future<void> setDefaultCurrency(String currency) async {
-    await _prefs.setString('defaultCurrency', currency);
+    await _prefs?.setString('defaultCurrency', currency);
     notifyListeners();
   }
   
   // === Language ===
-  String get languageCode => _prefs.getString('languageCode') ?? 'en';
+  String get languageCode => _prefs?.getString('languageCode') ?? 'en';
   
   Future<void> setLanguageCode(String code) async {
-    await _prefs.setString('languageCode', code);
+    await _prefs?.setString('languageCode', code);
     notifyListeners();
   }
   
   // === Haptics ===
-  bool get hapticFeedback => _prefs.getBool('hapticFeedback') ?? true;
+  bool get hapticFeedback => _prefs?.getBool('hapticFeedback') ?? true;
   
   Future<void> setHapticFeedback(bool value) async {
-    await _prefs.setBool('hapticFeedback', value);
+    await _prefs?.setBool('hapticFeedback', value);
     notifyListeners();
   }
   

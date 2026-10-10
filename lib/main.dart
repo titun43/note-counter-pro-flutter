@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/storage_service.dart';
-import 'services/admob_service.dart';
 import 'utils/themes.dart';
-import 'utils/constants.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/customers_screen.dart';
@@ -17,11 +15,13 @@ import 'screens/settings_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize SharedPreferences
-  final prefs = await SharedPreferences.getInstance();
-  
-  // Initialize AdMob
-  await AdMobService.initialize();
+  SharedPreferences? prefs;
+  try {
+    prefs = await SharedPreferences.getInstance();
+  } catch (e) {
+    // Fallback: create app with empty prefs
+    debugPrint('SharedPreferences init failed: $e');
+  }
   
   runApp(
     MultiProvider(
