@@ -117,7 +117,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
           children: [
             TextField(
               controller: _upiIdController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Your UPI ID *',
                 hintText: 'yourname@upi',
                 border: OutlineInputBorder(),
@@ -128,7 +128,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: loc.t('payeeName'),
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.person),
@@ -137,7 +137,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _amountController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount (₹)',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.currency_rupee),
@@ -147,7 +147,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _noteController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Note (optional)',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.note),

@@ -49,7 +49,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           children: [
             TextField(
               controller: amountController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount *',
                 prefixText: '₹ ',
                 border: OutlineInputBorder(),
@@ -60,7 +60,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: notesController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: loc.t('notes_field'),
                 border: OutlineInputBorder(),
               ),
@@ -184,7 +184,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: amountController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount *',
                 prefixText: '₹ ',
                 border: OutlineInputBorder(),
@@ -195,7 +195,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: notesController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: loc.t('notes_field'),
                 border: OutlineInputBorder(),
               ),
