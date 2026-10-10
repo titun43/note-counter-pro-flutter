@@ -212,94 +212,99 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Note Counter Pro'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cleaning_services),
-            onPressed: _reset,
-            tooltip: 'Reset',
-          ),
-          IconButton(
-            icon: const Icon(Icons.qr_code),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UpiQrScreen()),
-              );
-            },
-            tooltip: 'UPI QR',
-          ),
-        ],
-      ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
-          // === TOP: Currency selector + Summary ===
+          // === TOP: Currency + Notes + Clear + Total (compact, one row) ===
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
             child: Row(
               children: [
+                // Currency selector (compact)
                 Expanded(
+                  flex: 3,
                   child: DropdownButtonFormField<String>(
                     value: _selectedCurrency,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       border: OutlineInputBorder(),
                     ),
                     items: AppConstants.currencies.map((currency) {
                       return DropdownMenuItem<String>(
                         value: currency['code'],
-                        child: Text('${currency['code']} - ${currency['name']}'),
+                        child: Text(
+                          currency['code']!,
+                          style: const TextStyle(fontSize: 13),
+                        ),
                       );
                     }).toList(),
                     onChanged: _changeCurrency,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      children: [
-                        Text(
-                          '$_totalNotes',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                const SizedBox(width: 4),
+                // Notes count
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.bgDarker : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.textSecondary.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '$_totalNotes',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
-                        Text(
-                          'Notes',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        'Notes',
+                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 4),
-                Card(
-                  color: AppColors.primary,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Column(
-                      children: [
-                        Text(
-                          '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.bgDark,
-                          ),
+                // Clear button (moved here from AppBar)
+                IconButton(
+                  onPressed: _reset,
+                  icon: const Icon(Icons.cleaning_services),
+                  color: AppColors.danger,
+                  tooltip: 'Clear',
+                  iconSize: 22,
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+                const SizedBox(width: 4),
+                // Grand Total
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.bgDark,
                         ),
-                        Text(
-                          'Total',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.bgDark,
-                          ),
+                      ),
+                      Text(
+                        'Total',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.bgDark,
+                          fontSize: 10,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -573,7 +578,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: _sendToCalculator,
                   icon: const Icon(Icons.calculate),
                   color: AppColors.info,
-                  tooltip: 'Send to Calculator',
+                  tooltip: 'Calculator',
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.qr_code),
+                  color: AppColors.primary,
+                  tooltip: 'UPI QR',
                 ),
                 Expanded(
                   child: FilledButton.icon(
@@ -649,6 +665,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

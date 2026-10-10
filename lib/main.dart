@@ -70,10 +70,10 @@ class _MainScaffoldState extends State<MainScaffold> {
     
     final List<Widget> _screens = [
       const HomeScreen(),
-      CalculatorScreen(currencyCode: currencyCode),
       const CustomersScreen(),
       const KhataScreen(),
-      const ReportsScreen(),
+      const BillsScreen(),
+      const SettingsScreen(),
     ];
     
     return Scaffold(
@@ -95,11 +95,6 @@ class _MainScaffoldState extends State<MainScaffold> {
             label: 'Counter',
           ),
           NavigationDestination(
-            icon: Icon(Icons.functions_outlined),
-            selectedIcon: Icon(Icons.functions),
-            label: 'Calculator',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Customers',
@@ -110,34 +105,14 @@ class _MainScaffoldState extends State<MainScaffold> {
             label: 'Khata',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            selectedIcon: Icon(Icons.bar_chart),
-            label: 'Reports',
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Bills',
           ),
-        ],
-      ),
-      appBar: AppBar(
-        title: const Text('Note Counter Pro'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.receipt_long),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BillsScreen()),
-              );
-            },
-            tooltip: 'Bills',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-            tooltip: 'Settings',
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),

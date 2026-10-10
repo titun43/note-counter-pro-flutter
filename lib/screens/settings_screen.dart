@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import 'upi_qr_screen.dart';
+import 'reports_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -191,6 +192,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.bar_chart, color: AppColors.primary),
+            title: const Text('Reports'),
+            subtitle: const Text('View weekly, monthly, all-time stats'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReportsScreen()),
               );
             },
           ),
