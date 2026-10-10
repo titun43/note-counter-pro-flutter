@@ -21,17 +21,17 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Set up Android NDK 27
+    - name: Set up Android NDK r28
       uses: nttld/setup-ndk@v1
       id: setup_ndk
       with:
-        ndk-version: r27
+        ndk-version: r28
         add-to-path: true
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.29.0'
+        flutter-version: '3.35.5'
         channel: stable
         cache: true
 
@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.6.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.6.1 (versionCode: 58)\n- Flutter: 3.29.0\n- NDK: r27 (16KB page size support)\n- Target SDK: 36\n- 16KB page size: FIXED with NDK r27\n\n## Play Store Fixes\n1. 16KB page size: NDK r27 + packagingOptions + abiFilters\n2. In-App Update: native MethodChannel\n3. Deobfuscation: minify disabled')
-        gh release create v3.6.1-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.6.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.6.2 (versionCode: 59)\n- Flutter: 3.35.5 (latest stable, full 16KB support)\n- NDK: r28 (28.0.13004158)\n- Target SDK: 36\n- 16KB page size: FULLY SUPPORTED\n\n## Play Store Fixes\n1. Flutter 3.29 -> 3.35.5 (engine .so files now 16KB aligned)\n2. NDK r27 -> r28 (latest, full 16KB alignment)\n3. packagingOptions + abiFilters maintained')
+        gh release create v3.6.2-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.6.1 (Flutter - 16KB Fix)" \
+          --title "Note Counter Pro v3.6.2 (Flutter - 16KB Final Fix)" \
           --notes "$NOTES" \
           --latest
