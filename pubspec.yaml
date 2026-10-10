@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.0.6+36
+version: 3.0.7+37
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -35,9 +35,6 @@ dependencies:
   
   # Package Info
   package_info_plus: ^5.0.1
-  
-  # Contact Picker
-  fluttercontactpicker: ^4.7.0
 
 dev_dependencies:
   flutter_test:

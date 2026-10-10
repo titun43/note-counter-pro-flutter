@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fluttercontactpicker/fluttercontactpicker.dart';
 import '../services/storage_service.dart';
+import '../services/contact_picker_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -62,11 +62,11 @@ class _KhataScreenState extends State<KhataScreen> {
   
   Future<void> _pickFromContacts() async {
     try {
-      final result = await FlutterContactPicker.pickPhoneContact();
+      final contact = await ContactPickerService.pickContact();
       
-      if (result != null) {
-        final name = result.fullName ?? '';
-        final phone = result.phoneNumber?.number ?? '';
+      if (contact != null) {
+        final name = contact['name'] ?? '';
+        final phone = contact['phone'] ?? '';
         
         if (name.isNotEmpty) {
           final storage = context.read<StorageService>();

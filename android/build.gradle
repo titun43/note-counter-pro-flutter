@@ -15,15 +15,6 @@ allprojects {
         google()
         mavenCentral()
     }
-    
-    // Workaround for namespace issue in older plugins
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            if (project.android.namespace == null) {
-                project.android.namespace = project.group
-            }
-        }
-    }
 }
 
 rootProject.buildDir = '../build'
