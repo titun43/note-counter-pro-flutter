@@ -100,6 +100,54 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
   
+  Future<void> _editCount(int value, int currentCount) async {
+    final controller = TextEditingController(text: currentCount > 0 ? currentCount.toString() : '');
+    
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Enter count for ${_currencySymbol}$value'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Count',
+            border: OutlineInputBorder(),
+            hintText: 'e.g. 5',
+          ),
+          keyboardType: TextInputType.number,
+          autofocus: true,
+        ),
+        actions: [
+          if (currentCount > 0)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, 0);
+              },
+              child: const Text('Clear'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              final count = int.tryParse(text) ?? 0;
+              Navigator.pop(context, count);
+            },
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+    
+    controller.dispose();
+    
+    if (result != null) {
+      _setCount(value, result);
+    }
+  }
+  
   void _reset() {
     setState(() {
       _denominationCounts.clear();
@@ -211,30 +259,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // === TOP: Currency selector + Summary ===
+          // === TOP: Summary only (currency selector removed) ===
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
             child: Row(
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCurrency,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: AppConstants.currencies.map((currency) {
-                      return DropdownMenuItem<String>(
-                        value: currency['code'],
-                        child: Text('${currency['code']} - ${currency['name']}'),
-                      );
-                    }).toList(),
-                    onChanged: _changeCurrency,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -255,22 +285,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const Spacer(),
                 Card(
                   color: AppColors.primary,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     child: Column(
                       children: [
                         Text(
                           '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                          style: theme.textTheme.titleLarge?.copyWith(
+                          style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppColors.bgDark,
                           ),
                         ),
                         Text(
-                          'Total',
+                          'Grand Total',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.bgDark,
                           ),
@@ -446,19 +476,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.danger,
                           iconSize: 28,
                         ),
-                        // Count display
-                        Container(
-                          width: 50,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark ? AppColors.bgDarker : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '$count',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                        // Count display (tappable to edit)
+                        GestureDetector(
+                          onTap: () => _editCount(value, count),
+                          child: Container(
+                            width: 50,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.bgDarker : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              '$count',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ),
