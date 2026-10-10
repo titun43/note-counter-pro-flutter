@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/storage_service.dart';
+import 'services/admob_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'screens/home_screen.dart';
@@ -23,13 +24,8 @@ void main() async {
     debugPrint('SharedPreferences init failed: $e');
   }
   
-  // AdMob disabled for now - will be re-enabled with proper setup
-  // try {
-  //   await AdMobService.initialize();
-  // } catch (e) {
-  //   debugPrint('AdMob init failed: $e');
-  // }
-  
+  // Run app first, then initialize AdMob in background (lazy)
+  // This ensures app starts even if AdMob fails
   runApp(
     MultiProvider(
       providers: [
@@ -38,6 +34,13 @@ void main() async {
       child: const NoteCounterProApp(),
     ),
   );
+  
+  // Initialize AdMob after app is running (non-blocking)
+  Future.delayed(const Duration(seconds: 2), () {
+    AdMobService.initialize().catchError((e) {
+      debugPrint('AdMob background init failed: $e');
+    });
+  });
 }
 
 class NoteCounterProApp extends StatelessWidget {
