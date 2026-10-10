@@ -6,6 +6,7 @@ import '../models/customer.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'customer_detail_screen.dart';
+import 'customers_screen.dart';
 
 class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
@@ -224,6 +225,16 @@ class _KhataScreenState extends State<KhataScreen> {
       appBar: AppBar(
         title: Text('${loc.t('khata')} (Lend/Borrow)'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.people),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CustomersScreen()),
+              );
+            },
+            tooltip: loc.t('customers'),
+          ),
           IconButton(
             icon: const Icon(Icons.person_add),
             onPressed: _addCustomer,

@@ -9,6 +9,7 @@ import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import 'upi_qr_screen.dart';
 import 'reports_screen.dart';
+import 'bills_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -192,6 +193,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.receipt_long, color: AppColors.info),
+            title: const Text('Bills'),
+            subtitle: const Text('Create and manage bills'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BillsScreen()),
               );
             },
           ),

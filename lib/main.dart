@@ -71,12 +71,12 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     final storage = context.watch<StorageService>();
     final currencyCode = storage.defaultCurrency;
+    final loc = context.loc;
     
     final List<Widget> _screens = [
       const HomeScreen(),
-      const CustomersScreen(),
+      CalculatorScreen(currencyCode: currencyCode),
       const KhataScreen(),
-      const BillsScreen(),
       const SettingsScreen(),
     ];
     
@@ -92,31 +92,26 @@ class _MainScaffoldState extends State<MainScaffold> {
             _currentIndex = index;
           });
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.calculate_outlined),
-            selectedIcon: Icon(Icons.calculate),
-            label: 'Counter',
+            icon: const Icon(Icons.calculate_outlined),
+            selectedIcon: const Icon(Icons.calculate),
+            label: loc.t('counter'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Customers',
+            icon: const Icon(Icons.functions_outlined),
+            selectedIcon: const Icon(Icons.functions),
+            label: loc.t('calculator'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Khata',
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: const Icon(Icons.account_balance_wallet),
+            label: loc.t('khata'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Bills',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: loc.t('settings'),
           ),
         ],
       ),
