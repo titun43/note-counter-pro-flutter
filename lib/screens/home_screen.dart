@@ -91,8 +91,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return double.tryParse(_onlineAmountController.text) ?? 0;
   }
   
+  double get _targetAmount {
+    return double.tryParse(_targetAmountController.text) ?? 0;
+  }
+  
   double get _grandTotal {
     return _cashTotal + _otherAmount + _onlineAmount;
+  }
+  
+  double get _difference {
+    return _grandTotal - _targetAmount;
+  }
+  
+  bool get _hasTarget {
+    return _targetAmount > 0;
   }
   
   int get _totalNotes {
@@ -391,8 +403,83 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+              onChanged: (_) => setState(() {}),
             ),
           ),
+          
+          // === TARGET vs ACTUAL COMPARISON ===
+          if (_hasTarget)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _difference >= 0
+                    ? AppColors.success.withOpacity(0.15)
+                    : AppColors.danger.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _difference >= 0
+                      ? AppColors.success
+                      : AppColors.danger,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _difference >= 0 ? Icons.check_circle : Icons.warning,
+                    color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _difference >= 0 ? 'Target Reached!' : 'Short of Target',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                          ),
+                        ),
+                        Text(
+                          _difference >= 0
+                              ? 'Surplus: $_currencySymbol${_difference.toStringAsFixed(2)}'
+                              : 'Need: $_currencySymbol${_difference.abs().toStringAsFixed(2)} more',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Target',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        '$_currencySymbol${_targetAmount.toStringAsFixed(2)}',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Actual: $_currencySymbol${_grandTotal.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           
           // === OTHER + ONLINE AMOUNT ===
           Padding(
