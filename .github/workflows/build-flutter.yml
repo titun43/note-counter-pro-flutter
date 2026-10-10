@@ -21,6 +21,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Set up Android NDK 27
+      uses: nttld/setup-ndk@v1
+      id: setup_ndk
+      with:
+        ndk-version: r27
+        add-to-path: true
+
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
@@ -75,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.6.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.6.0 (versionCode: 57)\n- Signing: Upload key (Play Store ready)\n- Target SDK: 36 (Android 16)\n- Flutter: 3.29.0 (16KB page size native support)\n\n## 🆕 Features in 3.6.0\n\n### 1. In-App Update\n- App checks for update on launch\n- Shows dialog: Update Available / Update Now / Later\n- Flexible update: downloads in background, installs on restart\n- No force update - user can choose Later\n\n### 2. 16KB Page Size Fix\n- Flutter upgraded to 3.29.0 (has native 16KB page size support)\n- Play Store 16KB error resolved\n\n## Features\n- In-App Update (auto check on launch)\n- App Lock (Fingerprint/PIN)\n- Note Counter, Calculator, Customers, Khata, Bills, Reports\n- UPI QR, CSV Export\n- Banner Ads + Interstitial Ads\n- Localization EN/BN/HI\n- Dark/Light theme\n- New Multi-Currency App Icon + Splash\n- Signed AAB (Play Store ready)')
-        gh release create v3.6.0-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.6.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.6.1 (versionCode: 58)\n- Flutter: 3.29.0\n- NDK: r27 (16KB page size support)\n- Target SDK: 36\n- 16KB page size: FIXED with NDK r27\n\n## Play Store Fixes\n1. 16KB page size: NDK r27 + packagingOptions + abiFilters\n2. In-App Update: native MethodChannel\n3. Deobfuscation: minify disabled')
+        gh release create v3.6.1-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.6.0 (Flutter - In-App Update + 16KB Fix)" \
+          --title "Note Counter Pro v3.6.1 (Flutter - 16KB Fix)" \
           --notes "$NOTES" \
           --latest
