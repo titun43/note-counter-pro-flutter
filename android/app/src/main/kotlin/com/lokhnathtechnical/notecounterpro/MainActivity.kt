@@ -6,18 +6,28 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.appupdate.AppUpdateInfo
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterFragmentActivity() {
-    private val CHANNEL = "com.lokhnathtechnical.notecounterpro/contacts"
+    private val CONTACT_CHANNEL = "com.lokhnathtechnical.notecounterpro/contacts"
+    private val UPDATE_CHANNEL = "com.lokhnathtechnical.notecounterpro/update"
     private val PICK_CONTACT_REQUEST = 1001
     private var pendingResult: MethodChannel.Result? = null
+    private var appUpdateManager: AppUpdateManager? = null
+    private val UPDATE_REQUEST_CODE = 2001
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        
+        // Contact picker channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CONTACT_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "pickContact" -> {
                     pendingResult = result
@@ -27,6 +37,67 @@ class MainActivity: FlutterFragmentActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+        
+        // In-app update channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPDATE_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "checkUpdate" -> {
+                    checkForUpdate(result)
+                }
+                "startUpdate" -> {
+                    startUpdate()
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun checkForUpdate(result: MethodChannel.Result) {
+        try {
+            if (appUpdateManager == null) {
+                appUpdateManager = AppUpdateManagerFactory.create(this)
+            }
+            
+            val appUpdateInfoTask = appUpdateManager!!.appUpdateInfo
+            appUpdateInfoTask.addOnSuccessListener { appUpdateInfo: AppUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
+                    result.success(mapOf(
+                        "updateAvailable" to true,
+                        "versionCode" to appUpdateInfo.availableVersionCode()
+                    ))
+                } else {
+                    result.success(mapOf("updateAvailable" to false))
+                }
+            }.addOnFailureListener { e ->
+                result.error("UPDATE_CHECK_FAILED", e.message, null)
+            }
+        } catch (e: Exception) {
+            result.error("UPDATE_ERROR", e.message, null)
+        }
+    }
+
+    private fun startUpdate() {
+        try {
+            if (appUpdateManager == null) {
+                appUpdateManager = AppUpdateManagerFactory.create(this)
+            }
+            
+            val appUpdateInfoTask = appUpdateManager!!.appUpdateInfo
+            appUpdateInfoTask.addOnSuccessListener { appUpdateInfo: AppUpdateInfo ->
+                if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)) {
+                    appUpdateManager!!.startUpdateFlowForResult(
+                        appUpdateInfo,
+                        AppUpdateType.FLEXIBLE,
+                        this,
+                        UPDATE_REQUEST_CODE
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            // Silent fail
         }
     }
 

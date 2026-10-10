@@ -15,7 +15,7 @@ import 'screens/bills_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
-import 'package:in_app_update/in_app_update.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -114,8 +114,9 @@ class _MainScaffoldState extends State<MainScaffold> {
   
   Future<void> _checkForUpdate() async {
     try {
-      final updateInfo = await InAppUpdate.checkForUpdate();
-      if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+      const platform = MethodChannel('com.lokhnathtechnical.notecounterpro/update');
+      final result = await platform.invokeMethod('checkUpdate');
+      if (result != null && result['updateAvailable'] == true) {
         if (mounted) {
           showDialog(
             context: context,
@@ -131,11 +132,7 @@ class _MainScaffoldState extends State<MainScaffold> {
                 FilledButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    InAppUpdate.startFlexibleUpdate().then((_) {
-                      InAppUpdate.completeFlexibleUpdate();
-                    }).catchError((e) {
-                      debugPrint('Update failed: $e');
-                    });
+                    platform.invokeMethod('startUpdate');
                   },
                   child: const Text('Update Now'),
                 ),

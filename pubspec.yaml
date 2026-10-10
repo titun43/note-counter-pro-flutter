@@ -39,9 +39,6 @@ dependencies:
   # Fingerprint/Biometric lock
   local_auth: ^2.1.8
 
-  # In-App Update
-  in_app_update: ^4.2.3
-
   # Splash screen
   flutter_native_splash: ^2.4.0
 
