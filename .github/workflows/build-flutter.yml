@@ -75,10 +75,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.3.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.3.2 (versionCode: 47)\n- Signing: Upload key (Play Store ready)\n- AdMob: 3.1.0 with namespace workaround\n\n## Complete Package\n- App Icon + Splash Screen\n- AdMob (stable 3.1.0, namespace workaround)\n- Note Counter, Calculator, Customers, Khata, Bills, Reports\n- UPI QR, CSV Export\n- Localization EN/BN/HI\n- Dark/Light theme')
-        gh release create v3.3.2-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.3.3 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.3.3 (versionCode: 48)\n- Signing: Upload key (Play Store ready)\n- AdMob: 3.1.0 with namespace workaround\n\n## Complete Package\n- App Icon + Splash Screen\n- AdMob (stable 3.1.0, lazy init)\n- Note Counter, Calculator, Customers, Khata, Bills, Reports\n- UPI QR, CSV Export\n- Localization EN/BN/HI\n- Dark/Light theme')
+        gh release create v3.3.3-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.3.2 (Flutter - Complete)" \
+          --title "Note Counter Pro v3.3.3 (Flutter - Complete)" \
           --notes "$NOTES" \
           --latest
