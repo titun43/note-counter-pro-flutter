@@ -24,7 +24,7 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
+        flutter-version: '3.27.0'
         channel: stable
         cache: true
 
@@ -49,10 +49,10 @@ jobs:
         echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
 
     - name: Build APK
-      run: flutter build apk --release --no-tree-shake-icons
+      run: flutter build apk --release --no-tree-shake-icons --target-platform android-arm,android-arm64,android-x64
 
     - name: Build AAB
-      run: flutter build appbundle --release --no-tree-shake-icons
+      run: flutter build appbundle --release --no-tree-shake-icons --target-platform android-arm,android-arm64,android-x64
 
     - name: Rename artifacts
       run: |
@@ -75,10 +75,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.5.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.5.1 (versionCode: 55)\n- Signing: Upload key (Play Store ready)\n\n## 🆕 Fixes in 3.5.1\n\n### 1. Calculator History Bug Fixed\n- Was showing closure text instead of result\n- _formatResult was not being called properly\n- Now shows clean: 5+3 = 8\n\n### 2. New Multi-Currency App Icon\n- Old icon had rupee symbol (wrong for multi-currency app)\n- New icon: stacked colored notes/bills design (gold, green, blue)\n- NCP text at bottom\n- Dark navy background matching app theme\n- No currency-specific symbol\n- All mipmap densities generated\n- Also updated splash screen logo\n\n## Features\n- Note Counter (note-style, collapsible, inline editable)\n- Calculator (history fixed, no title)\n- Customer Management, Khata, Bills, Reports\n- App Lock (Fingerprint/PIN)\n- UPI QR, CSV Export\n- Banner Ads + Interstitial Ads\n- Localization EN/BN/HI\n- Dark/Light theme\n- New Multi-Currency App Icon\n- Splash Screen\n- Signed AAB (Play Store ready)')
-        gh release create v3.5.1-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.5.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.5.2 (versionCode: 56)\n- Signing: Upload key (Play Store ready)\n- Target SDK: 36 (Android 16)\n- Compile SDK: 36\n- Flutter: 3.27.0 (16KB page size support)\n- 16KB memory page size: Supported\n\n## Play Store Fixes\n1. Target API level 34 -> 36 (required by Play Store)\n2. 16KB memory page size support (Flutter 3.27+)\n3. Updated compileSdk to 36')
+        gh release create v3.5.2-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.5.1 (Flutter - New Icon + History Fix)" \
+          --title "Note Counter Pro v3.5.2 (Flutter - Play Store Ready)" \
           --notes "$NOTES" \
           --latest
