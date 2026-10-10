@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-import '../utils/app_localizations.dart';
 
 class CalculatorScreen extends StatefulWidget {
   final double? initialValue;
@@ -20,6 +19,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   String _display = '0';
   String _expression = '';
   final List<String> _history = [];
+  bool _showHistory = false;
   
   String get _currencySymbol => AppConstants.getCurrencySymbol(widget.currencyCode);
   
@@ -45,8 +45,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       } else if (value == '=') {
         try {
           final result = _evaluate(_expression);
-          _history.insert(0, '$_expression = $result');
-          if (_history.length > 10) _history.removeLast();
+          _history.insert(0, '$_expression = $_formatResult(result)');
+          if (_history.length > 20) _history.removeLast();
           _display = _formatResult(result);
           _expression = _display;
         } catch (e) {
@@ -128,19 +128,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     return result;
   }
   
-  void _copyToClipboard() {
-    // In a full app, would use clipboard package
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Value: $_display'),
-        backgroundColor: AppColors.info,
-      ),
-    );
-  }
-  
   @override
   Widget build(BuildContext context) {
-    final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -153,137 +142,166 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     ];
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text(loc.t('calculator')),
-        actions: [
-          if (widget.initialValue != null)
-            IconButton(
-              icon: const Icon(Icons.content_copy),
-              onPressed: _copyToClipboard,
-              tooltip: 'Copy value',
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Initial value indicator
-          if (widget.initialValue != null && widget.initialValue! > 0)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: AppColors.info.withOpacity(0.2),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top bar: initial value + history button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.download, color: AppColors.info, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'From Counter: $_currencySymbol${widget.initialValue!.toStringAsFixed(2)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.info,
-                        fontWeight: FontWeight.bold,
+                  if (widget.initialValue != null && widget.initialValue! > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.info.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          
-          // History
-          if (_history.isNotEmpty)
-            Container(
-              height: 80,
-              padding: const EdgeInsets.all(8),
-              child: ListView.builder(
-                itemCount: _history.length > 3 ? 3 : _history.length,
-                itemBuilder: (context, index) {
-                  return Text(
-                    _history[index],
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.end,
-                  );
-                },
-              ),
-            ),
-          
-          // Display
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              alignment: Alignment.bottomRight,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (_expression.isNotEmpty && _expression != _display)
-                    Text(
-                      _expression,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        _currencySymbol,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _display,
-                        style: theme.textTheme.displayMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Buttons
-          for (final row in buttons)
-            Expanded(
-              child: Row(
-                children: [
-                  for (final btn in row)
-                    if (btn.isNotEmpty)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: FilledButton(
-                            onPressed: () => _onButtonPressed(btn),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: _getButtonColor(btn),
-                              foregroundColor: _getButtonTextColor(btn),
-                              padding: const EdgeInsets.all(16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.download, color: AppColors.info, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_currencySymbol${widget.initialValue!.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.info,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(
+                      _showHistory ? Icons.history_toggle_off : Icons.history,
+                      color: AppColors.info,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showHistory = !_showHistory;
+                      });
+                    },
+                    tooltip: 'History',
+                  ),
+                ],
+              ),
+            ),
+            
+            // History panel (collapsible)
+            if (_showHistory)
+              Container(
+                height: 120,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.bgCardDark : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                ),
+                child: _history.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No history yet',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _history.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
                             child: Text(
-                              btn,
-                              style: const TextStyle(fontSize: 24),
+                              _history[index],
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.end,
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            
+            // Display
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                alignment: Alignment.bottomRight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (_expression.isNotEmpty && _expression != _display)
+                      Text(
+                        _expression,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          _currencySymbol,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _display,
+                          style: theme.textTheme.displayMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Buttons
+            for (final row in buttons)
+              Expanded(
+                child: Row(
+                  children: [
+                    for (final btn in row)
+                      if (btn.isNotEmpty)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: FilledButton(
+                              onPressed: () => _onButtonPressed(btn),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _getButtonColor(btn),
+                                foregroundColor: _getButtonTextColor(btn),
+                                padding: const EdgeInsets.all(16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                btn,
+                                style: const TextStyle(fontSize: 24),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  if (row.last.isEmpty) const Spacer(),
-                ],
+                    if (row.last.isEmpty) const Spacer(),
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
