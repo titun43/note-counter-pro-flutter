@@ -419,30 +419,36 @@ class _KhataScreenState extends State<KhataScreen> {
         .fold(0.0, (sum, c) => sum + c.balance.abs());
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${loc.t('khata')} (Lend/Borrow)'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.people),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CustomersScreen()),
-              );
-            },
-            tooltip: loc.t('customers'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: _addCustomer,
-            tooltip: loc.t('addCustomer'),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Summary cards
-          Container(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top bar: add customer + view all customers (compact)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.people),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                      );
+                    },
+                    tooltip: loc.t('customers'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.person_add),
+                    onPressed: _addCustomer,
+                    tooltip: loc.t('addCustomer'),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Summary cards
+            Container(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
@@ -708,6 +714,7 @@ class _KhataScreenState extends State<KhataScreen> {
                   ),
           ),
         ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addCustomer,

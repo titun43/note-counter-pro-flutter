@@ -104,18 +104,20 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
     
     return Scaffold(
-      body: Column(
-        children: [
-          // Banner ad at top - shows on ALL pages
-          const BannerAdWidget(),
-          // Main content
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _screens,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Banner ad at top (after SafeArea for proper position)
+            const BannerAdWidget(),
+            // Main content
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
