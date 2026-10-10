@@ -109,7 +109,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(title: const Text(loc.t('upiQrCode'))),
+      appBar: AppBar(title: Text(loc.t('upiQrCode'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -157,7 +157,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             FilledButton.icon(
               onPressed: _generateQr,
               icon: const Icon(Icons.qr_code),
-              label: const Text(loc.t('generateQr')),
+              label: Text(loc.t('generateQr')),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.all(16),
               ),
@@ -212,7 +212,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
               FilledButton.icon(
                 onPressed: _openInUpiApp,
                 icon: const Icon(Icons.open_in_new),
-                label: const Text(loc.t('openInUpiApp')),
+                label: Text(loc.t('openInUpiApp')),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.all(16),
                   backgroundColor: AppColors.info,

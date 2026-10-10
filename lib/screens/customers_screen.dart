@@ -33,6 +33,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
   
   Future<void> _showAddCustomerDialog() async {
+    final loc = context.loc;
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final emailController = TextEditingController();
@@ -45,7 +46,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
           children: [
             Icon(Icons.person_add, color: AppColors.primary),
             const SizedBox(width: 8),
-            const Text(loc.t('addCustomer')),
+            Text('Add Customer'),
           ],
         ),
         content: SingleChildScrollView(
@@ -135,7 +136,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text(loc.t('customers')),
+        title: Text(loc.t('customers')),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add),
@@ -200,7 +201,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         FilledButton.icon(
                           onPressed: _showAddCustomerDialog,
                           icon: const Icon(Icons.person_add),
-                          label: const Text(loc.t('addFirstCustomer')),
+                          label: Text(loc.t('addFirstCustomer')),
                         ),
                       ],
                     ),
@@ -335,7 +336,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddCustomerDialog,
         icon: const Icon(Icons.person_add),
-        label: const Text(loc.t('addCustomer')),
+        label: Text(loc.t('addCustomer')),
       ),
     );
   }

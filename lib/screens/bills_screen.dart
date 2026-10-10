@@ -40,7 +40,7 @@ class _BillsScreenState extends State<BillsScreen> {
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(title: const Text(loc.t('bills'))),
+      appBar: AppBar(title: Text(loc.t('bills'))),
       body: Consumer<StorageService>(
         builder: (context, storage, child) {
           final bills = storage.bills;

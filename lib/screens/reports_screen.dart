@@ -25,7 +25,7 @@ class ReportsScreen extends StatelessWidget {
     final totalAllTime = entries.fold(0.0, (sum, e) => sum + e.amount);
     
     return Scaffold(
-      appBar: AppBar(title: const Text(loc.t('reports'))),
+      appBar: AppBar(title: Text(loc.t('reports'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

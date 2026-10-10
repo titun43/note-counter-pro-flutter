@@ -114,6 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
   
   Future<void> _showClearDataDialog() async {
+    final loc = context.loc;
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -124,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(loc.t('cancel')),
+            child: Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
@@ -148,21 +149,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final storage = context.watch<StorageService>();
     
     return Scaffold(
-      appBar: AppBar(title: const Text(loc.t('settings'))),
+      appBar: AppBar(title: Text(loc.t('settings'))),
       body: ListView(
         children: [
           // === APPEARANCE ===
           _sectionHeader(loc.t('appearance')),
           SwitchListTile(
             secondary: const Icon(Icons.dark_mode),
-            title: const Text(loc.t('darkMode')),
+            title: Text(loc.t('darkMode')),
             subtitle: const Text('Toggle dark theme'),
             value: storage.isDarkMode,
             onChanged: (value) => storage.setDarkMode(value),
           ),
           ListTile(
             leading: const Icon(Icons.vibration),
-            title: const Text(loc.t('hapticFeedback')),
+            title: Text(loc.t('hapticFeedback')),
             trailing: Switch(
               value: storage.hapticFeedback,
               onChanged: (value) => storage.setHapticFeedback(value),
@@ -173,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader(loc.t('language')),
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text(loc.t('appLanguage')),
+            title: Text(loc.t('appLanguage')),
             subtitle: Text(
               AppConstants.languages.firstWhere(
                 (l) => l['code'] == storage.languageCode,
@@ -188,7 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader(loc.t('quickActions')),
           ListTile(
             leading: const Icon(Icons.qr_code, color: AppColors.info),
-            title: const Text(loc.t('upiQrCode')),
+            title: Text(loc.t('upiQrCode')),
             subtitle: const Text('Generate payment QR'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
@@ -200,7 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.receipt_long, color: AppColors.info),
-            title: const Text(loc.t('bills')),
+            title: Text(loc.t('bills')),
             subtitle: const Text('Create and manage bills'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
@@ -212,7 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.bar_chart, color: AppColors.primary),
-            title: const Text(loc.t('reports')),
+            title: Text(loc.t('reports')),
             subtitle: const Text('View weekly, monthly, all-time stats'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
@@ -248,21 +249,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader(loc.t('rateShare')),
           ListTile(
             leading: const Icon(Icons.star, color: AppColors.primary),
-            title: const Text(loc.t('rateUs')),
+            title: Text(loc.t('rateUs')),
             subtitle: const Text('Rate on Play Store'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _rateApp,
           ),
           ListTile(
             leading: const Icon(Icons.share, color: AppColors.success),
-            title: const Text(loc.t('shareApp')),
+            title: Text(loc.t('shareApp')),
             subtitle: const Text('Share with friends'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _shareApp,
           ),
           ListTile(
             leading: const Icon(Icons.feedback, color: AppColors.info),
-            title: const Text(loc.t('sendFeedback')),
+            title: Text(loc.t('sendFeedback')),
             subtitle: const Text('Email us your suggestions'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _sendFeedback,
@@ -272,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader(loc.t('data')),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: AppColors.danger),
-            title: const Text(loc.t('clearAllData')),
+            title: Text(loc.t('clearAllData')),
             subtitle: const Text('Delete all entries, customers, bills'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _showClearDataDialog,
@@ -282,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader(loc.t('about')),
           ListTile(
             leading: const Icon(Icons.info, color: AppColors.info),
-            title: const Text(loc.t('appInfo')),
+            title: Text(loc.t('appInfo')),
             subtitle: Text(
               _packageInfo != null
                   ? '${_packageInfo!.appName} v${_packageInfo!.version} (build ${_packageInfo!.buildNumber})'
@@ -296,7 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.privacy_tip, color: AppColors.textSecondary),
-            title: const Text(loc.t('privacyPolicy')),
+            title: Text(loc.t('privacyPolicy')),
             trailing: const Icon(Icons.open_in_new),
             onTap: _openPrivacyPolicy,
           ),

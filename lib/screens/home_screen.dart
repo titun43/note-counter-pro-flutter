@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCurrency = 'INR';
   final Map<int, TextEditingController> _countControllers = {};
-  String _transactionType = loc.t('payable');
+  String _transactionType = 'Payable';
   final TextEditingController _targetAmountController = TextEditingController();
   final TextEditingController _otherAmountController = TextEditingController();
   final TextEditingController _onlineAmountController = TextEditingController();
@@ -225,8 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final loc = context.loc;
-    
+        
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -407,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                   icon: const Icon(Icons.expand_more, size: 20),
-                  label: const Text(loc.t('more')),
+                  label: Text(loc.t('more')),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
@@ -726,7 +725,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: FilledButton.icon(
                     onPressed: () => _saveEntry(true),
                     icon: const Icon(Icons.south, size: 18),
-                    label: const Text(loc.t('saveIn'), style: TextStyle(fontSize: 13)),
+                    label: Text(loc.t('saveIn'), style: TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.success,
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -754,7 +753,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: FilledButton.icon(
                     onPressed: () => _saveEntry(false),
                     icon: const Icon(Icons.north, size: 18),
-                    label: const Text(loc.t('saveOut'), style: TextStyle(fontSize: 13)),
+                    label: Text(loc.t('saveOut'), style: TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.danger,
                       padding: const EdgeInsets.symmetric(vertical: 12),

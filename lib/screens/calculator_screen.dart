@@ -154,7 +154,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text(loc.t('calculator')),
+        title: Text(loc.t('calculator')),
         actions: [
           if (widget.initialValue != null)
             IconButton(

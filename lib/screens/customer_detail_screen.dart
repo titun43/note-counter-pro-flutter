@@ -36,6 +36,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   }
   
   Future<void> _addTransaction(bool isCredit) async {
+    final loc = context.loc;
     final amountController = TextEditingController();
     final notesController = TextEditingController();
     
@@ -70,14 +71,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(loc.t('cancel')),
+            child: Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () {
               if (amountController.text.trim().isEmpty) return;
               Navigator.pop(context, true);
             },
-            child: const Text(loc.t('save')),
+            child: Text(loc.t('save')),
           ),
         ],
       ),
@@ -155,6 +156,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   }
   
   Future<void> _editEntry(Entry entry) async {
+    final loc = context.loc;
     final amountController = TextEditingController(text: entry.amount.toString());
     final notesController = TextEditingController(text: entry.notes ?? '');
     final isCredit = entry.category == 'credit';
@@ -204,14 +206,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(loc.t('cancel')),
+            child: Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () {
               if (amountController.text.trim().isEmpty) return;
               Navigator.pop(context, true);
             },
-            child: const Text(loc.t('save')),
+            child: Text(loc.t('save')),
           ),
         ],
       ),
@@ -265,6 +267,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   }
   
   Future<void> _deleteEntry(Entry entry) async {
+    final loc = context.loc;
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -279,7 +282,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(loc.t('cancel')),
+            child: Text(loc.t('cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
@@ -387,7 +390,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          const Text(loc.t('totalCredit')),
+                          Text(loc.t('totalCredit')),
                           const SizedBox(height: 4),
                           Text(
                             '₹${_customer!.totalCredit.toStringAsFixed(2)}',
@@ -407,7 +410,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          const Text(loc.t('totalDebit')),
+                          Text(loc.t('totalDebit')),
                           const SizedBox(height: 4),
                           Text(
                             '₹${_customer!.totalDebit.toStringAsFixed(2)}',

@@ -27,7 +27,7 @@ class _KhataScreenState extends State<KhataScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              loc.t('addCustomer'),
+              'Add Customer',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -62,6 +62,7 @@ class _KhataScreenState extends State<KhataScreen> {
   }
   
   Future<void> _pickFromContacts() async {
+    final loc = context.loc;
     try {
       final contact = await ContactPickerService.pickContact();
       
@@ -78,8 +79,7 @@ class _KhataScreenState extends State<KhataScreen> {
           await storage.addCustomer(customer);
           
           if (mounted) {
-            final loc = context.loc;
-            ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('${loc.t('saved')} $name'),
                 backgroundColor: AppColors.success,
@@ -311,7 +311,7 @@ class _KhataScreenState extends State<KhataScreen> {
           children: [
             Icon(Icons.person_add, color: AppColors.primary),
             const SizedBox(width: 8),
-            Text(loc.t('addCustomer')),
+            Text('Add Customer'),
           ],
         ),
         content: SingleChildScrollView(
@@ -407,7 +407,6 @@ class _KhataScreenState extends State<KhataScreen> {
     final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final loc = context.loc;
     final storage = context.watch<StorageService>();
     final customers = storage.customers.where((c) => c.balance != 0).toList();
     
