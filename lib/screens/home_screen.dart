@@ -6,6 +6,7 @@ import '../services/admob_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/entry.dart';
+import '../widgets/note_widget.dart';
 import 'calculator_screen.dart';
 import 'upi_qr_screen.dart';
 
@@ -603,7 +604,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 final denom = _denominations[index];
                 final value = denom['value'] as int;
                 final name = denom['name'] as String;
-                final color = Color(denom['color'] as int);
                 final count = _getCount(value);
                 final subtotal = value * count;
                 
@@ -619,30 +619,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     child: Row(
                       children: [
-                        // Denomination button (colored)
-                        Container(
-                          width: 72,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(
-                                color: color.withOpacity(0.4),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            name,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
+                        // Note widget (looks like real currency note)
+                        NoteWidget(
+                          value: value,
+                          currencyCode: _selectedCurrency,
+                          currencySymbol: _currencySymbol,
+                          size: 64,
                         ),
                         const SizedBox(width: 8),
                         // Minus button

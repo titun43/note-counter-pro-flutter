@@ -75,6 +75,20 @@ class MainScaffold extends StatefulWidget {
 
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
+  int _pageChangeCount = 0; // For interstitial ad timing
+  
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    
+    // Show interstitial every 3 page changes
+    _pageChangeCount++;
+    if (_pageChangeCount >= 3) {
+      _pageChangeCount = 0;
+      AdMobService.showInterstitial();
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -105,11 +119,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onDestinationSelected: _onPageChanged,
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.calculate_outlined),

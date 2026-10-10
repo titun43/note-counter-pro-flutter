@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../services/admob_service.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -61,6 +62,9 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
     setState(() {
       _upiUrl = url;
     });
+    
+    // Show interstitial ad after QR generation
+    AdMobService.showInterstitial();
   }
   
   Future<void> _shareQr() async {
