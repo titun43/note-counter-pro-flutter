@@ -75,10 +75,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.3.3 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.3.3 (versionCode: 48)\n- Signing: Upload key (Play Store ready)\n- AdMob: 3.1.0 with namespace workaround\n\n## Complete Package\n- App Icon + Splash Screen\n- AdMob (stable 3.1.0, lazy init)\n- Note Counter, Calculator, Customers, Khata, Bills, Reports\n- UPI QR, CSV Export\n- Localization EN/BN/HI\n- Dark/Light theme')
-        gh release create v3.3.3-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.3.4 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.3.4 (versionCode: 49)\n- Signing: Upload key (Play Store ready)\n\n## 🆕 Fixes in 3.3.4\n\n### 1. Banner Ads Now Display\n- Created BannerAdWidget that shows ads on Home screen\n- Widget loads ad independently with retry logic\n- Ad appears at bottom of counter screen\n- If AdMob not ready, retries every 2 seconds\n\n### 2. Language List Cleaned\n- Removed: Assamese, Kannada, Malayalam, Marathi, Punjabi\n- Kept only: English, Bengali (বাংলা), Hindi (हिंदी)\n- These 3 have full translations\n- No more broken language switching\n\n### 3. Splash Screen Fixed\n- Better color: #1A1A2E (matching app theme)\n- Added fullscreen mode\n- Added color_dark for dark theme\n- Logo properly centered\n\n## Features\n- App Icon + Splash Screen\n- AdMob (banner ads on Home screen)\n- Note Counter, Calculator, Customers, Khata, Bills, Reports\n- UPI QR, CSV Export\n- Localization EN/BN/HI (only 3)\n- Dark/Light theme\n- Signed AAB (Play Store ready)')
+        gh release create v3.3.4-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.3.3 (Flutter - Complete)" \
+          --title "Note Counter Pro v3.3.4 (Flutter - Ads + Language + Splash)" \
           --notes "$NOTES" \
           --latest

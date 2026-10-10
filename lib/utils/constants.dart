@@ -165,16 +165,11 @@ class AppConstants {
     {'value': 1, 'name': '₹1', 'color': 0xFFF59E0B},
   ];
   
-  // Languages
+  // Languages (only these 3 are supported with full translations)
   static const List<Map<String, String>> languages = [
     {'code': 'en', 'name': 'English'},
-    {'code': 'bn', 'name': 'Bengali'},
-    {'code': 'hi', 'name': 'Hindi'},
-    {'code': 'as', 'name': 'Assamese'},
-    {'code': 'kn', 'name': 'Kannada'},
-    {'code': 'ml', 'name': 'Malayalam'},
-    {'code': 'mr', 'name': 'Marathi'},
-    {'code': 'pa', 'name': 'Punjabi'},
+    {'code': 'bn', 'name': 'বাংলা (Bengali)'},
+    {'code': 'hi', 'name': 'हिंदी (Hindi)'},
   ];
 }
 

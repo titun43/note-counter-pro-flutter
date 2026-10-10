@@ -5,6 +5,7 @@ import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/entry.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'calculator_screen.dart';
 import 'upi_qr_screen.dart';
 
@@ -822,6 +823,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          
+          // === BANNER AD ===
+          const BannerAdWidget(),
         ],
         ),
       ),
