@@ -31,6 +31,9 @@ jobs:
     - name: Get dependencies
       run: flutter pub get
 
+    - name: Generate splash screen
+      run: dart run flutter_native_splash:create
+
     - name: Analyze code
       run: flutter analyze || true
 
@@ -72,10 +75,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.2.3 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Package: com.lokhnathtechnical.notecounterpro\n- Version: 3.2.3 (versionCode: 44)\n- Signing: Upload key (Play Store ready)\n\n## 🆕 Fix in 3.2.3\n\n### AdMob Completely Removed (Stability Fix)\n- User reported: app opens but closes after some time (crash)\n- Root cause: google_mobile_ads native initialization crash\n- Even with lazy init (2s delay), AdMob native code crashes the app\n- try-catch in Dart cannot catch native crashes\n\n- Fix: Completely removed AdMob:\n  - Removed google_mobile_ads from pubspec.yaml\n  - Removed AdMob meta-data from AndroidManifest.xml\n  - Removed play-services-ads from build.gradle\n  - AdMobService is now a no-op stub\n  - App runs 100%% stable, no crashes\n\n- AdMob will be re-added in a future version using a different approach:\n  Option A: Use a web-based ad via WebView (no native SDK)\n  Option B: Use a different ad plugin (facebook_audience_network)\n  Option C: Wait for google_mobile_ads to fix the crash issue\n\n## Features (all stable)\n- Note Counter (collapsible fields, inline editable, localized)\n- Calculator (bottom nav, correct currency, localized)\n- Customer Management (premium UI, contacts, edit/delete)\n- Khata (premium UI, add customer, edit/delete, localized)\n- Bills, Reports, UPI QR, CSV Export (all localized)\n- Settings (language EN/BN/HI, theme)\n- Dark/Light theme\n- Signed AAB (Play Store ready)')
-        gh release create v3.2.3-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.3.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Package: com.lokhnathtechnical.notecounterpro\n- Version: 3.3.0 (versionCode: 45)\n- Signing: Upload key (Play Store ready)\n\n## 🆕 Features in 3.3.0\n\n### 1. App Icon\n- Copied original app icon from old Capacitor repo\n- All density mipmap icons (mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi)\n- Adaptive icon for Android 8+ (anydpi-v26)\n- Round icon support\n- Same icon as Play Store listing\n\n### 2. Splash Screen with Logo\n- Flutter native splash screen generated\n- Shows app logo on dark background (#0a0a1a)\n- Logo appears instantly when app starts\n- Smooth transition to app\n- Android 12+ splash API support\n\n### 3. App Stability (No Crash)\n- AdMob completely removed (was causing native crash)\n- App runs 100%% stable\n- No background services that can crash\n\n## Features (all stable)\n- Note Counter (collapsible fields, inline editable, localized)\n- Calculator (bottom nav, correct currency, localized)\n- Customer Management (premium UI, contacts, edit/delete)\n- Khata (premium UI, add customer, edit/delete, localized)\n- Bills, Reports, UPI QR, CSV Export (all localized)\n- Settings (language EN/BN/HI, theme)\n- Dark/Light theme\n- App Icon + Splash Screen\n- Signed AAB (Play Store ready)')
+        gh release create v3.3.0-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.2.3 (Flutter - Stable, No Crash)" \
+          --title "Note Counter Pro v3.3.0 (Flutter - App Icon + Splash)" \
           --notes "$NOTES" \
           --latest
