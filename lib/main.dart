@@ -6,6 +6,7 @@ import 'services/storage_service.dart';
 import 'services/admob_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
+import 'widgets/banner_ad_widget.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/customers_screen.dart';
@@ -89,9 +90,18 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
     
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Column(
+        children: [
+          // Banner ad at top - shows on ALL pages
+          const BannerAdWidget(),
+          // Main content
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
