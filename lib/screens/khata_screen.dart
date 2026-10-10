@@ -404,6 +404,7 @@ class _KhataScreenState extends State<KhataScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final loc = context.loc;

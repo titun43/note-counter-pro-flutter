@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     final storage = context.read<StorageService>();
     final entries = storage.entries;
@@ -23,13 +25,13 @@ class ReportsScreen extends StatelessWidget {
     final totalAllTime = entries.fold(0.0, (sum, e) => sum + e.amount);
     
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
+      appBar: AppBar(title: const Text(loc.t('reports'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildReportCard(
             context,
-            title: 'This Week',
+            title: loc.t('thisWeek'),
             amount: totalThisWeek,
             count: thisWeek.length,
             color: AppColors.info,
@@ -38,7 +40,7 @@ class ReportsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _buildReportCard(
             context,
-            title: 'This Month',
+            title: loc.t('thisMonth'),
             amount: totalThisMonth,
             count: thisMonth.length,
             color: AppColors.primary,
@@ -47,7 +49,7 @@ class ReportsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _buildReportCard(
             context,
-            title: 'All Time',
+            title: loc.t('allTime'),
             amount: totalAllTime,
             count: entries.length,
             color: AppColors.success,
@@ -55,7 +57,7 @@ class ReportsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Recent Transactions',
+            loc.t('recentTransactions'),
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -67,7 +69,7 @@ class ReportsScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Center(
                   child: Text(
-                    'No transactions yet',
+                    loc.t('noTransactions'),
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: AppColors.textSecondary,
                     ),

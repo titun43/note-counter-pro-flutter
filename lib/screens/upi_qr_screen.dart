@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class UpiQrScreen extends StatefulWidget {
   const UpiQrScreen({super.key});
@@ -104,10 +105,11 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(title: const Text('UPI QR Code')),
+      appBar: AppBar(title: const Text(loc.t('upiQrCode'))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -127,7 +129,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
-                labelText: 'Payee Name',
+                labelText: loc.t('payeeName'),
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.person),
               ),
@@ -155,7 +157,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             FilledButton.icon(
               onPressed: _generateQr,
               icon: const Icon(Icons.qr_code),
-              label: const Text('Generate QR Code'),
+              label: const Text(loc.t('generateQr')),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.all(16),
               ),
@@ -210,7 +212,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
               FilledButton.icon(
                 onPressed: _openInUpiApp,
                 icon: const Icon(Icons.open_in_new),
-                label: const Text('Open in UPI App'),
+                label: const Text(loc.t('openInUpiApp')),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.all(16),
                   backgroundColor: AppColors.info,

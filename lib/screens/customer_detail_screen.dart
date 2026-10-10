@@ -4,6 +4,7 @@ import '../services/storage_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final String customerId;
@@ -41,7 +42,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isCredit ? 'Add Credit (Give)' : 'Add Debit (Take)'),
+        title: Text(isCredit ? loc.t('addCredit') : loc.t('addDebit')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -59,7 +60,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             TextField(
               controller: notesController,
               decoration: const InputDecoration(
-                labelText: 'Notes',
+                labelText: loc.t('notes_field'),
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
@@ -69,14 +70,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () {
               if (amountController.text.trim().isEmpty) return;
               Navigator.pop(context, true);
             },
-            child: const Text('Save'),
+            child: const Text(loc.t('save')),
           ),
         ],
       ),
@@ -193,7 +194,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             TextField(
               controller: notesController,
               decoration: const InputDecoration(
-                labelText: 'Notes',
+                labelText: loc.t('notes_field'),
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
@@ -203,14 +204,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () {
               if (amountController.text.trim().isEmpty) return;
               Navigator.pop(context, true);
             },
-            child: const Text('Save'),
+            child: const Text(loc.t('save')),
           ),
         ],
       ),
@@ -278,7 +279,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text(loc.t('cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
@@ -321,6 +322,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     
     if (_customer == null) {
@@ -350,7 +352,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             child: Column(
               children: [
                 Text(
-                  'Balance',
+                  loc.t('balance'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white.withOpacity(0.9),
                   ),
@@ -385,7 +387,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          const Text('Total Credit'),
+                          const Text(loc.t('totalCredit')),
                           const SizedBox(height: 4),
                           Text(
                             '₹${_customer!.totalCredit.toStringAsFixed(2)}',
@@ -405,7 +407,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          const Text('Total Debit'),
+                          const Text(loc.t('totalDebit')),
                           const SizedBox(height: 4),
                           Text(
                             '₹${_customer!.totalDebit.toStringAsFixed(2)}',
@@ -428,7 +430,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             child: entries.isEmpty
                 ? Center(
                     child: Text(
-                      'No transactions yet',
+                      loc.t('noTransactions'),
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: AppColors.textSecondary,
                       ),

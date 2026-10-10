@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class CalculatorScreen extends StatefulWidget {
   final double? initialValue;
@@ -139,6 +140,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -152,7 +154,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calculator'),
+        title: const Text(loc.t('calculator')),
         actions: [
           if (widget.initialValue != null)
             IconButton(

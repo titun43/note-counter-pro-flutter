@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/storage_service.dart';
+import 'services/admob_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'screens/home_screen.dart';
@@ -20,8 +21,14 @@ void main() async {
   try {
     prefs = await SharedPreferences.getInstance();
   } catch (e) {
-    // Fallback: create app with empty prefs
     debugPrint('SharedPreferences init failed: $e');
+  }
+  
+  // Initialize AdMob safely (won't crash if it fails)
+  try {
+    await AdMobService.initialize();
+  } catch (e) {
+    debugPrint('AdMob init failed: $e');
   }
   
   runApp(

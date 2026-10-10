@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 import '../models/entry.dart';
 import 'calculator_screen.dart';
 import 'upi_qr_screen.dart';
@@ -17,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCurrency = 'INR';
   final Map<int, TextEditingController> _countControllers = {};
-  String _transactionType = 'Payable';
+  String _transactionType = loc.t('payable');
   final TextEditingController _targetAmountController = TextEditingController();
   final TextEditingController _otherAmountController = TextEditingController();
   final TextEditingController _onlineAmountController = TextEditingController();
@@ -221,8 +222,10 @@ class _HomeScreenState extends State<HomeScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = context.loc;
     
     return Scaffold(
       body: SafeArea(
@@ -276,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Text(
-                        'Notes',
+                        loc.t('notes'),
                         style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                       ),
                     ],
@@ -311,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Text(
-                        'Total',
+                        loc.t('total'),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.bgDark,
                           fontSize: 10,
@@ -331,26 +334,26 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _transactionType = 'Payable'),
+                    onTap: () => setState(() => _transactionType = loc.t('payable')),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: _transactionType == 'Payable'
+                        color: _transactionType == loc.t('payable')
                             ? AppColors.danger.withOpacity(0.2)
                             : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
                         borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
                         border: Border.all(
-                          color: _transactionType == 'Payable'
+                          color: _transactionType == loc.t('payable')
                               ? AppColors.danger
                               : AppColors.textSecondary,
                         ),
                       ),
                       child: Text(
-                        'Payable',
+                        loc.t('payable'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _transactionType == 'Payable'
+                          color: _transactionType == loc.t('payable')
                               ? AppColors.danger
                               : AppColors.textSecondary,
                         ),
@@ -360,26 +363,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _transactionType = 'Receivable'),
+                    onTap: () => setState(() => _transactionType = loc.t('receivable')),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: _transactionType == 'Receivable'
+                        color: _transactionType == loc.t('receivable')
                             ? AppColors.success.withOpacity(0.2)
                             : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
                         borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
                         border: Border.all(
-                          color: _transactionType == 'Receivable'
+                          color: _transactionType == loc.t('receivable')
                               ? AppColors.success
                               : AppColors.textSecondary,
                         ),
                       ),
                       child: Text(
-                        'Receivable',
+                        loc.t('receivable'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _transactionType == 'Receivable'
+                          color: _transactionType == loc.t('receivable')
                               ? AppColors.success
                               : AppColors.textSecondary,
                         ),
@@ -404,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                   icon: const Icon(Icons.expand_more, size: 20),
-                  label: const Text('More (Target / Other / Online)'),
+                  label: const Text(loc.t('more')),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
@@ -424,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TextField(
                       controller: _targetAmountController,
                       decoration: InputDecoration(
-                        labelText: 'Target Amount',
+                        labelText: loc.t('targetAmount'),
                         prefixText: '$_currencySymbol ',
                         border: const OutlineInputBorder(),
                         isDense: true,
@@ -540,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TextField(
                       controller: _otherAmountController,
                       decoration: InputDecoration(
-                        labelText: 'Other Amount',
+                        labelText: loc.t('otherAmount'),
                         prefixText: '$_currencySymbol ',
                         border: const OutlineInputBorder(),
                         isDense: true,
@@ -564,7 +567,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TextField(
                       controller: _onlineAmountController,
                       decoration: InputDecoration(
-                        labelText: 'Online Amount',
+                        labelText: loc.t('onlineAmount'),
                         prefixText: '$_currencySymbol ',
                         border: const OutlineInputBorder(),
                         isDense: true,
@@ -723,7 +726,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: FilledButton.icon(
                     onPressed: () => _saveEntry(true),
                     icon: const Icon(Icons.south, size: 18),
-                    label: const Text('Save In', style: TextStyle(fontSize: 13)),
+                    label: const Text(loc.t('saveIn'), style: TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.success,
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -751,7 +754,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: FilledButton.icon(
                     onPressed: () => _saveEntry(false),
                     icon: const Icon(Icons.north, size: 18),
-                    label: const Text('Save Out', style: TextStyle(fontSize: 13)),
+                    label: const Text(loc.t('saveOut'), style: TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.danger,
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -772,7 +775,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Expanded(
                       child: _summaryBox(
-                        'CASH TOTAL',
+                        loc.t('cashTotal'),
                         '$_currencySymbol${_cashTotal.toStringAsFixed(2)}',
                         Colors.amber[100]!,
                         isDark,
@@ -781,7 +784,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: _summaryBox(
-                        'OTHER',
+                        loc.t('other'),
                         '$_currencySymbol${_otherAmount.toStringAsFixed(2)}',
                         Colors.cyan[100]!,
                         isDark,
@@ -790,7 +793,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: _summaryBox(
-                        'ONLINE',
+                        loc.t('online'),
                         '$_currencySymbol${_onlineAmount.toStringAsFixed(2)}',
                         Colors.purple[100]!,
                         isDark,
@@ -803,7 +806,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'GRAND TOTAL',
+                      loc.t('grandTotal'),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),

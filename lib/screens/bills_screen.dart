@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class BillsScreen extends StatefulWidget {
   const BillsScreen({super.key});
@@ -35,10 +36,11 @@ class _BillsScreenState extends State<BillsScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(title: const Text('Bills')),
+      appBar: AppBar(title: const Text(loc.t('bills'))),
       body: Consumer<StorageService>(
         builder: (context, storage, child) {
           final bills = storage.bills;
@@ -55,7 +57,7 @@ class _BillsScreenState extends State<BillsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No bills yet',
+                    loc.t('noBills'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: AppColors.textSecondary,
                     ),

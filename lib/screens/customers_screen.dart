@@ -4,6 +4,7 @@ import '../services/storage_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';
 import 'customer_detail_screen.dart';
+import '../utils/app_localizations.dart';
 
 class CustomersScreen extends StatefulWidget {
   const CustomersScreen({super.key});
@@ -44,7 +45,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
           children: [
             Icon(Icons.person_add, color: AppColors.primary),
             const SizedBox(width: 8),
-            const Text('Add Customer'),
+            const Text(loc.t('addCustomer')),
           ],
         ),
         content: SingleChildScrollView(
@@ -128,17 +129,18 @@ class _CustomersScreenState extends State<CustomersScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final loc = context.loc;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customers'),
+        title: const Text(loc.t('customers')),
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add),
             onPressed: _showAddCustomerDialog,
-            tooltip: 'Add Customer',
+            tooltip: loc.t('addCustomer'),
           ),
         ],
       ),
@@ -150,7 +152,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search customers...',
+                hintText: loc.t('searchCustomers'),
                 prefixIcon: const Icon(Icons.search),
                 border: const OutlineInputBorder(),
                 filled: true,
@@ -189,7 +191,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No customers yet',
+                          loc.t('noCustomers'),
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -198,7 +200,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         FilledButton.icon(
                           onPressed: _showAddCustomerDialog,
                           icon: const Icon(Icons.person_add),
-                          label: const Text('Add First Customer'),
+                          label: const Text(loc.t('addFirstCustomer')),
                         ),
                       ],
                     ),
@@ -333,7 +335,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddCustomerDialog,
         icon: const Icon(Icons.person_add),
-        label: const Text('Add Customer'),
+        label: const Text(loc.t('addCustomer')),
       ),
     );
   }
