@@ -114,6 +114,211 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     notesController.dispose();
   }
   
+  Future<void> _showEntryOptions(Entry entry) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '₹${entry.amount.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.edit, color: AppColors.info),
+              title: const Text('Edit'),
+              onTap: () => Navigator.pop(context, 'edit'),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.delete, color: AppColors.danger),
+              title: const Text('Delete'),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+    
+    if (action == 'edit') {
+      await _editEntry(entry);
+    } else if (action == 'delete') {
+      await _deleteEntry(entry);
+    }
+  }
+  
+  Future<void> _editEntry(Entry entry) async {
+    final amountController = TextEditingController(text: entry.amount.toString());
+    final notesController = TextEditingController(text: entry.notes ?? '');
+    final isCredit = entry.category == 'credit';
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.edit, color: AppColors.info),
+            const SizedBox(width: 8),
+            const Text('Edit Transaction'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isCredit ? 'Credit (Given)' : 'Debit (Taken)',
+              style: TextStyle(
+                color: isCredit ? AppColors.success : AppColors.danger,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountController,
+              decoration: const InputDecoration(
+                labelText: 'Amount *',
+                prefixText: '₹ ',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (amountController.text.trim().isEmpty) return;
+              Navigator.pop(context, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true && _customer != null) {
+      final newAmount = double.parse(amountController.text.trim());
+      final oldAmount = entry.amount;
+      final storage = context.read<StorageService>();
+      
+      // Update customer totals
+      if (isCredit) {
+        _customer!.totalCredit = _customer!.totalCredit - oldAmount + newAmount;
+      } else {
+        _customer!.totalDebit = _customer!.totalDebit - oldAmount + newAmount;
+      }
+      await storage.updateCustomer(_customer!);
+      
+      // Update entry
+      final updatedEntry = Entry(
+        id: entry.id,
+        date: entry.date,
+        type: entry.type,
+        amount: newAmount,
+        currency: entry.currency,
+        customerId: entry.customerId,
+        customerName: entry.customerName,
+        notes: notesController.text.trim(),
+        denominationCounts: entry.denominationCounts,
+        category: entry.category,
+        createdAt: entry.createdAt,
+      );
+      await storage.updateEntry(updatedEntry);
+      
+      setState(() {
+        _customer = storage.getCustomer(widget.customerId);
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transaction updated'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+    
+    amountController.dispose();
+    notesController.dispose();
+  }
+  
+  Future<void> _deleteEntry(Entry entry) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.delete, color: AppColors.danger),
+            const SizedBox(width: 8),
+            const Text('Delete Transaction'),
+          ],
+        ),
+        content: Text('Delete transaction of ₹${entry.amount.toStringAsFixed(2)}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true && _customer != null) {
+      final storage = context.read<StorageService>();
+      final isCredit = entry.category == 'credit';
+      
+      // Update customer totals
+      if (isCredit) {
+        _customer!.totalCredit -= entry.amount;
+      } else {
+        _customer!.totalDebit -= entry.amount;
+      }
+      await storage.updateCustomer(_customer!);
+      
+      // Delete entry
+      await storage.deleteEntry(entry.id);
+      
+      setState(() {
+        _customer = storage.getCustomer(widget.customerId);
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Transaction deleted'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -267,6 +472,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                               ),
                             ],
                           ),
+                          onLongPress: () => _showEntryOptions(entry),
                         ),
                       );
                     },

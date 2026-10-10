@@ -100,6 +100,203 @@ class _KhataScreenState extends State<KhataScreen> {
     }
   }
   
+  Future<void> _showCustomerOptions(Customer customer) async {
+    final loc = context.loc;
+    
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              customer.name,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.edit, color: AppColors.info),
+              title: Text(loc.t('edit')),
+              onTap: () => Navigator.pop(context, 'edit'),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.delete, color: AppColors.danger),
+              title: Text(loc.t('delete')),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+    
+    if (action == 'edit') {
+      await _editCustomer(customer);
+    } else if (action == 'delete') {
+      await _deleteCustomer(customer);
+    }
+  }
+  
+  Future<void> _editCustomer(Customer customer) async {
+    final loc = context.loc;
+    final nameController = TextEditingController(text: customer.name);
+    final phoneController = TextEditingController(text: customer.phone ?? '');
+    final emailController = TextEditingController(text: customer.email ?? '');
+    final addressController = TextEditingController(text: customer.address ?? '');
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.edit, color: AppColors.info),
+            const SizedBox(width: 8),
+            Text(loc.t('edit')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: '${loc.t('name')} *',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: InputDecoration(
+                  labelText: loc.t('phone'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: loc.t('email'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: InputDecoration(
+                  labelText: loc.t('address'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.location_on),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(loc.t('cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty) return;
+              Navigator.pop(context, true);
+            },
+            child: Text(loc.t('save')),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true) {
+      final storage = context.read<StorageService>();
+      final updated = customer.copyWith(
+        name: nameController.text.trim(),
+        phone: phoneController.text.trim(),
+        email: emailController.text.trim(),
+        address: addressController.text.trim(),
+        updatedAt: DateTime.now(),
+      );
+      await storage.updateCustomer(updated);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.t('saved')} ${nameController.text}'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    }
+    
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    addressController.dispose();
+  }
+  
+  Future<void> _deleteCustomer(Customer customer) async {
+    final loc = context.loc;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.delete, color: AppColors.danger),
+            const SizedBox(width: 8),
+            Text(loc.t('delete')),
+          ],
+        ),
+        content: Text('Delete "${customer.name}"? This will also delete all related transactions.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(loc.t('cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(loc.t('delete')),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == true) {
+      final storage = context.read<StorageService>();
+      
+      // Delete all entries related to this customer
+      final customerEntries = storage.entries.where((e) => e.customerId == customer.id).toList();
+      for (final entry in customerEntries) {
+        await storage.deleteEntry(entry.id);
+      }
+      
+      // Delete the customer
+      await storage.deleteCustomer(customer.id);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${customer.name} ${loc.t('delete')}'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+  
   Future<void> _manualAdd() async {
     final loc = context.loc;
     final nameController = TextEditingController();
@@ -450,6 +647,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               ),
                             );
                           },
+                          onLongPress: () => _showCustomerOptions(customer),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Row(
