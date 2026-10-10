@@ -35,9 +35,11 @@ jobs:
       run: flutter analyze || true
 
     - name: Set up signing (if keystore secret available)
-      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      if: env.KEYSTORE_BASE64 != ''
       run: |
-        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/note-counter-pro.keystore
+        echo "$KEYSTORE_BASE64" | base64 --decode > android/app/note-counter-pro.keystore
         echo "storeFile=note-counter-pro.keystore" > android/key.properties
         echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
         echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
