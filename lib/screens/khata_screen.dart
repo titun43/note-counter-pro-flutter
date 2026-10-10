@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:contact_picker/contact_picker.dart';
+import 'package:fluttercontactpicker/fluttercontactpicker.dart';
 import '../services/storage_service.dart';
 import '../models/customer.dart';
 import '../utils/constants.dart';
@@ -15,7 +15,6 @@ class KhataScreen extends StatefulWidget {
 }
 
 class _KhataScreenState extends State<KhataScreen> {
-  final ContactPicker _contactPicker = ContactPicker();
   Future<void> _addCustomer() async {
     final loc = context.loc;
     
@@ -63,11 +62,11 @@ class _KhataScreenState extends State<KhataScreen> {
   
   Future<void> _pickFromContacts() async {
     try {
-      final contact = await _contactPicker.selectContact();
+      final result = await FlutterContactPicker.pickPhoneContact();
       
-      if (contact != null) {
-        final name = contact.fullName ?? '';
-        final phone = contact.phoneNumber?.number ?? '';
+      if (result != null) {
+        final name = result.fullName ?? '';
+        final phone = result.phoneNumber?.number ?? '';
         
         if (name.isNotEmpty) {
           final storage = context.read<StorageService>();
