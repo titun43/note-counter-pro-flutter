@@ -15,6 +15,7 @@ import 'screens/bills_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +105,49 @@ class MainScaffold extends StatefulWidget {
 class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
   int _pageChangeCount = 0; // For interstitial ad timing
+  
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdate();
+  }
+  
+  Future<void> _checkForUpdate() async {
+    try {
+      final updateInfo = await InAppUpdate.checkForUpdate();
+      if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text('Update Available'),
+              content: const Text('A new version of Note Counter Pro is available. Please update for the best experience.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Later'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    InAppUpdate.startFlexibleUpdate().then((_) {
+                      InAppUpdate.completeFlexibleUpdate();
+                    }).catchError((e) {
+                      debugPrint('Update failed: $e');
+                    });
+                  },
+                  child: const Text('Update Now'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('In-app update check failed: $e');
+    }
+  }
   
   void _onPageChanged(int index) {
     setState(() {
