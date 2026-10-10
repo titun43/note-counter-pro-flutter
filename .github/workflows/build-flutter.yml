@@ -34,6 +34,15 @@ jobs:
     - name: Analyze code
       run: flutter analyze || true
 
+    - name: Set up signing (if keystore secret available)
+      if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/note-counter-pro.keystore
+        echo "storeFile=note-counter-pro.keystore" > android/key.properties
+        echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
+        echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+        echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+
     - name: Build APK
       run: flutter build apk --release --no-tree-shake-icons
 
@@ -61,10 +70,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.2.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Package: com.lokhnathtechnical.notecounterpro\n- Version: 3.2.0 (versionCode: 41)\n- Technology: Flutter (Dart)\n\n## 🆕 Features in 3.2.0\n\n### 1. Full Language Localization\n- ALL 9 screens now use localized strings\n- Changing language in Settings updates entire app:\n  - Home Screen: Payable, Receivable, Target, Other, Online, Save In, Save Out, Notes, Total, Grand Total\n  - Calculator: title, From Counter label\n  - Customers: title, search, add, empty state\n  - Customer Detail: Balance, Credit, Debit, Amount, Notes, Cancel, Save\n  - Khata: all labels (already done)\n  - Bills: title, empty state\n  - Reports: title, This Week/Month/All Time, Recent Transactions\n  - Settings: all sections and labels\n  - UPI QR: all field labels\n  - Bottom Nav: Counter, Calculator, Khata, Settings\n- 3 languages: English, Bengali, Hindi\n\n### 2. AdMob Integration\n- AdMob safely initialized in main() with try-catch\n- Banner ads ready (loaded in background)\n- Interstitial ads ready (can be shown on actions)\n- Wont crash if AdMob fails to initialize\n- AdMob App ID: ca-app-pub-1742730064755213~6546486804\n\n## Features\n- Note Counter (collapsible fields, inline editable, localized)\n- Calculator (bottom nav, correct currency, localized)\n- Customer Management (premium UI, add from contacts, edit/delete)\n- Khata (premium UI, long-press edit/delete, localized)\n- Bills, Reports, UPI QR, CSV Export (all localized)\n- Settings (language works across entire app, theme)\n- AdMob (banner + interstitial)\n- Dark/Light theme\n- Multi-language (English, Bengali, Hindi)')
-        gh release create v3.2.0-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.2.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (signed with upload key if secrets set)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Package: com.lokhnathtechnical.notecounterpro\n- Version: 3.2.1 (versionCode: 42)\n- Technology: Flutter (Dart)\n\n## 🆕 Fixes in 3.2.1\n\n### Crash Fix\n- AdMob completely disabled (was causing crash on startup)\n- Removed google_mobile_ads dependency\n- Removed AdMob meta-data from AndroidManifest\n- Removed play-services-ads from build.gradle\n- App now starts cleanly without any native crashes\n\n### Signing\n- Workflow now checks for KEYSTORE_BASE64 secret\n- If secret exists, AAB is signed with upload key (Play Store ready)\n- If not, uses debug signing (for testing only)\n\n## Features\n- Note Counter (collapsible fields, inline editable, localized)\n- Calculator (bottom nav, correct currency, localized)\n- Customer Management (premium UI, add from contacts, edit/delete)\n- Khata (premium UI, long-press edit/delete, localized)\n- Bills, Reports, UPI QR, CSV Export (all localized)\n- Settings (language works across entire app, theme)\n- Dark/Light theme\n- Multi-language (English, Bengali, Hindi)\n- AdMob: Disabled (will re-enable later)')
+        gh release create v3.2.1-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.2.0 (Flutter - Full Localization + AdMob)" \
+          --title "Note Counter Pro v3.2.1 (Flutter - Crash Fix)" \
           --notes "$NOTES" \
           --latest
