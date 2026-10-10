@@ -169,6 +169,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (value) => storage.setHapticFeedback(value),
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.fingerprint),
+            title: const Text('App Lock'),
+            subtitle: const Text('Fingerprint / PIN to open app'),
+            trailing: Switch(
+              value: storage.appLockEnabled,
+              onChanged: (value) => storage.setAppLockEnabled(value),
+            ),
+          ),
           
           // === LANGUAGE ===
           _sectionHeader(loc.t('language')),

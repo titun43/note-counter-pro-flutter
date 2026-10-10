@@ -14,6 +14,7 @@ import 'screens/khata_screen.dart';
 import 'screens/bills_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/lock_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,9 +59,36 @@ class NoteCounterProApp extends StatelessWidget {
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
             themeMode: storage.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const MainScaffold(),
+            home: storage.appLockEnabled
+                ? const AppLockWrapper()
+                : const MainScaffold(),
           ),
         );
+      },
+    );
+  }
+}
+
+class AppLockWrapper extends StatefulWidget {
+  const AppLockWrapper({super.key});
+
+  @override
+  State<AppLockWrapper> createState() => _AppLockWrapperState();
+}
+
+class _AppLockWrapperState extends State<AppLockWrapper> {
+  bool _unlocked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_unlocked) {
+      return const MainScaffold();
+    }
+    return LockScreen(
+      onUnlocked: () {
+        setState(() {
+          _unlocked = true;
+        });
       },
     );
   }

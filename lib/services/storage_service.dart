@@ -104,6 +104,14 @@ class StorageService extends ChangeNotifier {
     notifyListeners();
   }
   
+  // === App Lock (Fingerprint/PIN) ===
+  bool get appLockEnabled => _prefs?.getBool('appLockEnabled') ?? false;
+  
+  Future<void> setAppLockEnabled(bool value) async {
+    await _prefs?.setBool('appLockEnabled', value);
+    notifyListeners();
+  }
+  
   // === Entries ===
   List<Entry> get entries {
     final sorted = List<Entry>.from(_entries);
