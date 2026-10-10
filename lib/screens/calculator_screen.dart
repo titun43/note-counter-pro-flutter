@@ -45,7 +45,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       } else if (value == '=') {
         try {
           final result = _evaluate(_expression);
-          _history.insert(0, '$_expression = $_formatResult(result)');
+          _history.insert(0, '$_expression = ${_formatResult(result)}');
           if (_history.length > 20) _history.removeLast();
           _display = _formatResult(result);
           _expression = _display;
