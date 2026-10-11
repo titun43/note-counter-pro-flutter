@@ -72,8 +72,8 @@ class _KhataScreenState extends State<KhataScreen> {
         final contact = await ContactPickerService.pickContact();
         if (contact != null && mounted) {
           await _manualAdd(
-            initialName: contact.name,
-            initialPhone: contact.phone,
+            initialName: contact['name'] ?? '',
+            initialPhone: contact['phone'] ?? '',
           );
         }
       } catch (e) {
@@ -623,7 +623,7 @@ class _KhataScreenState extends State<KhataScreen> {
                   // Title row
                   Row(
                     children: [
-                      const Icon(Icons.menu_book, color: Color(0xFFD4AF37), size: 28),
+                      const Icon(Icons.menu_book, color: const Color(0xFFD4AF37), size: 28),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -646,7 +646,7 @@ class _KhataScreenState extends State<KhataScreen> {
                       ),
                       // View all customers
                       IconButton(
-                        icon: const Icon(Icons.people, color: Color(0xFFD4AF37)),
+                        icon: const Icon(Icons.people, color: const Color(0xFFD4AF37)),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -989,11 +989,11 @@ class _KhataScreenState extends State<KhataScreen> {
           onPressed: _addCustomer,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          icon: const Icon(Icons.person_add, color: Color(0xFFD4AF37)),
+          icon: const Icon(Icons.person_add, color: const Color(0xFFD4AF37)),
           label: Text(
             loc.t('addCustomer'),
             style: const TextStyle(
-              color: Color(0xFFD4AF37),
+              color: const Color(0xFFD4AF37),
               fontWeight: FontWeight.bold,
             ),
           ),
