@@ -20,6 +20,12 @@ import 'package:flutter/services.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize AdMob immediately (safe, non-blocking, won't crash app)
+  // Don't await — let it run in background while app starts
+  AdMobService.initialize().catchError((e) {
+    debugPrint('AdMob init failed: $e');
+  });
+  
   SharedPreferences? prefs;
   try {
     prefs = await SharedPreferences.getInstance();
@@ -27,7 +33,6 @@ void main() async {
     debugPrint('SharedPreferences init failed: $e');
   }
   
-  // Run app immediately - no waiting for AdMob
   runApp(
     MultiProvider(
       providers: [
@@ -36,13 +41,6 @@ void main() async {
       child: const NoteCounterProApp(),
     ),
   );
-  
-  // Initialize AdMob 3 seconds after app starts (non-blocking, safe)
-  Future.delayed(const Duration(seconds: 3), () {
-    AdMobService.initialize().catchError((e) {
-      debugPrint('AdMob init failed: $e');
-    });
-  });
 }
 
 class NoteCounterProApp extends StatelessWidget {

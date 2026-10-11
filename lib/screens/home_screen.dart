@@ -550,6 +550,244 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   
+  /// Show receipt dialog when tapping a history entry
+  void _showHistoryReceiptDialog(Entry entry) {
+    final theme = Theme.of(context);
+    final isIn = entry.type == 'cash_in';
+    final symbol = AppConstants.getCurrencySymbol(entry.currency);
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 350),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Receipt header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isIn ? AppColors.success : AppColors.danger,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.receipt_long, color: Colors.white, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      isIn ? 'CASH IN' : 'CASH OUT',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Receipt body
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Text(
+                      'Note Counter Pro',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${entry.date.day}/${entry.date.month}/${entry.date.year} - ${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    // Customer name
+                    if (entry.customerName != null && entry.customerName!.isNotEmpty)
+                      _receiptRow('Name', entry.customerName!, theme),
+                    
+                    // Category
+                    if (entry.category != null && entry.category!.isNotEmpty)
+                      _receiptRow('Type', entry.category!.toUpperCase(), theme),
+                    
+                    // Notes
+                    if (entry.notes != null && entry.notes!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Notes:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          entry.notes!,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                    
+                    // Denominations
+                    if (entry.denominationCounts != null && entry.denominationCounts!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Denomination Breakdown:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ...entry.denominationCounts!.entries.map((e) {
+                        final value = int.parse(e.key);
+                        final count = e.value;
+                        final subtotal = value * count;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('$symbol$value × $count', style: theme.textTheme.bodySmall),
+                              Text('$symbol$subtotal', style: theme.textTheme.bodySmall),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    
+                    const SizedBox(height: 8),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    // Grand total
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'GRAND TOTAL',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '$symbol ${entry.amount.toStringAsFixed(2)}',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isIn ? AppColors.success : AppColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    Text(
+                      'Generated by Note Counter Pro',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                            label: const Text('Close'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _shareHistoryEntry(entry);
+                            },
+                            icon: const Icon(Icons.share),
+                            label: const Text('Share'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// Share a history entry as text (WhatsApp, SMS, etc.)
+  void _shareHistoryEntry(Entry entry) {
+    final isIn = entry.type == 'cash_in';
+    final symbol = AppConstants.getCurrencySymbol(entry.currency);
+    
+    final text = StringBuffer();
+    text.writeln('═══════════════════════');
+    text.writeln('   ${isIn ? "CASH IN" : "CASH OUT"} RECEIPT');
+    text.writeln('═══════════════════════');
+    text.writeln('Note Counter Pro');
+    text.writeln('Date: ${entry.date.day}/${entry.date.month}/${entry.date.year}');
+    text.writeln('Time: ${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}');
+    text.writeln('───────────────────────');
+    if (entry.customerName != null && entry.customerName!.isNotEmpty) {
+      text.writeln('Name: ${entry.customerName}');
+    }
+    if (entry.category != null && entry.category!.isNotEmpty) {
+      text.writeln('Type: ${entry.category!.toUpperCase()}');
+    }
+    if (entry.notes != null && entry.notes!.isNotEmpty) {
+      text.writeln('Notes: ${entry.notes}');
+    }
+    text.writeln('───────────────────────');
+    
+    if (entry.denominationCounts != null && entry.denominationCounts!.isNotEmpty) {
+      text.writeln('Denomination Breakdown:');
+      entry.denominationCounts!.forEach((key, count) {
+        final value = int.parse(key);
+        final subtotal = value * count;
+        text.writeln('  $symbol$value × $count = $symbol$subtotal');
+      });
+      text.writeln('───────────────────────');
+    }
+    
+    text.writeln('═══════════════════════');
+    text.writeln('GRAND TOTAL: $symbol ${entry.amount.toStringAsFixed(2)}');
+    text.writeln('═══════════════════════');
+    text.writeln('Generated by Note Counter Pro');
+    
+    Share.share(text.toString(), subject: 'Receipt - $symbol${entry.amount.toStringAsFixed(2)}');
+  }
+  
   /// Show History bottom sheet with two tabs:
   /// 1. Save In/Out History (recent entries)
   /// 2. QR Code History (recent QR generations)
@@ -674,6 +912,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 2,
           margin: EdgeInsets.zero,
           child: ListTile(
+            onTap: () => _showHistoryReceiptDialog(e),
             leading: CircleAvatar(
               backgroundColor: isIn ? AppColors.success.withOpacity(0.2) : AppColors.danger.withOpacity(0.2),
               child: Icon(
@@ -738,12 +977,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
               ],
             ),
-            trailing: Text(
-              e.category?.toUpperCase() ?? '',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: 10,
-                color: AppColors.textSecondary,
-              ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Share button — share entry as text
+                IconButton(
+                  icon: const Icon(Icons.share, size: 18),
+                  color: AppColors.info,
+                  tooltip: loc.t('share'),
+                  onPressed: () => _shareHistoryEntry(e),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+                // View icon (visual cue that entry is tappable)
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: AppColors.textSecondary.withOpacity(0.5),
+                ),
+              ],
             ),
           ),
         );
@@ -794,6 +1046,14 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 2,
           margin: EdgeInsets.zero,
           child: ListTile(
+            onTap: () {
+              // Close bottom sheet and open QR screen
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+              );
+            },
             leading: CircleAvatar(
               backgroundColor: AppColors.primary.withOpacity(0.2),
               child: const Icon(Icons.qr_code_2, color: AppColors.primary),
@@ -826,15 +1086,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
               ],
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.qr_code, color: AppColors.primary),
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UpiQrScreen()),
-                );
-              },
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Share QR info as text
+                IconButton(
+                  icon: const Icon(Icons.share, size: 18),
+                  color: AppColors.info,
+                  tooltip: loc.t('share'),
+                  onPressed: () {
+                    final shareText = StringBuffer();
+                    if (name.isNotEmpty) shareText.writeln('Name: $name');
+                    if (upiId.isNotEmpty) shareText.writeln('UPI ID: $upiId');
+                    if (amount.isNotEmpty) shareText.writeln('Amount: ₹$amount');
+                    shareText.writeln('Generated by Note Counter Pro');
+                    Share.share(shareText.toString(), subject: 'UPI QR Details - $name');
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+                // View icon (visual cue that entry is tappable)
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: AppColors.textSecondary.withOpacity(0.5),
+                ),
+              ],
             ),
           ),
         );

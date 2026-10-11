@@ -1,19 +1,19 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/admob_service.dart';
-import '../utils/constants.dart';
 
 /// Banner Ad Widget
 ///
 /// Behavior:
-/// - When ad is NOT loaded: shows nothing (SizedBox.shrink), no loading spinner
+/// - Starts loading immediately on initState (don't wait for AdMob isInitialized)
+/// - When ad is NOT loaded:
+///   - Debug mode: shows a small "Ad" placeholder with tap-to-retry
+///   - Release mode: shows nothing (SizedBox.shrink)
 /// - When ad IS loaded: shows the banner ad
-/// - Retries silently in the background until ad loads or max retries reached
-///
-/// This avoids the "infinite loading spinner" UX issue where users see
-/// a spinner forever when ads fail to load (e.g., no internet, ad blocker,
-/// or AdMob not yet initialized).
+/// - Retries silently: max 50 attempts, 2s interval (100s total)
+/// - Tapping the placeholder triggers immediate reload
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
 
@@ -25,22 +25,23 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     with WidgetsBindingObserver {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _isLoading = false;
   Timer? _retryTimer;
   int _retryCount = 0;
-  static const int _maxRetries = 20;
-  static const Duration _retryInterval = Duration(seconds: 3);
+  static const int _maxRetries = 50;
+  static const Duration _retryInterval = Duration(seconds: 2);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Start loading after a short delay to allow AdMob to initialize
-    _retryTimer = Timer(const Duration(seconds: 1), _loadAd);
+    // Start loading immediately
+    _loadAd();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Reload ad when app resumes (ad may have been disposed by system)
+    // Reload ad when app resumes
     if (state == AppLifecycleState.resumed && !_isLoaded) {
       _retryCount = 0;
       _loadAd();
@@ -48,41 +49,48 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
   }
 
   void _loadAd() {
-    // Check if AdMob is initialized
-    if (!AdMobService.isInitialized) {
-      _retryCount++;
-      if (_retryCount < _maxRetries) {
-        _retryTimer = Timer(_retryInterval, _loadAd);
-      }
-      return;
-    }
+    if (_isLoading) return;
+    _isLoading = true;
 
     // Dispose previous ad if any
     _bannerAd?.dispose();
+    _bannerAd = null;
+    _isLoaded = false;
 
     _bannerAd = BannerAd(
-      adUnitId: AppConstants.admobBannerAdUnitId,
+      adUnitId: AdMobService.bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) {
+          debugPrint('BannerAd: loaded successfully (attempt $_retryCount)');
           if (mounted) {
             setState(() {
               _isLoaded = true;
+              _isLoading = false;
             });
           }
         },
         onAdFailedToLoad: (ad, err) {
+          debugPrint('BannerAd: failed to load (attempt $_retryCount): ${err.message}');
           ad.dispose();
           _isLoaded = false;
+          _isLoading = false;
           _retryCount++;
           if (_retryCount < _maxRetries && mounted) {
             _retryTimer = Timer(_retryInterval, _loadAd);
+          } else if (mounted) {
+            setState(() {}); // Update UI to show retry placeholder
           }
         },
       ),
     );
     _bannerAd?.load();
+  }
+
+  void _manualRetry() {
+    _retryCount = 0;
+    _loadAd();
   }
 
   @override
@@ -95,15 +103,55 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
 
   @override
   Widget build(BuildContext context) {
-    // If ad is not loaded, show nothing (no spinner!)
-    if (!_isLoaded || _bannerAd == null) {
-      return const SizedBox.shrink();
-    }
     // Ad is loaded, show it
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: AdWidget(ad: _bannerAd!),
-    );
+    if (_isLoaded && _bannerAd != null) {
+      return Container(
+        width: double.infinity,
+        height: 50,
+        color: Colors.transparent,
+        child: AdWidget(ad: _bannerAd!),
+      );
+    }
+
+    // Ad is not loaded
+    // Debug mode: show tap-to-retry placeholder so user/dev can see something is happening
+    if (kDebugMode) {
+      return GestureDetector(
+        onTap: _manualRetry,
+        child: Container(
+          width: double.infinity,
+          height: 50,
+          color: Colors.grey[200],
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isLoading)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Icon(Icons.refresh, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 6),
+                Text(
+                  _retryCount >= _maxRetries
+                      ? 'Ad failed - tap to retry'
+                      : 'Loading ad... (tap to retry)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Release mode: show nothing
+    return const SizedBox.shrink();
   }
 }
