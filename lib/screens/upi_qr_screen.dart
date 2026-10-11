@@ -35,7 +35,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
     // In real implementation, use SharedPreferences directly
   }
   
-  void _generateQr() {
+  Future<void> _generateQr() async {
     final upiId = _upiIdController.text.trim();
     if (upiId.isEmpty || !upiId.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
