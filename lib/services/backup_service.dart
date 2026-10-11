@@ -134,7 +134,11 @@ class BackupService {
       if (files.length <= _maxLocalBackups) return;
 
       // Sort by modification time (newest first)
-      files.sort((a, b) => b.statSync().modified.compareTo(a.statSync()));
+      files.sort((a, b) {
+        final aStat = a.statSync();
+        final bStat = b.statSync();
+        return bStat.modified.compareTo(aStat.modified);
+      });
 
       // Delete all but the newest _maxLocalBackups
       for (int i = _maxLocalBackups; i < files.length; i++) {
@@ -211,7 +215,11 @@ class BackupService {
       if (!await backupDir.exists()) return [];
 
       final files = backupDir.listSync().whereType<File>().toList();
-      files.sort((a, b) => b.statSync().modified.compareTo(a.statSync()));
+      files.sort((a, b) {
+        final aStat = a.statSync();
+        final bStat = b.statSync();
+        return bStat.modified.compareTo(aStat.modified);
+      });
 
       return files.map((f) {
         final stat = f.statSync();
