@@ -80,7 +80,7 @@ class ReportsScreen extends StatelessWidget {
               ),
             )
           else
-            ...entries.take(20).map((entry) => _buildReceiptCard(entry, theme, loc)),
+            ...entries.take(20).map((entry) => _buildReceiptCard(entry, theme, loc, context)),
         ],
       ),
     );
@@ -164,7 +164,7 @@ class ReportsScreen extends StatelessWidget {
     }
   }
   
-  Widget _buildReceiptCard(Entry entry, ThemeData theme, AppLocalizations loc) {
+  Widget _buildReceiptCard(Entry entry, ThemeData theme, AppLocalizations loc, BuildContext context) {
     final isCashIn = entry.type == 'cash_in';
     final currencySymbol = AppConstants.getCurrencySymbol(entry.currency);
     
