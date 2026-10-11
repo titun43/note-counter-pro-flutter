@@ -63,6 +63,16 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
       _upiUrl = url;
     });
     
+    // Save to QR history
+    final storage = context.read<StorageService>();
+    await storage.addQrHistory({
+      'upiId': upiId,
+      'name': name,
+      'amount': amount,
+      'note': note,
+      'time': DateTime.now().toIso8601String(),
+    });
+    
     // Show interstitial ad after QR generation
     AdMobService.showInterstitial();
   }

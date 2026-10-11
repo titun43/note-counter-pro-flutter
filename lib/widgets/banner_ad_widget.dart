@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/admob_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../services/admob_service.dart';
+import '../utils/constants.dart';
 
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
@@ -12,6 +14,8 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  Timer? _retryTimer;
+  int _retryCount = 0;
 
   @override
   void initState() {
@@ -20,24 +24,33 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   void _loadAd() {
+    // Check if AdMob is initialized
     if (!AdMobService.isInitialized) {
-      // Try again in 2 seconds if AdMob not ready yet
-      Future.delayed(const Duration(seconds: 2), _loadAd);
+      _retryCount++;
+      if (_retryCount < 30) {
+        _retryTimer = Timer(const Duration(seconds: 2), _loadAd);
+      }
       return;
     }
 
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-1742730064755213/3078015084',
+      adUnitId: AppConstants.admobBannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) {
-          setState(() {
-            _isLoaded = true;
-          });
+          if (mounted) {
+            setState(() {
+              _isLoaded = true;
+            });
+          }
         },
         onAdFailedToLoad: (ad, err) {
           ad.dispose();
+          _retryCount++;
+          if (_retryCount < 10 && mounted) {
+            _retryTimer = Timer(const Duration(seconds: 5), _loadAd);
+          }
         },
       ),
     );
@@ -46,6 +59,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _bannerAd?.dispose();
     super.dispose();
   }
@@ -53,7 +67,18 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   Widget build(BuildContext context) {
     if (!_isLoaded || _bannerAd == null) {
-      return const SizedBox(height: 50);
+      return SizedBox(
+        height: 50,
+        child: Center(
+          child: _retryCount < 30
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const SizedBox.shrink(),
+        ),
+      );
     }
     return SizedBox(
       width: double.infinity,

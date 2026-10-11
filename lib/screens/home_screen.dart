@@ -173,38 +173,44 @@ class _HomeScreenState extends State<HomeScreen> {
     // Show name/note input dialog
     final nameController = TextEditingController();
     final noteController = TextEditingController();
+    final loc = context.loc;
     
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isCashIn ? 'Cash In - Details' : 'Cash Out - Details'),
+        title: Text(isCashIn ? loc.t('cashInDetails') : loc.t('cashOutDetails')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name (কার থেকে / কাকে দিলেন)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
+              decoration: InputDecoration(
+                labelText: loc.t('nameLabel'),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.person),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
+              style: const TextStyle(fontSize: 16),
               autofocus: true,
+              textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: noteController,
-              decoration: const InputDecoration(
-                labelText: 'Note (কী জন্য - optional)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.note),
+              decoration: InputDecoration(
+                labelText: loc.t('noteLabel'),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.note),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
+              style: const TextStyle(fontSize: 16),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, null),
-            child: const Text('Cancel'),
+            child: Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () {
@@ -213,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'note': noteController.text.trim(),
               });
             },
-            child: const Text('Save'),
+            child: Text(loc.t('save')),
           ),
         ],
       ),
@@ -1013,6 +1019,167 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
+          ),
+          
+          // === MINI HISTORY (Save In/Out + QR) ===
+          Consumer<StorageService>(
+            builder: (context, storage, child) {
+              final entries = storage.entries.take(2).toList();
+              final qrHistory = storage.qrHistory.take(2).toList();
+              final loc = context.loc;
+              
+              if (entries.isEmpty && qrHistory.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  children: [
+                    // Save In/Out History
+                    Expanded(
+                      child: entries.isEmpty
+                          ? const SizedBox.shrink()
+                          : Container(
+                              height: 60,
+                              margin: const EdgeInsets.only(right: 4),
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.bgCardDark : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.textSecondary.withOpacity(0.2)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.history, size: 12, color: AppColors.info),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        loc.t('recentHistory'),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.info,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  ...entries.map((e) {
+                                    final isIn = e.type == 'cash_in';
+                                    final symbol = AppConstants.getCurrencySymbol(e.currency);
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 1),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isIn ? Icons.south : Icons.north,
+                                            size: 10,
+                                            color: isIn ? AppColors.success : AppColors.danger,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              '$symbol${e.amount.toStringAsFixed(0)}',
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: isIn ? AppColors.success : AppColors.danger,
+                                              ),
+                                            ),
+                                          ),
+                                          if (e.customerName != null && e.customerName!.isNotEmpty)
+                                            Expanded(
+                                              child: Text(
+                                                e.customerName!,
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  fontSize: 9,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.end,
+                                                maxLines: 1,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                    ),
+                    // QR History
+                    Expanded(
+                      child: qrHistory.isEmpty
+                          ? const SizedBox.shrink()
+                          : Container(
+                              height: 60,
+                              margin: const EdgeInsets.only(left: 4),
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.bgCardDark : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.textSecondary.withOpacity(0.2)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.qr_code, size: 12, color: AppColors.primary),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        loc.t('qrHistory'),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  ...qrHistory.map((qr) {
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 1),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.qr_code_2, size: 10, color: AppColors.primary),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              qr['name'] ?? qr['upiId'] ?? 'QR',
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                fontSize: 10,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ),
+                                          if (qr['amount'] != null && qr['amount']!.isNotEmpty)
+                                            Text(
+                                              '₹${qr['amount']}',
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           
           // === ACTION BUTTONS ROW ===

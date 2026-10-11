@@ -112,6 +112,26 @@ class StorageService extends ChangeNotifier {
     notifyListeners();
   }
   
+  // === QR History ===
+  List<Map<String, String>> get qrHistory {
+    final json = _prefs?.getString('qrHistory');
+    if (json == null) return [];
+    try {
+      final list = jsonDecode(json) as List;
+      return list.map((e) => Map<String, String>.from(e as Map)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+  
+  Future<void> addQrHistory(Map<String, String> qr) async {
+    final history = qrHistory;
+    history.insert(0, qr);
+    if (history.length > 10) history.removeLast();
+    await _prefs?.setString('qrHistory', jsonEncode(history));
+    notifyListeners();
+  }
+  
   // === Entries ===
   List<Entry> get entries {
     final sorted = List<Entry>.from(_entries);

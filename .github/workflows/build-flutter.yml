@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.7.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.7.1 (versionCode: 61)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Fixes in 3.7.1\n\n### 1. Receipt shows correct values (not 0)\n- Fixed: Save In/Out receipt was showing Total Notes: 0 and Grand Total: 0\n- Now saves values before reset and uses them in receipt\n\n### 2. Receipts History in Reports\n- Settings > Reports now shows all saved receipts\n- Each receipt shows: amount, name, date/time\n- Tap any receipt to see full detail (denomination breakdown)\n- Share button on each receipt\n- Shows 20 most recent receipts\n\n### 3. Share Receipt from History\n- Each receipt in Reports has a share button\n- Share full receipt text via WhatsApp')
-        gh release create v3.7.1-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.8.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.8.0 (versionCode: 62)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## New Features in 3.8.0\n\n### 1. Banner Ads Fixed\n- BannerAdWidget with retry logic (up to 30 retries)\n- Loading indicator while ad loads\n- Auto-retry every 2 seconds if AdMob not ready\n- Retry on failed load (up to 10 times)\n\n### 2. Mini History on Counter Screen\n- Two compact history widgets above Save In/Out buttons:\n  - Left: Save In/Out history (last 2 transactions)\n    - Shows amount, type icon, customer name\n  - Right: QR Code history (last 2 QR generated)\n    - Shows UPI ID/name, amount\n- Both update in real-time\n- Hidden when no history\n\n### 3. Save In/Out Dialog Fixed\n- Bigger text fields (16px font, more padding)\n- Localized: no more mixed English/Bengali text\n  - English: Name (From whom / To whom)\n  - Bengali: নাম (কার থেকে / কাকে দিলেন)\n  - Hindi: नाम (किससे / किसे दिया)\n- Changes with language setting\n- Text capitalization for names\n\n### 4. QR History Storage\n- QR generations saved to history\n- Shows in Counter mini history widget')
+        gh release create v3.8.0-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.7.1 (Flutter - Receipt Fix + History)" \
+          --title "Note Counter Pro v3.8.0 (Flutter - Banner Fix + Mini History)" \
           --notes "$NOTES" \
           --latest
