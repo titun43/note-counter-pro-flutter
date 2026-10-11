@@ -6,11 +6,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
+import '../services/backup_service.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 import 'upi_qr_screen.dart';
 import 'reports_screen.dart';
 import 'bills_screen.dart';
-import '../utils/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -93,6 +94,212 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Download now:\n${AppConstants.playStoreUrl}',
       subject: 'Note Counter Pro',
     );
+  }
+
+  // === Backup & Restore Methods ===
+
+  /// Create a JSON backup and share it (WhatsApp, Email, Drive, etc.)
+  Future<void> _backupData() async {
+    final loc = context.loc;
+    final storage = context.read<StorageService>();
+
+    // Show loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(loc.t('backupData') + '...'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final result = await BackupService.createAndShareBackup(storage);
+
+    if (result != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('backupSuccess')),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('backupFailed')),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Restore data from a JSON backup file.
+  Future<void> _restoreData() async {
+    final loc = context.loc;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: AppColors.warning),
+            const SizedBox(width: 8),
+            Text(loc.t('restoreConfirmTitle')),
+          ],
+        ),
+        content: Text(loc.t('restoreConfirmMsg')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(loc.t('cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(loc.t('restoreData')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final storage = context.read<StorageService>();
+
+    // Show loading
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('restoreData') + '...'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+
+    final success = await BackupService.restoreFromFile(storage);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? loc.t('restoreSuccess') : loc.t('restoreFailed')),
+          backgroundColor: success ? AppColors.success : AppColors.danger,
+        ),
+      );
+    }
+  }
+
+  /// Show list of local auto-backups and allow restore from any.
+  Future<void> _showLocalBackups() async {
+    final loc = context.loc;
+    final backups = await BackupService.listLocalBackups();
+
+    if (!mounted) return;
+
+    if (backups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.t('noLocalBackups'))),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  loc.t('localBackups'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: backups.length,
+                  itemBuilder: (context, index) {
+                    final b = backups[index];
+                    final modified = b['modified'] as DateTime;
+                    final size = b['size'] as int;
+                    final sizeStr = size > 1024
+                        ? '${(size / 1024).toStringAsFixed(1)} KB'
+                        : '$size B';
+
+                    return ListTile(
+                      leading: const Icon(Icons.history, color: AppColors.success),
+                      title: Text(
+                        '${modified.day}/${modified.month}/${modified.year} '
+                        '${modified.hour}:${modified.minute.toString().padLeft(2, '0')}',
+                      ),
+                      subtitle: Text('$sizeStr • ${b['name']}'),
+                      trailing: const Icon(Icons.restore, size: 20),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        await _restoreFromLocal(b['path'] as String);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Restore from a specific local backup file path.
+  Future<void> _restoreFromLocal(String filePath) async {
+    final loc = context.loc;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: AppColors.warning),
+            const SizedBox(width: 8),
+            Text(loc.t('restoreConfirmTitle')),
+          ],
+        ),
+        content: Text(loc.t('restoreConfirmMsg')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(loc.t('cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(loc.t('restoreData')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final storage = context.read<StorageService>();
+    final success = await BackupService.restoreFromLocalBackup(storage, filePath);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? loc.t('restoreSuccess') : loc.t('restoreFailed')),
+          backgroundColor: success ? AppColors.success : AppColors.danger,
+        ),
+      );
+    }
   }
   
   Future<void> _sendFeedback() async {
@@ -232,6 +439,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
           ),
+          // === BACKUP & RESTORE ===
+          _sectionHeader(loc.t('backupRestore')),
+
+          // Last backup info card
+          Consumer<StorageService>(
+            builder: (context, storage, child) {
+              final lastBackup = BackupService.getLastBackupString(storage);
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.cloud_done, color: AppColors.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.t('lastBackup'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            lastBackup ?? loc.t('neverBackedUp'),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: lastBackup != null ? AppColors.success : AppColors.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      loc.t('autoBackupInfo'),
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          // Backup button
+          ListTile(
+            leading: const Icon(Icons.backup, color: AppColors.info),
+            title: Text(loc.t('backupData')),
+            subtitle: Text(loc.t('backupSubtitle')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _backupData,
+          ),
+
+          // Restore button
+          ListTile(
+            leading: const Icon(Icons.restore, color: AppColors.warning),
+            title: Text(loc.t('restoreData')),
+            subtitle: Text(loc.t('restoreSubtitle')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _restoreData,
+          ),
+
+          // Local backups (auto)
+          ListTile(
+            leading: const Icon(Icons.history, color: AppColors.success),
+            title: Text(loc.t('localBackups')),
+            subtitle: Text(loc.t('restoreFromLocal')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _showLocalBackups,
+          ),
+
+          // === CSV EXPORT ===
+          _sectionHeader(loc.t('exportToExcel')),
           ListTile(
             leading: const Icon(Icons.file_download, color: AppColors.success),
             title: const Text('Export Entries (CSV)'),

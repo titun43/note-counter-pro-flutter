@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.6.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.6.2 (versionCode: 59)\n- Flutter: 3.35.5 (latest stable, full 16KB support)\n- NDK: r28 (28.0.13004158)\n- Target SDK: 36\n- 16KB page size: FULLY SUPPORTED\n\n## Play Store Fixes\n1. Flutter 3.29 -> 3.35.5 (engine .so files now 16KB aligned)\n2. NDK r27 -> r28 (latest, full 16KB alignment)\n3. packagingOptions + abiFilters maintained')
-        gh release create v3.6.2-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.10.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.10.0 (versionCode: 67)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Major Feature: Data Backup & Restore\n\nYour data is now safe! Full backup/restore system implemented.\n\n### 1. Manual JSON Backup\n- Settings > Backup & Restore > Backup Data\n- Creates versioned JSON with all data (entries, customers, bills, qrHistory, settings)\n- Share to WhatsApp, Email, Google Drive, or any app\n\n### 2. Restore from JSON\n- Pick any backup JSON file\n- Confirmation dialog + safety backup before restore\n- Migration support for future schema changes\n\n### 3. Auto Local Backup (Background)\n- Every data change triggers auto-backup (debounced 5s)\n- Saved to app documents directory\n- Keeps last 7 backups\n- Fully automatic\n\n### 4. Restore from Local Auto-Backup\n- Lists all local backups with timestamp\n- Tap any to restore\n\n### 5. Backup Info Card\n- Shows last backup time\n- Never backed up warning\n\n### Existing User Data Safe\n- No data loss for existing users\n- Backup is additive\n- User can optionally backup/restore anytime\n\n### New Dependencies\n- file_picker: ^6.1.1')
+        gh release create v3.10.0-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.6.2 (Flutter - 16KB Final Fix)" \
+          --title "Note Counter Pro v3.10.0 (Flutter - Data Backup & Restore)" \
           --notes "$NOTES" \
           --latest
