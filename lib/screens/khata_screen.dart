@@ -623,7 +623,7 @@ class _KhataScreenState extends State<KhataScreen> {
                   // Title row
                   Row(
                     children: [
-                      const Icon(Icons.menu_book, color: const Color(0xFFD4AF37), size: 28),
+                      const Icon(Icons.menu_book, color: Color(0xFFD4AF37), size: 28),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -646,7 +646,7 @@ class _KhataScreenState extends State<KhataScreen> {
                       ),
                       // View all customers
                       IconButton(
-                        icon: const Icon(Icons.people, color: const Color(0xFFD4AF37)),
+                        icon: const Icon(Icons.people, color: Color(0xFFD4AF37)),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -654,7 +654,6 @@ class _KhataScreenState extends State<KhataScreen> {
                                 builder: (_) => const CustomersScreen()),
                             );
                           },
-                        },
                         tooltip: loc.t('customers'),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -989,11 +988,11 @@ class _KhataScreenState extends State<KhataScreen> {
           onPressed: _addCustomer,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          icon: const Icon(Icons.person_add, color: const Color(0xFFD4AF37)),
+          icon: const Icon(Icons.person_add, color: Color(0xFFD4AF37)),
           label: Text(
             loc.t('addCustomer'),
             style: const TextStyle(
-              color: const Color(0xFFD4AF37),
+              color: Color(0xFFD4AF37),
               fontWeight: FontWeight.bold,
             ),
           ),
