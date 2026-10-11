@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.8.2+64
+version: 3.9.0+65
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -55,6 +55,11 @@ flutter:
   
   assets:
     - assets/icons/
+
+  fonts:
+    - family: KhataHandwriting
+      fonts:
+        - asset: assets/fonts/LXGWWenKai-Regular.ttf
 
 flutter_native_splash:
   color: "#1A1A2E"
