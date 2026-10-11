@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/admob_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -27,16 +28,18 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
 
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-1742730064755213/3078015084',
+      adUnitId: AdMobService.bannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) {
+          debugPrint('BannerAd: loaded successfully');
           setState(() {
             _isLoaded = true;
           });
         },
         onAdFailedToLoad: (ad, err) {
+          debugPrint('BannerAd: failed to load: ${err.message}');
           ad.dispose();
         },
       ),
