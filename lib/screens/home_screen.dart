@@ -236,8 +236,8 @@ class _HomeScreenState extends State<HomeScreen> {
     
     final noteString = StringBuffer();
     noteString.write('$_transactionType - $_totalNotes notes');
-    if (savedOtherAmount > 0) noteString.write(' + Other: $_currencySymbol$_otherAmount');
-    if (savedOnlineAmount > 0) noteString.write(' + Online: $_currencySymbol$_onlineAmount');
+    if (_otherAmount > 0) noteString.write(' + Other: $_currencySymbol$_otherAmount');
+    if (_onlineAmount > 0) noteString.write(' + Online: $_currencySymbol$_onlineAmount');
     if (name.isNotEmpty) noteString.write(' | From: $name');
     if (noteText.isNotEmpty) noteString.write(' | $noteText');
     
@@ -1116,7 +1116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Text(
-                      '$savedCurrencySymbol ${savedGrandTotal.toStringAsFixed(2)}',
+                      '$_currencySymbol ${_grandTotal.toStringAsFixed(2)}',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,

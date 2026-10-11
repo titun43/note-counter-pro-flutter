@@ -172,7 +172,7 @@ class ReportsScreen extends StatelessWidget {
       elevation: 2,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () => _showReceiptDetail(entry, theme),
+        onTap: () => _showReceiptDetail(entry, theme, context),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -233,12 +233,12 @@ class ReportsScreen extends StatelessWidget {
     );
   }
   
-  void _showReceiptDetail(Entry entry, ThemeData theme) {
+  void _showReceiptDetail(Entry entry, ThemeData theme, BuildContext context) {
     final isCashIn = entry.type == 'cash_in';
     final currencySymbol = AppConstants.getCurrencySymbol(entry.currency);
     
     showDialog(
-      context: theme.context,
+      context: context,
       builder: (context) => Dialog(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 350),
