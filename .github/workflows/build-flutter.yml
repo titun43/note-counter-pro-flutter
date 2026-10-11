@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.7.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.7.0 (versionCode: 60)\n- Flutter: 3.35.5\n- NDK: 27.0.12077973\n- Target SDK: 36\n\n## New Features in 3.7.0\n\n### 1. Cash Receipt (Personal)\n- Save In/Out generates a personal receipt\n- Receipt shows date, time, name, note, breakdown, total\n- Shareable via WhatsApp\n\n### 2. Name and Note on Save\n- Save In/Out asks for Name and Note\n- Saved with transaction in History\n\n### 3. Share Receipt\n- Share receipt as text via WhatsApp/Email')
-        gh release create v3.7.0-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.7.1 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.7.1 (versionCode: 61)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Fixes in 3.7.1\n\n### 1. Receipt shows correct values (not 0)\n- Fixed: Save In/Out receipt was showing Total Notes: 0 and Grand Total: 0\n- Now saves values before reset and uses them in receipt\n\n### 2. Receipts History in Reports\n- Settings > Reports now shows all saved receipts\n- Each receipt shows: amount, name, date/time\n- Tap any receipt to see full detail (denomination breakdown)\n- Share button on each receipt\n- Shows 20 most recent receipts\n\n### 3. Share Receipt from History\n- Each receipt in Reports has a share button\n- Share full receipt text via WhatsApp')
+        gh release create v3.7.1-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.7.0 (Flutter - Cash Receipt)" \
+          --title "Note Counter Pro v3.7.1 (Flutter - Receipt Fix + History)" \
           --notes "$NOTES" \
           --latest

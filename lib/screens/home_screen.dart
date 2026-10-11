@@ -236,8 +236,8 @@ class _HomeScreenState extends State<HomeScreen> {
     
     final noteString = StringBuffer();
     noteString.write('$_transactionType - $_totalNotes notes');
-    if (_otherAmount > 0) noteString.write(' + Other: $_currencySymbol$_otherAmount');
-    if (_onlineAmount > 0) noteString.write(' + Online: $_currencySymbol$_onlineAmount');
+    if (savedOtherAmount > 0) noteString.write(' + Other: $_currencySymbol$_otherAmount');
+    if (savedOnlineAmount > 0) noteString.write(' + Online: $_currencySymbol$_onlineAmount');
     if (name.isNotEmpty) noteString.write(' | From: $name');
     if (noteText.isNotEmpty) noteString.write(' | $noteText');
     
@@ -254,14 +254,26 @@ class _HomeScreenState extends State<HomeScreen> {
     await storage.addEntry(entry);
     
     if (mounted) {
-      // Show receipt dialog
-      _showReceiptDialog(entry, isCashIn, name, noteText);
+      // Save values before reset
+      final savedGrandTotal = _grandTotal;
+      final savedTotalNotes = _totalNotes;
+      final savedOtherAmount = _otherAmount;
+      final savedOnlineAmount = _onlineAmount;
+      final savedTransactionType = _transactionType;
+      final savedCurrencySymbol = _currencySymbol;
+      
+      // Show receipt dialog with saved values
+      _showReceiptDialog(entry, isCashIn, name, noteText, 
+        savedGrandTotal, savedTotalNotes, savedOtherAmount, savedOnlineAmount, 
+        savedTransactionType, savedCurrencySymbol);
       
       _reset();
     }
   }
   
-  void _showReceiptDialog(Entry entry, bool isCashIn, String name, String noteText) {
+  void _showReceiptDialog(Entry entry, bool isCashIn, String name, String noteText,
+    double savedGrandTotal, int savedTotalNotes, double savedOtherAmount, 
+    double savedOnlineAmount, String savedTransactionType, String savedCurrencySymbol) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
@@ -333,10 +345,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       _receiptRow('Note', noteText, theme),
                     
                     // Transaction type
-                    _receiptRow('Type', _transactionType, theme),
+                    _receiptRow('Type', savedTransactionType, theme),
                     
                     // Total notes
-                    _receiptRow('Total Notes', '$_totalNotes', theme),
+                    _receiptRow('Total Notes', '$savedTotalNotes', theme),
                     
                     const SizedBox(height: 8),
                     const Divider(),
@@ -363,8 +375,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('$_currencySymbol$value × $count', style: theme.textTheme.bodySmall),
-                              Text('$_currencySymbol$subtotal', style: theme.textTheme.bodySmall),
+                              Text('$savedCurrencySymbol$value × $count', style: theme.textTheme.bodySmall),
+                              Text('$savedCurrencySymbol$subtotal', style: theme.textTheme.bodySmall),
                             ],
                           ),
                         );
@@ -375,12 +387,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                     
                     // Other & Online
-                    if (_otherAmount > 0)
-                      _receiptRow('Other Amount', '$_currencySymbol${_otherAmount.toStringAsFixed(2)}', theme),
-                    if (_onlineAmount > 0)
-                      _receiptRow('Online Amount', '$_currencySymbol${_onlineAmount.toStringAsFixed(2)}', theme),
+                    if (savedOtherAmount > 0)
+                      _receiptRow('Other Amount', '$savedCurrencySymbol${_otherAmount.toStringAsFixed(2)}', theme),
+                    if (savedOnlineAmount > 0)
+                      _receiptRow('Online Amount', '$savedCurrencySymbol${_onlineAmount.toStringAsFixed(2)}', theme),
                     
-                    if (_otherAmount > 0 || _onlineAmount > 0) ...[
+                    if (savedOtherAmount > 0 || savedOnlineAmount > 0) ...[
                       const SizedBox(height: 8),
                       const Divider(),
                       const SizedBox(height: 8),
@@ -397,7 +409,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Text(
-                          '$_currencySymbol ${_grandTotal.toStringAsFixed(2)}',
+                          '$savedCurrencySymbol ${savedGrandTotal.toStringAsFixed(2)}',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: isCashIn ? AppColors.success : AppColors.danger,
@@ -439,7 +451,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             onPressed: () {
                               Navigator.pop(context);
                               // Share via WhatsApp
-                              _shareReceipt(entry, name, noteText, isCashIn);
+                              _shareReceipt(entry, name, noteText, isCashIn, 
+                                savedGrandTotal, savedTotalNotes, savedOtherAmount, 
+                                savedOnlineAmount, savedTransactionType, savedCurrencySymbol);
                             },
                             icon: const Icon(Icons.share),
                             label: const Text('Share'),
@@ -473,7 +487,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   
-  void _shareReceipt(Entry entry, String name, String noteText, bool isCashIn) {
+  void _shareReceipt(Entry entry, String name, String noteText, bool isCashIn,
+    double savedGrandTotal, int savedTotalNotes, double savedOtherAmount, 
+    double savedOnlineAmount, String savedTransactionType, String savedCurrencySymbol) {
     final receiptText = StringBuffer();
     receiptText.writeln('═══════════════════════');
     receiptText.writeln('   ${isCashIn ? "CASH IN" : "CASH OUT"} RECEIPT');
@@ -484,8 +500,8 @@ class _HomeScreenState extends State<HomeScreen> {
     receiptText.writeln('───────────────────────');
     if (name.isNotEmpty) receiptText.writeln('Name: $name');
     if (noteText.isNotEmpty) receiptText.writeln('Note: $noteText');
-    receiptText.writeln('Type: $_transactionType');
-    receiptText.writeln('Total Notes: $_totalNotes');
+    receiptText.writeln('Type: $savedTransactionType');
+    receiptText.writeln('Total Notes: $savedTotalNotes');
     receiptText.writeln('───────────────────────');
     
     if (entry.denominationCounts != null) {
@@ -493,20 +509,20 @@ class _HomeScreenState extends State<HomeScreen> {
       entry.denominationCounts!.forEach((key, count) {
         final value = int.parse(key);
         final subtotal = value * count;
-        receiptText.writeln('  $_currencySymbol$value × $count = $_currencySymbol$subtotal');
+        receiptText.writeln('  $savedCurrencySymbol$value × $count = $savedCurrencySymbol$subtotal');
       });
       receiptText.writeln('───────────────────────');
     }
     
-    if (_otherAmount > 0) receiptText.writeln('Other: $_currencySymbol${_otherAmount.toStringAsFixed(2)}');
-    if (_onlineAmount > 0) receiptText.writeln('Online: $_currencySymbol${_onlineAmount.toStringAsFixed(2)}');
+    if (savedOtherAmount > 0) receiptText.writeln('Other: $_currencySymbol${_otherAmount.toStringAsFixed(2)}');
+    if (savedOnlineAmount > 0) receiptText.writeln('Online: $_currencySymbol${_onlineAmount.toStringAsFixed(2)}');
     
     receiptText.writeln('═══════════════════════');
-    receiptText.writeln('GRAND TOTAL: $_currencySymbol ${_grandTotal.toStringAsFixed(2)}');
+    receiptText.writeln('GRAND TOTAL: $savedCurrencySymbol ${_grandTotal.toStringAsFixed(2)}');
     receiptText.writeln('═══════════════════════');
     receiptText.writeln('Generated by Note Counter Pro');
     
-    Share.share(receiptText.toString(), subject: 'Receipt - $_currencySymbol${_grandTotal.toStringAsFixed(2)}');
+    Share.share(receiptText.toString(), subject: 'Receipt - $savedCurrencySymbol${_grandTotal.toStringAsFixed(2)}');
   }
   
   void _sendToCalculator() {
@@ -1100,7 +1116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Text(
-                      '$_currencySymbol ${_grandTotal.toStringAsFixed(2)}',
+                      '$savedCurrencySymbol ${savedGrandTotal.toStringAsFixed(2)}',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
