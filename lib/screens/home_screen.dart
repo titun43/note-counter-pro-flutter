@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../utils/constants.dart';
@@ -169,6 +170,60 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     
+    // Show name/note input dialog
+    final nameController = TextEditingController();
+    final noteController = TextEditingController();
+    
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isCashIn ? 'Cash In - Details' : 'Cash Out - Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name (কার থেকে / কাকে দিলেন)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.person),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: noteController,
+              decoration: const InputDecoration(
+                labelText: 'Note (কী জন্য - optional)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.note),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'name': nameController.text.trim(),
+                'note': noteController.text.trim(),
+              });
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    
+    if (result == null) return; // User cancelled
+    
+    final name = result['name'] ?? '';
+    final noteText = result['note'] ?? '';
+    
     final storage = context.read<StorageService>();
     final denominationMap = <String, int>{};
     for (final denom in _denominations) {
@@ -179,31 +234,279 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     
+    final noteString = StringBuffer();
+    noteString.write('$_transactionType - $_totalNotes notes');
+    if (_otherAmount > 0) noteString.write(' + Other: $_currencySymbol$_otherAmount');
+    if (_onlineAmount > 0) noteString.write(' + Online: $_currencySymbol$_onlineAmount');
+    if (name.isNotEmpty) noteString.write(' | From: $name');
+    if (noteText.isNotEmpty) noteString.write(' | $noteText');
+    
     final entry = Entry.create(
       type: isCashIn ? 'cash_in' : 'cash_out',
       amount: _grandTotal,
       currency: _selectedCurrency,
-      notes: '$_transactionType - $_totalNotes notes'
-          '${_otherAmount > 0 ? ' + Other: $_currencySymbol$_otherAmount' : ''}'
-          '${_onlineAmount > 0 ? ' + Online: $_currencySymbol$_onlineAmount' : ''}',
+      notes: noteString.toString(),
       denominationCounts: denominationMap,
       category: _transactionType.toLowerCase(),
+      customerName: name.isNotEmpty ? name : null,
     );
     
     await storage.addEntry(entry);
     
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${isCashIn ? "Cash In" : "Cash Out"}: $_currencySymbol${_grandTotal.toStringAsFixed(2)} saved!'),
-          backgroundColor: isCashIn ? AppColors.success : AppColors.danger,
-        ),
-      );
-      _reset();
+      // Show receipt dialog
+      _showReceiptDialog(entry, isCashIn, name, noteText);
       
-      // Show interstitial ad after saving
-      AdMobService.showInterstitial();
+      _reset();
     }
+  }
+  
+  void _showReceiptDialog(Entry entry, bool isCashIn, String name, String noteText) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 350),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Receipt header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isCashIn ? AppColors.success : AppColors.danger,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.receipt_long, color: Colors.white, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      isCashIn ? 'CASH IN' : 'CASH OUT',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Receipt body
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // App name
+                    Text(
+                      'Note Counter Pro',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Date & time
+                    Text(
+                      '${entry.date.day}/${entry.date.month}/${entry.date.year} - ${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    // Name
+                    if (name.isNotEmpty)
+                      _receiptRow('Name', name, theme),
+                    
+                    // Note
+                    if (noteText.isNotEmpty)
+                      _receiptRow('Note', noteText, theme),
+                    
+                    // Transaction type
+                    _receiptRow('Type', _transactionType, theme),
+                    
+                    // Total notes
+                    _receiptRow('Total Notes', '$_totalNotes', theme),
+                    
+                    const SizedBox(height: 8),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    // Denominations breakdown
+                    if (entry.denominationCounts != null && entry.denominationCounts!.isNotEmpty) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Denomination Breakdown:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ...entry.denominationCounts!.entries.map((e) {
+                        final value = int.parse(e.key);
+                        final count = e.value;
+                        final subtotal = value * count;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('$_currencySymbol$value × $count', style: theme.textTheme.bodySmall),
+                              Text('$_currencySymbol$subtotal', style: theme.textTheme.bodySmall),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                    ],
+                    
+                    // Other & Online
+                    if (_otherAmount > 0)
+                      _receiptRow('Other Amount', '$_currencySymbol${_otherAmount.toStringAsFixed(2)}', theme),
+                    if (_onlineAmount > 0)
+                      _receiptRow('Online Amount', '$_currencySymbol${_onlineAmount.toStringAsFixed(2)}', theme),
+                    
+                    if (_otherAmount > 0 || _onlineAmount > 0) ...[
+                      const SizedBox(height: 8),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                    ],
+                    
+                    // Grand total
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'GRAND TOTAL',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '$_currencySymbol ${_grandTotal.toStringAsFixed(2)}',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isCashIn ? AppColors.success : AppColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    
+                    // Footer
+                    Text(
+                      'Generated by Note Counter Pro',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.close),
+                            label: const Text('Close'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Share via WhatsApp
+                              _shareReceipt(entry, name, noteText, isCashIn);
+                            },
+                            icon: const Icon(Icons.share),
+                            label: const Text('Share'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    // Show interstitial ad after receipt
+    AdMobService.showInterstitial();
+  }
+  
+  Widget _receiptRow(String label, String value, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+          Text(value, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+  
+  void _shareReceipt(Entry entry, String name, String noteText, bool isCashIn) {
+    final receiptText = StringBuffer();
+    receiptText.writeln('═══════════════════════');
+    receiptText.writeln('   ${isCashIn ? "CASH IN" : "CASH OUT"} RECEIPT');
+    receiptText.writeln('═══════════════════════');
+    receiptText.writeln('Note Counter Pro');
+    receiptText.writeln('Date: ${entry.date.day}/${entry.date.month}/${entry.date.year}');
+    receiptText.writeln('Time: ${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}');
+    receiptText.writeln('───────────────────────');
+    if (name.isNotEmpty) receiptText.writeln('Name: $name');
+    if (noteText.isNotEmpty) receiptText.writeln('Note: $noteText');
+    receiptText.writeln('Type: $_transactionType');
+    receiptText.writeln('Total Notes: $_totalNotes');
+    receiptText.writeln('───────────────────────');
+    
+    if (entry.denominationCounts != null) {
+      receiptText.writeln('Denomination Breakdown:');
+      entry.denominationCounts!.forEach((key, count) {
+        final value = int.parse(key);
+        final subtotal = value * count;
+        receiptText.writeln('  $_currencySymbol$value × $count = $_currencySymbol$subtotal');
+      });
+      receiptText.writeln('───────────────────────');
+    }
+    
+    if (_otherAmount > 0) receiptText.writeln('Other: $_currencySymbol${_otherAmount.toStringAsFixed(2)}');
+    if (_onlineAmount > 0) receiptText.writeln('Online: $_currencySymbol${_onlineAmount.toStringAsFixed(2)}');
+    
+    receiptText.writeln('═══════════════════════');
+    receiptText.writeln('GRAND TOTAL: $_currencySymbol ${_grandTotal.toStringAsFixed(2)}');
+    receiptText.writeln('═══════════════════════');
+    receiptText.writeln('Generated by Note Counter Pro');
+    
+    Share.share(receiptText.toString(), subject: 'Receipt - $_currencySymbol${_grandTotal.toStringAsFixed(2)}');
   }
   
   void _sendToCalculator() {

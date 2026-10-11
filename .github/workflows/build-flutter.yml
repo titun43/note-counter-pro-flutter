@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.6.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.6.2 (versionCode: 59)\n- Flutter: 3.35.5 (latest stable, full 16KB support)\n- NDK: r28 (28.0.13004158)\n- Target SDK: 36\n- 16KB page size: FULLY SUPPORTED\n\n## Play Store Fixes\n1. Flutter 3.29 -> 3.35.5 (engine .so files now 16KB aligned)\n2. NDK r27 -> r28 (latest, full 16KB alignment)\n3. packagingOptions + abiFilters maintained')
-        gh release create v3.6.2-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.7.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.7.0 (versionCode: 60)\n- Flutter: 3.35.5\n- NDK: 27.0.12077973\n- Target SDK: 36\n\n## New Features in 3.7.0\n\n### 1. Cash Receipt (Personal)\n- Save In/Out generates a personal receipt\n- Receipt shows date, time, name, note, breakdown, total\n- Shareable via WhatsApp\n\n### 2. Name and Note on Save\n- Save In/Out asks for Name and Note\n- Saved with transaction in History\n\n### 3. Share Receipt\n- Share receipt as text via WhatsApp/Email')
+        gh release create v3.7.0-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.6.2 (Flutter - 16KB Final Fix)" \
+          --title "Note Counter Pro v3.7.0 (Flutter - Cash Receipt)" \
           --notes "$NOTES" \
           --latest
