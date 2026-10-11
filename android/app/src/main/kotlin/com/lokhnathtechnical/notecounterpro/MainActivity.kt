@@ -31,8 +31,9 @@ class MainActivity: FlutterFragmentActivity() {
             when (call.method) {
                 "pickContact" -> {
                     pendingResult = result
-                    val intent = Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI)
-                    intent.type = ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE
+                    // Use Phone.CONTENT_URI directly so the picker shows contacts
+                    // with phone numbers, and we get the number straight from the URI
+                    val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
                     startActivityForResult(intent, PICK_CONTACT_REQUEST)
                 }
                 else -> result.notImplemented()
@@ -111,25 +112,12 @@ class MainActivity: FlutterFragmentActivity() {
                 var phone = ""
                 
                 try {
+                    // Since we used Phone.CONTENT_URI, the cursor directly contains
+                    // DISPLAY_NAME and NUMBER columns — no second query needed.
                     val cursor = contentResolver.query(contactUri!!, null, null, null, null)
                     if (cursor != null && cursor.moveToFirst()) {
-                        val hasPhone = cursor.getInt(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.HAS_PHONE_NUMBER))
-                        if (hasPhone > 0) {
-                            name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME)) ?: ""
-                            val contactId = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID))
-                            
-                            val phones = contentResolver.query(
-                                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                                null,
-                                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = " + contactId,
-                                null,
-                                null
-                            )
-                            if (phones != null && phones.moveToFirst()) {
-                                phone = phones.getString(phones.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)) ?: ""
-                                phones.close()
-                            }
-                        }
+                        name = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)) ?: ""
+                        phone = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)) ?: ""
                         cursor.close()
                     }
                 } catch (e: Exception) {

@@ -919,7 +919,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                   ),
                                 )
                               : ListView.builder(
-                                  padding: const EdgeInsets.fromLTRB(32, 0, 8, 80),
+                                  padding: const EdgeInsets.fromLTRB(32, 0, 8, 56),
                                   itemCount: customers.length,
                                   itemBuilder: (context, index) {
                                     final customer = customers[index];
@@ -967,36 +967,13 @@ class _KhataScreenState extends State<KhataScreen> {
           ],
         ),
       ),
-      // === FLOATING ADD BUTTON (bahi style) ===
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF8B0000), Color(0xFFA0522D)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF8B0000).withOpacity(0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton.extended(
-          onPressed: _addCustomer,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          icon: const Icon(Icons.person_add, color: Color(0xFFD4AF37)),
-          label: Text(
-            loc.t('addCustomer'),
-            style: const TextStyle(
-              color: Color(0xFFD4AF37),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
+      // === FLOATING ADD BUTTON (compact, bahi style) ===
+      floatingActionButton: FloatingActionButton.small(
+        onPressed: _addCustomer,
+        backgroundColor: const Color(0xFF8B0000),
+        elevation: 4,
+        tooltip: loc.t('addCustomer'),
+        child: const Icon(Icons.person_add, color: Color(0xFFD4AF37), size: 22),
       ),
     );
   }
@@ -1127,7 +1104,7 @@ class _KhataEntry extends StatelessWidget {
       onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(4),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
