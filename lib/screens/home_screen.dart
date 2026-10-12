@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../utils/constants.dart';
@@ -282,185 +287,222 @@ class _HomeScreenState extends State<HomeScreen> {
       double savedOnlineAmount, String savedTransactionType, String savedCurrencySymbol) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final screenshotController = ScreenshotController();
 
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 350),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Receipt header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Receipt wrapped in Screenshot widget
+            Screenshot(
+              controller: screenshotController,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 350),
                 decoration: BoxDecoration(
-                  color: isCashIn ? AppColors.success : AppColors.danger,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
-                  ),
+                  color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.receipt_long, color: Colors.white, size: 32),
-                    const SizedBox(height: 8),
-                    Text(
-                      isCashIn ? 'CASH IN' : 'CASH OUT',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Receipt body
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Text(
-                      'Note Counter Pro',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${entry.date.day}/${entry.date.month}/${entry.date.year} - ${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-
-                    if (name.isNotEmpty)
-                      _receiptRow('Name', name, theme),
-                    if (noteText.isNotEmpty)
-                      _receiptRow('Note', noteText, theme),
-                    _receiptRow('Type', savedTransactionType, theme),
-                    _receiptRow('Total Notes', '$savedTotalNotes', theme),
-
-                    const SizedBox(height: 8),
-                    const Divider(),
-                    const SizedBox(height: 8),
-
-                    // Denominations breakdown
-                    if (entry.denominationCounts != null && entry.denominationCounts!.isNotEmpty) ...[
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Denomination Breakdown:',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                    // Receipt header
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isCashIn ? AppColors.success : AppColors.danger,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      ...entry.denominationCounts!.entries.map((e) {
-                        final value = int.parse(e.key);
-                        final count = e.value;
-                        final subtotal = value * count;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.receipt_long, color: Colors.white, size: 32),
+                          const SizedBox(height: 8),
+                          Text(
+                            isCashIn ? 'CASH IN' : 'CASH OUT',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Receipt body
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Note Counter Pro',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${entry.date.day}/${entry.date.month}/${entry.date.year} - ${entry.date.hour}:${entry.date.minute.toString().padLeft(2, '0')}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Divider(),
+                          const SizedBox(height: 8),
+
+                          if (name.isNotEmpty)
+                            _receiptRow('Name', name, theme),
+                          if (noteText.isNotEmpty)
+                            _receiptRow('Note', noteText, theme),
+                          _receiptRow('Type', savedTransactionType, theme),
+                          _receiptRow('Total Notes', '$savedTotalNotes', theme),
+
+                          const SizedBox(height: 8),
+                          const Divider(),
+                          const SizedBox(height: 8),
+
+                          // Denominations breakdown
+                          if (entry.denominationCounts != null && entry.denominationCounts!.isNotEmpty) ...[
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Denomination Breakdown:',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            ...entry.denominationCounts!.entries.map((e) {
+                              final value = int.parse(e.key);
+                              final count = e.value;
+                              final subtotal = value * count;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('$savedCurrencySymbol$value × $count', style: theme.textTheme.bodySmall),
+                                    Text('$savedCurrencySymbol$subtotal', style: theme.textTheme.bodySmall),
+                                  ],
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 8),
+                            const Divider(),
+                            const SizedBox(height: 8),
+                          ],
+
+                          // Other & Online
+                          if (savedOtherAmount > 0)
+                            _receiptRow('Other Amount', '$savedCurrencySymbol${savedOtherAmount.toStringAsFixed(2)}', theme),
+                          if (savedOnlineAmount > 0)
+                            _receiptRow('Online Amount', '$savedCurrencySymbol${savedOnlineAmount.toStringAsFixed(2)}', theme),
+
+                          if (savedOtherAmount > 0 || savedOnlineAmount > 0) ...[
+                            const SizedBox(height: 8),
+                            const Divider(),
+                            const SizedBox(height: 8),
+                          ],
+
+                          // Grand total
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('$savedCurrencySymbol$value × $count', style: theme.textTheme.bodySmall),
-                              Text('$savedCurrencySymbol$subtotal', style: theme.textTheme.bodySmall),
+                              Text(
+                                'GRAND TOTAL',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '$savedCurrencySymbol ${savedGrandTotal.toStringAsFixed(2)}',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: isCashIn ? AppColors.success : AppColors.danger,
+                                ),
+                              ),
                             ],
                           ),
-                        );
-                      }),
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                    ],
 
-                    // Other & Online
-                    if (savedOtherAmount > 0)
-                      _receiptRow('Other Amount', '$savedCurrencySymbol${savedOtherAmount.toStringAsFixed(2)}', theme),
-                    if (savedOnlineAmount > 0)
-                      _receiptRow('Online Amount', '$savedCurrencySymbol${savedOnlineAmount.toStringAsFixed(2)}', theme),
+                          const SizedBox(height: 16),
+                          const Divider(),
+                          const SizedBox(height: 8),
 
-                    if (savedOtherAmount > 0 || savedOnlineAmount > 0) ...[
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                    ],
-
-                    // Grand total
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'GRAND TOTAL',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          Text(
+                            'Generated by Note Counter Pro',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '$savedCurrencySymbol ${savedGrandTotal.toStringAsFixed(2)}',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: isCashIn ? AppColors.success : AppColors.danger,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-
-                    Text(
-                      'Generated by Note Counter Pro',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: 10,
+                        ],
                       ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.close),
-                            label: const Text('Close'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _shareReceipt(entry, name, noteText, isCashIn,
-                                  savedGrandTotal, savedTotalNotes, savedOtherAmount,
-                                  savedOnlineAmount, savedTransactionType, savedCurrencySymbol);
-                            },
-                            icon: const Icon(Icons.share),
-                            label: const Text('Share'),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            // Action buttons (outside screenshot)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  label: const Text('Close', style: TextStyle(color: Colors.white)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white54),
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: () async {
+                    // Capture receipt as image
+                    try {
+                      final Uint8List? imageBytes = await screenshotController.capture();
+                      if (imageBytes != null) {
+                        // Save to temp file
+                        final tempDir = await getTemporaryDirectory();
+                        final now = DateTime.now();
+                        final filename = 'receipt-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour}${now.minute}${now.second}.png';
+                        final file = File('${tempDir.path}/$filename');
+                        await file.writeAsBytes(imageBytes);
+
+                        // Share as image
+                        await Share.shareXFiles(
+                          [XFile(file.path)],
+                          subject: '${isCashIn ? "Cash In" : "Cash Out"} Receipt - $savedCurrencySymbol${savedGrandTotal.toStringAsFixed(2)}',
+                        );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('Share image failed: $e');
+                      // Fallback to text share
+                      _shareReceiptAsText(entry, name, noteText, isCashIn,
+                          savedGrandTotal, savedTotalNotes, savedOtherAmount,
+                          savedOnlineAmount, savedTransactionType, savedCurrencySymbol);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.share),
+                  label: const Text('Share Image'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -482,7 +524,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _shareReceipt(Entry entry, String name, String noteText, bool isCashIn,
+  /// Fallback: share receipt as text (if image capture fails)
+  void _shareReceiptAsText(Entry entry, String name, String noteText, bool isCashIn,
       double savedGrandTotal, int savedTotalNotes, double savedOtherAmount,
       double savedOnlineAmount, String savedTransactionType, String savedCurrencySymbol) {
     final receiptText = StringBuffer();
@@ -751,87 +794,270 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    return ListView.separated(
+    return ListView.builder(
       padding: const EdgeInsets.all(8),
       itemCount: qrHistory.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 6),
       itemBuilder: (context, index) {
         final qr = qrHistory[index];
         final name = qr['name'] ?? '';
         final upiId = qr['upiId'] ?? '';
         final amount = qr['amount'] ?? '';
+        final payeeName = qr['payeeName'] ?? '';
+
+        // Build UPI deep link string for QR preview
+        String upiString = 'upi://pay?pa=${Uri.encodeComponent(upiId)}';
+        if (payeeName.isNotEmpty) {
+          upiString += '&pn=${Uri.encodeComponent(payeeName)}';
+        }
+        if (amount.isNotEmpty) {
+          upiString += '&am=$amount';
+        }
+        upiString += '&cu=INR';
 
         return Card(
-          elevation: 2,
-          margin: EdgeInsets.zero,
-          child: ListTile(
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UpiQrScreen()),
-              );
-            },
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primary.withOpacity(0.2),
-              child: const Icon(Icons.qr_code_2, color: AppColors.primary),
-            ),
-            title: Text(
-              name.isNotEmpty ? name : (upiId.isNotEmpty ? upiId : 'QR'),
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+          elevation: 3,
+          margin: const EdgeInsets.only(bottom: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _showQrDetailDialog(qr, upiString),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // QR Preview (small)
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    ),
+                    child: QrImageView(
+                      data: upiString,
+                      version: QrVersions.auto,
+                      size: 70,
+                      gapless: true,
+                      errorStateBuilder: (context, error) => const Icon(
+                        Icons.error_outline,
+                        size: 40,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name
+                        Text(
+                          name.isNotEmpty ? name : (upiId.isNotEmpty ? upiId : 'QR'),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        // UPI ID
+                        if (upiId.isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(Icons.account_circle, size: 12, color: AppColors.textSecondary),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  upiId,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 4),
+                        // Amount badge
+                        if (amount.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '₹$amount',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Action buttons
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.share, size: 20),
+                        color: AppColors.info,
+                        tooltip: loc.t('share'),
+                        onPressed: () {
+                          final shareText = StringBuffer();
+                          shareText.writeln('UPI Payment Details');
+                          shareText.writeln('─────────────────');
+                          if (name.isNotEmpty) shareText.writeln('Name: $name');
+                          if (upiId.isNotEmpty) shareText.writeln('UPI ID: $upiId');
+                          if (amount.isNotEmpty) shareText.writeln('Amount: ₹$amount');
+                          shareText.writeln('─────────────────');
+                          shareText.writeln('Pay via any UPI app to: $upiId');
+                          shareText.writeln('— Sent via Note Counter Pro');
+                          Share.share(shareText.toString(), subject: 'UPI QR Details - $name');
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      ),
+                      Icon(
+                        Icons.visibility,
+                        size: 14,
+                        color: AppColors.textSecondary.withOpacity(0.4),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (upiId.isNotEmpty)
-                  Text(
-                    upiId,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                if (amount.isNotEmpty)
-                  Text(
-                    '₹$amount',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.share, size: 18),
-                  color: AppColors.info,
-                  tooltip: loc.t('share'),
-                  onPressed: () {
-                    final shareText = StringBuffer();
-                    if (name.isNotEmpty) shareText.writeln('Name: $name');
-                    if (upiId.isNotEmpty) shareText.writeln('UPI ID: $upiId');
-                    if (amount.isNotEmpty) shareText.writeln('Amount: ₹$amount');
-                    shareText.writeln('Generated by Note Counter Pro');
-                    Share.share(shareText.toString(), subject: 'UPI QR Details - $name');
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: AppColors.textSecondary.withOpacity(0.5),
-                ),
-              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// Show full QR detail dialog with large QR + pay button
+  void _showQrDetailDialog(Map<String, String> qr, String upiString) {
+    final theme = Theme.of(context);
+    final name = qr['name'] ?? '';
+    final upiId = qr['upiId'] ?? '';
+    final amount = qr['amount'] ?? '';
+    final payeeName = qr['payeeName'] ?? '';
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 320),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(Icons.qr_code, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      name.isNotEmpty ? name : 'QR Details',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 8),
+              // Large QR
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                ),
+                child: QrImageView(
+                  data: upiString,
+                  version: QrVersions.auto,
+                  size: 200,
+                  gapless: true,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Details
+              if (upiId.isNotEmpty)
+                _qrDetailRow('UPI ID', upiId, theme),
+              if (payeeName.isNotEmpty)
+                _qrDetailRow('Payee', payeeName, theme),
+              if (amount.isNotEmpty)
+                _qrDetailRow('Amount', '₹$amount', theme),
+              const SizedBox(height: 16),
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Close'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('New QR'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _qrDetailRow(String label, String value, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
+          Flexible(
+            child: Text(
+              value,
+              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+              textAlign: TextAlign.end,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
