@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.12.2 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.12.2 (versionCode: 77)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Fix: PDF Broken Symbols\n\n### Problem\nPDF was showing broken mail-icon-like symbols instead of:\n1. Rupee symbol (₹) before amounts\n2. Phone emoji (📞) and location emoji (📍) in header\n\n### Root Cause\nPDF default font (Helvetica) does not support:\n- Indian Rupee glyph (₹)\n- Emoji characters (📞, 📍)\nThese render as broken/missing character boxes that look like mail icons.\n\n### Fix\n1. Created _pdfCurrencySymbol() method that returns PDF-safe currency strings:\n   - INR → "Rs." (instead of ₹)\n   - USD → "$"\n   - EUR → "EUR"\n   - GBP → "GBP"\n   - BDT → "Tk."\n   - NPR → "Rs."\n2. Replaced all AppConstants.getCurrencySymbol() calls in PDF with _pdfCurrencySymbol()\n3. Replaced 📞 emoji with "Phone:" text\n4. Replaced 📍 emoji with "Address:" text\n\nNow PDF shows clean text without any broken symbols.\n\nVersion: 3.12.2 (versionCode: 77)')
-        gh release create v3.12.2-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.12.3 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.12.3 (versionCode: 78)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Fix: Khata PDF Bengali Text Broken Symbol\n\n### Problem\nKhata Summary PDF header showed broken mail-icon-like symbols above the date.\n\n### Root Cause\nThe text "বাহি খাতা" (Bengali) was used in the PDF header.\nPDF default font (Helvetica) does not support Bengali characters.\nEach Bengali letter rendered as a broken character box (looks like mail icon).\n\n### Fix\nReplaced "বাহি খাতা" with "My Khata" (English text).\nNow PDF header shows clean English text — no broken symbols.\n\nVersion: 3.12.3 (versionCode: 78)')
+        gh release create v3.12.3-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.12.2 (Flutter - PDF Symbol Fix)" \
+          --title "Note Counter Pro v3.12.3 (Flutter - PDF Bengali Text Fix)" \
           --notes "$NOTES" \
           --latest

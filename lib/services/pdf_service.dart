@@ -115,7 +115,7 @@ class PdfService {
                         crossAxisAlignment: pw.CrossAxisAlignment.end,
                         children: [
                           pw.Text(
-                            'বাহি খাতা',
+                            'My Khata',
                             style: pw.TextStyle(
                               color: PdfColor.fromHex('D4AF37'),
                               fontSize: 16,
