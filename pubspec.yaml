@@ -58,6 +58,7 @@ dev_dependencies:
 
 dependency_overrides:
   archive: ^3.6.1
+  image: ^4.2.0
 
 flutter:
   uses-material-design: true
