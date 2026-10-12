@@ -149,7 +149,7 @@ class PdfService {
       StorageService storage, Customer customer, List<Entry> entries) async {
     try {
       final pdf = pw.Document();
-      final symbol = AppConstants.getCurrencySymbol(customer.currency ?? storage.defaultCurrency);
+      final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
 
       // Business details
       final bizName = storage.businessName;
