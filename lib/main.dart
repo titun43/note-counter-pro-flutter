@@ -151,9 +151,9 @@ class _MainScaffoldState extends State<MainScaffold> {
       _currentIndex = index;
     });
     
-    // Show interstitial every 3 page changes
+    // Show interstitial every 6 page changes (less annoying)
     _pageChangeCount++;
-    if (_pageChangeCount >= 3) {
+    if (_pageChangeCount >= 6) {
       _pageChangeCount = 0;
       AdMobService.showInterstitial();
     }

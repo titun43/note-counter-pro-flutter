@@ -492,6 +492,10 @@ class StorageService extends ChangeNotifier {
     await _saveEntries();
     await _saveCustomers();
     await _saveBills();
+    // Clear QR history too
+    await _prefs?.remove('qrHistory');
+    // Clear last backup time
+    await _prefs?.remove('lastBackupTime');
     notifyListeners();
     _scheduleAutoBackup();
   }

@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _otherAmountController = TextEditingController();
   final TextEditingController _onlineAmountController = TextEditingController();
   bool _showExtraFields = false;
+  int _saveCount = 0; // For interstitial ad timing on save
   
   @override
   void initState() {
@@ -507,8 +508,12 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    // Show interstitial ad after receipt
-    AdMobService.showInterstitial();
+    // Show interstitial ad after every 3rd save (less annoying)
+    _saveCount++;
+    if (_saveCount >= 3) {
+      _saveCount = 0;
+      AdMobService.showInterstitial();
+    }
   }
 
   Widget _receiptRow(String label, String value, ThemeData theme) {

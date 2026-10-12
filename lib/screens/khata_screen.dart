@@ -495,9 +495,9 @@ class _KhataScreenState extends State<KhataScreen> {
     });
   }
 
-  /// Get sorted and filtered customers
+  /// Get sorted and filtered customers (ALL customers — pending + settled + new)
   List<Customer> _getFilteredCustomers(List<Customer> allCustomers) {
-    var customers = allCustomers.where((c) => c.balance != 0).toList();
+    var customers = allCustomers.toList(); // Show ALL customers
 
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
@@ -864,7 +864,7 @@ class _KhataScreenState extends State<KhataScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                loc.t('pendingEntries'),
+                                loc.t('allCustomers'),
                                 style: TextStyle(
                                   fontFamily: 'KhataHandwriting',
                                   fontSize: 16,
@@ -909,7 +909,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                         Text(
                                           _searchQuery.isNotEmpty
                                               ? 'No customers found'
-                                              : loc.t('noPendingEntries'),
+                                              : loc.t('noCustomers'),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontFamily: 'KhataHandwriting',
@@ -1156,15 +1156,34 @@ class _KhataEntry extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '$currencySymbol${balance.abs().toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontFamily: 'KhataHandwriting',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: balanceColor,
+                      if (balance == 0)
+                        // Settled badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFF2E7D32), width: 0.5),
+                          ),
+                          child: Text(
+                            'SETTLED',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2E7D32),
+                            ),
+                          ),
+                        )
+                      else
+                        Text(
+                          '$currencySymbol${balance.abs().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontFamily: 'KhataHandwriting',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: balanceColor,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 2),
