@@ -803,16 +803,25 @@ class _HomeScreenState extends State<HomeScreen> {
         final upiId = qr['upiId'] ?? '';
         final amount = qr['amount'] ?? '';
         final payeeName = qr['payeeName'] ?? '';
+        final imagePath = qr['imagePath'] ?? '';
+        final savedUpiUrl = qr['upiUrl'] ?? '';
 
-        // Build UPI deep link string for QR preview
-        String upiString = 'upi://pay?pa=${Uri.encodeComponent(upiId)}';
-        if (payeeName.isNotEmpty) {
-          upiString += '&pn=${Uri.encodeComponent(payeeName)}';
+        // Build UPI deep link string for QR preview (fallback if no saved image)
+        String upiString = savedUpiUrl.isNotEmpty
+            ? savedUpiUrl
+            : 'upi://pay?pa=${Uri.encodeComponent(upiId)}';
+        if (savedUpiUrl.isEmpty) {
+          if (payeeName.isNotEmpty) {
+            upiString += '&pn=${Uri.encodeComponent(payeeName)}';
+          }
+          if (amount.isNotEmpty) {
+            upiString += '&am=$amount';
+          }
+          upiString += '&cu=INR';
         }
-        if (amount.isNotEmpty) {
-          upiString += '&am=$amount';
-        }
-        upiString += '&cu=INR';
+
+        // Check if saved image exists
+        final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
 
         return Card(
           elevation: 3,
@@ -826,7 +835,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // QR Preview (small)
+                  // QR Preview — saved image OR generated QR
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -834,17 +843,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppColors.primary.withOpacity(0.3)),
                     ),
-                    child: QrImageView(
-                      data: upiString,
-                      version: QrVersions.auto,
-                      size: 70,
-                      gapless: true,
-                      errorStateBuilder: (context, error) => const Icon(
-                        Icons.error_outline,
-                        size: 40,
-                        color: Colors.red,
-                      ),
-                    ),
+                    child: hasImage
+                        ? Image.file(
+                            File(imagePath),
+                            width: 70,
+                            height: 70,
+                            fit: BoxFit.cover,
+                          )
+                        : QrImageView(
+                            data: upiString,
+                            version: QrVersions.auto,
+                            size: 70,
+                            gapless: true,
+                            errorStateBuilder: (context, error) => const Icon(
+                              Icons.error_outline,
+                              size: 40,
+                              color: Colors.red,
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   // Info
