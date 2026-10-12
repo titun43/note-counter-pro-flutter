@@ -26,7 +26,7 @@ jobs:
         export ANDROID_HOME=/usr/local/lib/android/sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
         yes | sdkmanager --licenses
-        sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+        sdkmanager "ndk;27.0.12077973" "cmake;3.22.1" || true
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
