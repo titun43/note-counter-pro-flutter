@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/pdf_service.dart';
 import '../models/customer.dart';
@@ -25,6 +30,7 @@ class CustomerDetailScreen extends StatefulWidget {
 
 class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   Customer? _customer;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   void initState() {
@@ -432,13 +438,228 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     Share.share(text.toString(), subject: 'Transaction - $symbol${entry.amount.toStringAsFixed(2)}');
   }
 
-  /// Share entire customer page (all transactions + balance)
-  void _sharePage() {
+  /// Share entire customer page as image (not text)
+  void _sharePage() async {
     if (_customer == null) return;
+
+    // Show a dialog with the shareable receipt, then capture it
     final storage = context.read<StorageService>();
     final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
     final entries = _customerEntries;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final balance = _customer!.balance;
 
+    // Build a shareable receipt widget
+    Widget receiptWidget = _buildShareableReceipt(
+      storage, symbol, entries, theme, isDark, balance,
+    );
+
+    // Show in an offscreen overlay, capture, then share
+    final Uint8List? imageBytes = await _captureWidget(receiptWidget);
+
+    if (imageBytes != null) {
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final now = DateTime.now();
+        final filename = 'khata-${_customer!.name}-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.png';
+        final file = File('${tempDir.path}/$filename');
+        await file.writeAsBytes(imageBytes);
+
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'Khata - ${_customer!.name}',
+        );
+      } catch (e) {
+        // Fallback to text share
+        _sharePageAsText(symbol, entries, balance);
+      }
+    } else {
+      // Fallback to text share
+      _sharePageAsText(symbol, entries, balance);
+    }
+  }
+
+  /// Capture a widget as image using ScreenshotController
+  Future<Uint8List?> _captureWidget(Widget widget) async {
+    try {
+      // Use a temporary ScreenshotController
+      final controller = ScreenshotController();
+      // Build the widget in an overlay
+      final overlay = Overlay.of(context);
+      late OverlayEntry entry;
+      Completer<Uint8List?> completer = Completer();
+
+      entry = OverlayEntry(
+        builder: (context) => Positioned(
+          left: -1000,
+          top: -1000,
+          child: Material(
+            type: MaterialType.transparency,
+            child: Screenshot(
+              controller: controller,
+              child: widget,
+            ),
+          ),
+        ),
+      );
+
+      overlay.insert(entry);
+
+      // Wait for the widget to render
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final result = await controller.capture();
+      entry.remove();
+      return result;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Build a shareable receipt widget for screenshot capture
+  Widget _buildShareableReceipt(
+    StorageService storage,
+    String symbol,
+    List<Entry> entries,
+    ThemeData theme,
+    bool isDark,
+    double balance,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: 350,
+        color: isDark ? AppColors.bgCardDark : Colors.white,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header bar
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B0000),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    storage.businessName.isNotEmpty
+                        ? storage.businessName
+                        : (storage.businessOwner.isNotEmpty ? storage.businessOwner : 'Note Counter Pro'),
+                    style: const TextStyle(
+                      color: Color(0xFFD4AF37),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'বাহি খাতা — Customer Statement',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Customer info
+            Text(
+              'Customer: ${_customer!.name}',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+            ),
+            if (_customer!.phone != null && _customer!.phone!.isNotEmpty)
+              Text('Phone: ${_customer!.phone}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.grey[700])),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+            // Balance
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: balance > 0
+                    ? Colors.red.withOpacity(0.1)
+                    : (balance < 0 ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1)),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: balance > 0 ? Colors.red : (balance < 0 ? Colors.green : Colors.grey)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Balance:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                  Text(
+                    '$symbol ${balance.abs().toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: balance > 0 ? Colors.red : (balance < 0 ? Colors.green : Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Transactions header
+            Text('Transactions (${entries.length})', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+            const SizedBox(height: 4),
+            const Divider(),
+            // Table header
+            Row(
+              children: [
+                Expanded(flex: 2, child: Text('Date', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.grey[700]))),
+                Expanded(flex: 3, child: Text('Description', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.grey[700]))),
+                Expanded(flex: 2, child: Text('Took', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green), textAlign: TextAlign.end)),
+                Expanded(flex: 2, child: Text('Gave', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red), textAlign: TextAlign.end)),
+              ],
+            ),
+            const Divider(),
+            // Transaction rows
+            ...entries.map((e) {
+              final isCredit = e.category == 'credit';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    Expanded(flex: 2, child: Text('${e.date.day}/${e.date.month}/${e.date.year}', style: TextStyle(fontSize: 10, color: isDark ? Colors.white60 : Colors.grey[600]))),
+                    Expanded(flex: 3, child: Text(e.notes ?? (isCredit ? 'Given' : 'Taken'), style: TextStyle(fontSize: 10, color: isDark ? Colors.white : Colors.black87))),
+                    Expanded(flex: 2, child: Text(!isCredit ? '$symbol${e.amount.toStringAsFixed(0)}' : '', textAlign: TextAlign.end, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green))),
+                    Expanded(flex: 2, child: Text(isCredit ? '$symbol${e.amount.toStringAsFixed(0)}' : '', textAlign: TextAlign.end, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.red))),
+                  ],
+                ),
+              );
+            }),
+            const Divider(),
+            // Totals
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                Row(
+                  children: [
+                    Text('$symbol${_customer!.totalDebit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green)),
+                    const SizedBox(width: 8),
+                    Text('$symbol${_customer!.totalCredit.toStringAsFixed(0)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Footer
+            Center(
+              child: Text(
+                'Generated by Note Counter Pro on ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                style: TextStyle(fontSize: 9, color: isDark ? Colors.white38 : Colors.grey[500]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Fallback: share as text
+  void _sharePageAsText(String symbol, List<Entry> entries, double balance) {
     final text = StringBuffer();
     text.writeln('═══════════════════════════════');
     text.writeln('         বাহি খাতা');
@@ -446,9 +667,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     text.writeln('Customer: ${_customer!.name}');
     if (_customer!.phone != null && _customer!.phone!.isNotEmpty) {
       text.writeln('Phone: ${_customer!.phone}');
-    }
-    if (_customer!.address != null && _customer!.address!.isNotEmpty) {
-      text.writeln('Address: ${_customer!.address}');
     }
     text.writeln('───────────────────────────────');
     text.writeln('Date       | Description      | Took    | Gave');
@@ -461,7 +679,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       text.writeln('$dateStr | ${desc.padRight(15)} | ${took.padRight(7)} | $gave');
     }
     text.writeln('═══════════════════════════════');
-    final balance = _customer!.balance;
     if (balance > 0) {
       text.writeln('BALANCE: $symbol ${balance.abs().toStringAsFixed(2)} (To Give)');
     } else if (balance < 0) {
