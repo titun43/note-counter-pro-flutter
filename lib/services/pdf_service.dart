@@ -15,6 +15,26 @@ import '../utils/constants.dart';
 /// PdfService — generates professional PDF for Khata summary and Customer statement
 /// Includes business details + actual QR code image
 class PdfService {
+  /// Get PDF-safe currency string.
+  /// PDF default font (Helvetica) doesn't support ₹ glyph, so use "Rs." instead.
+  static String _pdfCurrencySymbol(String currencyCode) {
+    switch (currencyCode) {
+      case 'INR':
+        return 'Rs.';
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return 'EUR';
+      case 'GBP':
+        return 'GBP';
+      case 'BDT':
+        return 'Tk.';
+      case 'NPR':
+        return 'Rs.';
+      default:
+        return 'Rs.';
+    }
+  }
   /// Generate QR code as image bytes for embedding in PDF
   static Future<Uint8List?> _generateQrImage(String data, {double size = 200}) async {
     try {
@@ -38,7 +58,7 @@ class PdfService {
     try {
       final pdf = pw.Document();
       final customers = storage.customers.where((c) => c.balance != 0).toList();
-      final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
+      final symbol = _pdfCurrencySymbol(storage.defaultCurrency);
 
       // Business details
       final bizName = storage.businessName;
@@ -118,9 +138,9 @@ class PdfService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       if (bizPhone.isNotEmpty)
-                        pw.Text('📞 $bizPhone', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+                        pw.Text('Phone: $bizPhone', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
                       if (bizAddress.isNotEmpty)
-                        pw.Text('📍 ${bizAddress.length > 40 ? '${bizAddress.substring(0, 40)}...' : bizAddress}',
+                        pw.Text('Address: ${bizAddress.length > 40 ? '${bizAddress.substring(0, 40)}...' : bizAddress}',
                             style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
                     ],
                   ),
@@ -272,7 +292,7 @@ class PdfService {
       StorageService storage, Customer customer, List<Entry> entries) async {
     try {
       final pdf = pw.Document();
-      final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
+      final symbol = _pdfCurrencySymbol(storage.defaultCurrency);
 
       // Business details
       final bizName = storage.businessName;
