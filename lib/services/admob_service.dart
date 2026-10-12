@@ -11,7 +11,7 @@ class AdMobService {
   /// TEST MODE: Set to false when user says "real ads on"
   /// When true, uses Google's official test ad unit IDs (always serve ads)
   /// When false, uses real AdMob ad unit IDs from AppConstants
-  static const bool useTestAds = true;
+  static const bool useTestAds = false;
 
   /// Google's official test ad unit IDs (always serve, safe for testing)
   static const String _testBannerAdUnitId =
