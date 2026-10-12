@@ -121,7 +121,37 @@ class StorageService extends ChangeNotifier {
     await _prefs?.setString('lastBackupTime', value);
     // Don't notify listeners to avoid triggering auto-backup loop
   }
-  
+
+  // === Business Details ===
+  String get businessName => _prefs?.getString('businessName') ?? '';
+  String get businessOwner => _prefs?.getString('businessOwner') ?? '';
+  String get businessPhone => _prefs?.getString('businessPhone') ?? '';
+  String get businessAddress => _prefs?.getString('businessAddress') ?? '';
+  String get businessUpiId => _prefs?.getString('businessUpiId') ?? '';
+
+  Future<void> setBusinessDetails({
+    String? name,
+    String? owner,
+    String? phone,
+    String? address,
+    String? upiId,
+  }) async {
+    if (name != null) await _prefs?.setString('businessName', name);
+    if (owner != null) await _prefs?.setString('businessOwner', owner);
+    if (phone != null) await _prefs?.setString('businessPhone', phone);
+    if (address != null) await _prefs?.setString('businessAddress', address);
+    if (upiId != null) await _prefs?.setString('businessUpiId', upiId);
+    notifyListeners();
+  }
+
+  bool get hasBusinessDetails {
+    return businessName.isNotEmpty ||
+        businessOwner.isNotEmpty ||
+        businessPhone.isNotEmpty ||
+        businessAddress.isNotEmpty ||
+        businessUpiId.isNotEmpty;
+  }
+
   // === Entries ===
   List<Entry> get entries {
     final sorted = List<Entry>.from(_entries);
@@ -248,6 +278,22 @@ class StorageService extends ChangeNotifier {
     history.insert(0, qr);
     if (history.length > 10) history.removeLast();
     await _prefs?.setString('qrHistory', jsonEncode(history));
+    notifyListeners();
+  }
+
+  /// Delete a QR history item by index
+  Future<void> deleteQrHistory(int index) async {
+    final history = qrHistory;
+    if (index >= 0 && index < history.length) {
+      history.removeAt(index);
+      await _prefs?.setString('qrHistory', jsonEncode(history));
+      notifyListeners();
+    }
+  }
+
+  /// Clear all QR history
+  Future<void> clearQrHistory() async {
+    await _prefs?.remove('qrHistory');
     notifyListeners();
   }
 

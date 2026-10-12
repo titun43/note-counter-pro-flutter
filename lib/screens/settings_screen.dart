@@ -416,16 +416,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.receipt_long, color: AppColors.info),
-            title: Text(loc.t('bills')),
-            subtitle: const Text('Create and manage bills'),
+            leading: const Icon(Icons.business, color: AppColors.primary),
+            title: Text(loc.t('businessDetails')),
+            subtitle: Text(loc.t('businessDetailsSubtitle')),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BillsScreen()),
-              );
-            },
+            onTap: _showBusinessDetails,
           ),
           ListTile(
             leading: const Icon(Icons.bar_chart, color: AppColors.primary),
@@ -639,6 +634,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
   
+  void _showBusinessDetails() {
+    final storage = context.read<StorageService>();
+    final nameController = TextEditingController(text: storage.businessName);
+    final ownerController = TextEditingController(text: storage.businessOwner);
+    final phoneController = TextEditingController(text: storage.businessPhone);
+    final addressController = TextEditingController(text: storage.businessAddress);
+    final upiController = TextEditingController(text: storage.businessUpiId);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.business, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(context.loc.t('businessDetails')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Business Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.store),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ownerController,
+                decoration: const InputDecoration(
+                  labelText: 'Owner Name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: upiController,
+                decoration: const InputDecoration(
+                  labelText: 'UPI ID (for receiving payments)',
+                  hintText: 'yourname@upi',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.payment),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(context.loc.t('cancel')),
+          ),
+          FilledButton(
+            onPressed: () async {
+              await storage.setBusinessDetails(
+                name: nameController.text.trim(),
+                owner: ownerController.text.trim(),
+                phone: phoneController.text.trim(),
+                address: addressController.text.trim(),
+                upiId: upiController.text.trim(),
+              );
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Business details saved!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: Text(context.loc.t('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showLanguagePicker() {
     final storage = context.read<StorageService>();
     showDialog(

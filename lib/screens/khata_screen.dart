@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import '../services/contact_picker_service.dart';
+import '../services/pdf_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
@@ -643,6 +644,20 @@ class _KhataScreenState extends State<KhataScreen> {
                         tooltip: loc.t('sortBy'),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                      // PDF share button
+                      IconButton(
+                        icon: const Icon(Icons.picture_as_pdf, color: Color(0xFFD4AF37)),
+                        tooltip: 'Share PDF',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        onPressed: () async {
+                          final storage = context.read<StorageService>();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Generating PDF...'), duration: Duration(seconds: 1)),
+                          );
+                          await PdfService.generateKhataPdf(storage);
+                        },
                       ),
                       // View all customers
                       IconButton(

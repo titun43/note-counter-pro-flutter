@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
+import '../services/pdf_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
@@ -629,11 +630,23 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           ),
         ),
         actions: [
-          // Share page
+          // Share page as text
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: loc.t('sharePage'),
             onPressed: _sharePage,
+          ),
+          // Share as PDF
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Share PDF',
+            onPressed: () async {
+              final storage = context.read<StorageService>();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Generating PDF...'), duration: Duration(seconds: 1)),
+              );
+              await PdfService.generateCustomerPdf(storage, _customer!, _customerEntries);
+            },
           ),
           // WhatsApp reminder
           if (_customer!.phone != null && _customer!.phone!.isNotEmpty && balance != 0)

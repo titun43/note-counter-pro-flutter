@@ -82,7 +82,6 @@ class AppConstants {
   // All currency denominations
   static const Map<String, List<Map<String, dynamic>>> denominations = {
     'INR': [
-      {'value': 2000, 'name': '₹2000', 'color': 0xFF8B5CF6},
       {'value': 500, 'name': '₹500', 'color': 0xFF10B981},
       {'value': 200, 'name': '₹200', 'color': 0xFFF59E0B},
       {'value': 100, 'name': '₹100', 'color': 0xFF3B82F6},
@@ -153,7 +152,6 @@ class AppConstants {
   
   // Indian currency denominations (kept for backward compat)
   static const List<Map<String, dynamic>> inrDenominations = [
-    {'value': 2000, 'name': '₹2000', 'color': 0xFF8B5CF6},
     {'value': 500, 'name': '₹500', 'color': 0xFF10B981},
     {'value': 200, 'name': '₹200', 'color': 0xFFF59E0B},
     {'value': 100, 'name': '₹100', 'color': 0xFF3B82F6},
