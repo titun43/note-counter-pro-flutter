@@ -82,10 +82,10 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.12.3 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.12.3 (versionCode: 78)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Fix: Khata PDF Bengali Text Broken Symbol\n\n### Problem\nKhata Summary PDF header showed broken mail-icon-like symbols above the date.\n\n### Root Cause\nThe text "বাহি খাতা" (Bengali) was used in the PDF header.\nPDF default font (Helvetica) does not support Bengali characters.\nEach Bengali letter rendered as a broken character box (looks like mail icon).\n\n### Fix\nReplaced "বাহি খাতা" with "My Khata" (English text).\nNow PDF header shows clean English text — no broken symbols.\n\nVersion: 3.12.3 (versionCode: 78)')
-        gh release create v3.12.3-flutter \
+        NOTES=$(printf '# Note Counter Pro v3.12.4 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.12.4 (versionCode: 79)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Fix: Settle Up Balance Bug\n\n### Problem\nSettle Up was doubling the balance instead of zeroing it.\n- To Give ₹200 → Settle → ₹400 (should be ₹0)\n- To Take ₹200 → Settle → ₹400 (should be ₹0)\n\n### Root Cause\nbalance = totalCredit - totalDebit\n\nOld (wrong) logic:\n- balance > 0 (To Give): totalCredit += amount → balance increases (WRONG)\n- balance < 0 (To Take): totalDebit += amount → balance decreases (WRONG)\n\n### Fix\nNew (correct) logic:\n- balance > 0 (To Give): totalDebit += amount → balance = credit - (debit+amount) = 0\n- balance < 0 (To Take): totalCredit += amount → balance = (credit+amount) - debit = 0\n\nNow Settle Up correctly zeros the balance.\n\nVersion: 3.12.4 (versionCode: 79)')
+        gh release create v3.12.4-flutter \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.12.3 (Flutter - PDF Bengali Text Fix)" \
+          --title "Note Counter Pro v3.12.4 (Flutter - Settle Up Bug Fix)" \
           --notes "$NOTES" \
           --latest

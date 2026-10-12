@@ -775,23 +775,27 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
 
     if (result == true) {
       final storage = context.read<StorageService>();
-      final isCredit = balance > 0; // We owe them, so we give (credit)
+      // balance = totalCredit - totalDebit
+      // balance > 0 (To Give): we gave money (credit), need to take back (debit) to zero out
+      // balance < 0 (To Take): we took money (debit), need to give back (credit) to zero out
 
-      if (isCredit) {
-        _customer!.totalCredit += balance.abs();
-      } else {
+      if (balance > 0) {
+        // To Give — we gave extra, now take it back (debit)
         _customer!.totalDebit += balance.abs();
+      } else {
+        // To Take — we took extra, now give it back (credit)
+        _customer!.totalCredit += balance.abs();
       }
       await storage.updateCustomer(_customer!);
 
       final entry = Entry.create(
-        type: isCredit ? 'cash_out' : 'cash_in',
+        type: balance > 0 ? 'cash_in' : 'cash_out',
         amount: balance.abs(),
         currency: storage.defaultCurrency,
         customerId: _customer!.id,
         customerName: _customer!.name,
         notes: loc.t('accountSettled'),
-        category: isCredit ? 'credit' : 'debit',
+        category: balance > 0 ? 'debit' : 'credit',
       );
       await storage.addEntry(entry);
 
