@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/backup_service.dart';
+import '../services/tts_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'upi_qr_screen.dart';
@@ -22,13 +23,31 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   PackageInfo? _packageInfo;
-  
+  bool _voiceEnabled = true;
+
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
+    _loadVoiceSetting();
   }
-  
+
+  Future<void> _loadVoiceSetting() async {
+    final enabled = await TtsService().isVoiceEnabled();
+    if (mounted) {
+      setState(() {
+        _voiceEnabled = enabled;
+      });
+    }
+  }
+
+  Future<void> _setVoiceEnabled(bool value) async {
+    setState(() {
+      _voiceEnabled = value;
+    });
+    await TtsService().setVoiceEnabled(value);
+  }
+
   Future<void> _loadPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
     setState(() {
@@ -383,6 +402,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: Switch(
               value: storage.appLockEnabled,
               onChanged: (value) => storage.setAppLockEnabled(value),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.record_voice_over),
+            title: Text(loc.t('voiceAnnouncement')),
+            subtitle: Text(loc.t('voiceAnnouncementDesc')),
+            trailing: Switch(
+              value: _voiceEnabled,
+              onChanged: (value) => _setVoiceEnabled(value),
             ),
           ),
           

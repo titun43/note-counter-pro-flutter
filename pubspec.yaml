@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.13.4+84
+version: 3.14.0+85
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -47,6 +47,9 @@ dependencies:
 
   # File picker (for restore backup)
   file_picker: ^8.1.2
+
+  # Text-to-Speech (voice announcement on save)
+  flutter_tts: ^4.2.0
 
   # Screenshot (capture receipt as image for share)
   screenshot: ^3.0.0

@@ -9,6 +9,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
+import '../services/tts_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/entry.dart';
@@ -292,6 +293,18 @@ class _HomeScreenState extends State<HomeScreen> {
       final savedOnlineAmount = _onlineAmount;
       final savedTransactionType = _transactionType;
       final savedCurrencySymbol = _currencySymbol;
+
+      // === VOICE ANNOUNCEMENT (TTS) ===
+      // Reads aloud: name (if any) + total amount + note text (if any)
+      // Language: user's current app language (en/bn/hi)
+      // Skips automatically if amount is 0 OR voice is disabled in Settings.
+      TtsService().announceSave(
+        transactionType: savedTransactionType,
+        totalAmount: savedGrandTotal,
+        name: name,
+        note: noteText,
+        currencySymbol: savedCurrencySymbol,
+      );
 
       // Show receipt dialog with saved values
       _showReceiptDialog(entry, isCashIn, name, noteText,
