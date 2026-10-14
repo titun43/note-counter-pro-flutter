@@ -31,6 +31,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _otherAmountController = TextEditingController();
   final TextEditingController _onlineAmountController = TextEditingController();
   bool _showExtraFields = false;
+  /// When true: hides the Payable/Receivable toggle to give more space for note list.
+  /// Auto-set to true when user starts entering note counts.
+  /// User can still toggle it back via the small eye button.
+  bool _hideTransactionToggle = false;
   int _saveCount = 0; // For interstitial ad timing on save
   
   @override
@@ -131,6 +135,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (controller == null) return;
     final current = int.tryParse(controller.text) ?? 0;
     controller.text = '${current + 1}';
+    // Auto-hide Payable/Receivable toggle when user starts counting notes
+    if (!_hideTransactionToggle) {
+      _hideTransactionToggle = true;
+    }
     setState(() {});
   }
   
@@ -140,11 +148,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final current = int.tryParse(controller.text) ?? 0;
     if (current > 0) {
       controller.text = '${current - 1}';
+      // If all counts back to 0, auto-show the toggle again
+      if (_totalNotes == 0) {
+        _hideTransactionToggle = false;
+      }
       setState(() {});
     }
   }
   
   void _onCountChanged(int value) {
+    // Auto-hide toggle when user types in any note count field
+    if (_totalNotes > 0 && !_hideTransactionToggle) {
+      _hideTransactionToggle = true;
+    } else if (_totalNotes == 0 && _hideTransactionToggle) {
+      _hideTransactionToggle = false;
+    }
     setState(() {});
   }
   
@@ -155,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _targetAmountController.clear();
     _otherAmountController.clear();
     _onlineAmountController.clear();
+    _hideTransactionToggle = false; // Show toggle again on reset
     setState(() {});
   }
   
@@ -1506,72 +1525,148 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // === TRANSACTION TYPE TOGGLE ===
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _transactionType = loc.t('payable')),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
+          // === TRANSACTION TYPE TOGGLE (Payable / Receivable) ===
+          // Auto-hides when user starts entering note counts, to give more space.
+          // A small toggle button is shown instead so user can still access it.
+          if (_hideTransactionToggle)
+            // Compact mode: small toggle button to bring back Payable/Receivable
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  // Current transaction type chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _transactionType == loc.t('payable')
+                          ? AppColors.danger.withOpacity(0.15)
+                          : AppColors.success.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: _transactionType == loc.t('payable')
-                            ? AppColors.danger.withOpacity(0.2)
-                            : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
-                        border: Border.all(
-                          color: _transactionType == loc.t('payable')
-                              ? AppColors.danger
-                              : AppColors.textSecondary,
-                        ),
+                            ? AppColors.danger
+                            : AppColors.success,
+                        width: 1,
                       ),
-                      child: Text(
-                        loc.t('payable'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: _transactionType == loc.t('payable')
-                              ? AppColors.danger
-                              : AppColors.textSecondary,
-                        ),
+                    ),
+                    child: Text(
+                      _transactionType,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: _transactionType == loc.t('payable')
+                            ? AppColors.danger
+                            : AppColors.success,
                       ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _transactionType = loc.t('receivable')),
+                  const Spacer(),
+                  // Small eye toggle button to expand back
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _hideTransactionToggle = false;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(16),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _transactionType == loc.t('receivable')
-                            ? AppColors.success.withOpacity(0.2)
-                            : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
-                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
-                        border: Border.all(
-                          color: _transactionType == loc.t('receivable')
-                              ? AppColors.success
-                              : AppColors.textSecondary,
-                        ),
+                        color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.textSecondary, width: 1),
                       ),
-                      child: Text(
-                        loc.t('receivable'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: _transactionType == loc.t('receivable')
-                              ? AppColors.success
-                              : AppColors.textSecondary,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.visibility_outlined,
+                            size: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            loc.t('show'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            // Full mode: complete Payable/Receivable toggle
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _transactionType = loc.t('payable')),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _transactionType == loc.t('payable')
+                              ? AppColors.danger.withOpacity(0.2)
+                              : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
+                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                          border: Border.all(
+                            color: _transactionType == loc.t('payable')
+                                ? AppColors.danger
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        child: Text(
+                          loc.t('payable'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _transactionType == loc.t('payable')
+                                ? AppColors.danger
+                                : AppColors.textSecondary,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _transactionType = loc.t('receivable')),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: _transactionType == loc.t('receivable')
+                              ? AppColors.success.withOpacity(0.2)
+                              : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
+                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                          border: Border.all(
+                            color: _transactionType == loc.t('receivable')
+                                ? AppColors.success
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                        child: Text(
+                          loc.t('receivable'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _transactionType == loc.t('receivable')
+                                ? AppColors.success
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
           
           // === "More" button to show extra fields when all are empty ===
           if (!_showExtraFields && !_hasTarget && _otherAmount == 0 && _onlineAmount == 0)
@@ -1799,21 +1894,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           value: value,
                           currencyCode: _selectedCurrency,
                           currencySymbol: _currencySymbol,
-                          size: 64,
+                          size: 50,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         // Minus button
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline),
                           onPressed: count > 0 ? () => _decrementCount(value) : null,
                           color: AppColors.danger,
-                          iconSize: 28,
+                          iconSize: 24,
+                          visualDensity: VisualDensity.compact,
                         ),
                         // Count display - INLINE EDITABLE TextField
                         // User can tap directly and type number with keyboard
                         // No dialog box needed
                         Container(
-                          width: 56,
+                          width: 48,
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                           decoration: BoxDecoration(
                             color: isDark ? AppColors.bgDarker : Colors.grey[100],
@@ -1829,12 +1925,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
+                              fontSize: 14,
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                             decoration: const InputDecoration(
                               isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(vertical: 6),
                               border: InputBorder.none,
                             ),
                             onChanged: (_) => _onCountChanged(value),
@@ -1852,7 +1949,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: const Icon(Icons.add_circle),
                           onPressed: () => _incrementCount(value),
                           color: AppColors.success,
-                          iconSize: 28,
+                          iconSize: 24,
+                          visualDensity: VisualDensity.compact,
                         ),
                         const Spacer(),
                         // Subtotal
