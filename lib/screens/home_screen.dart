@@ -1525,11 +1525,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // === TRANSACTION TYPE TOGGLE (Payable / Receivable) ===
-          // Auto-hides when user starts entering note counts, to give more space.
-          // A small toggle button is shown instead so user can still access it.
+          // === UNIFIED "More" SECTION (Payable/Receivable + Target/Other/Online) ===
+          // Per v3.13.4: Payable/Receivable toggle moved INTO the More section.
+          // Auto-hides entirely when user starts entering note counts (small Show chip appears).
           if (_hideTransactionToggle)
-            // Compact mode: small toggle button to bring back Payable/Receivable
+            // Compact mode: small toggle button to bring back the full More section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
@@ -1566,6 +1566,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () {
                       setState(() {
                         _hideTransactionToggle = false;
+                        _showExtraFields = true;
                       });
                     },
                     borderRadius: BorderRadius.circular(16),
@@ -1600,269 +1601,270 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             )
-          else
-            // Full mode: complete Payable/Receivable toggle
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _transactionType = loc.t('payable')),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _transactionType == loc.t('payable')
-                              ? AppColors.danger.withOpacity(0.2)
-                              : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
-                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
-                          border: Border.all(
-                            color: _transactionType == loc.t('payable')
-                                ? AppColors.danger
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                        child: Text(
-                          loc.t('payable'),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _transactionType == loc.t('payable')
-                                ? AppColors.danger
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
+          else ...[
+            // === "More" button to show extra fields when all are empty ===
+            if (!_showExtraFields && !_hasTarget && _otherAmount == 0 && _onlineAmount == 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showExtraFields = true;
+                      });
+                    },
+                    icon: const Icon(Icons.expand_more, size: 20),
+                    label: Text(loc.t('more')),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _transactionType = loc.t('receivable')),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _transactionType == loc.t('receivable')
-                              ? AppColors.success.withOpacity(0.2)
-                              : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
-                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
-                          border: Border.all(
-                            color: _transactionType == loc.t('receivable')
-                                ? AppColors.success
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                        child: Text(
-                          loc.t('receivable'),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _transactionType == loc.t('receivable')
-                                ? AppColors.success
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          
-          // === "More" button to show extra fields when all are empty ===
-          if (!_showExtraFields && !_hasTarget && _otherAmount == 0 && _onlineAmount == 0)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showExtraFields = true;
-                    });
-                  },
-                  icon: const Icon(Icons.expand_more, size: 20),
-                  label: Text(loc.t('more')),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   ),
                 ),
               ),
-            ),
-          
-          // === COLLAPSIBLE EXTRA FIELDS (Target/Other/Online) ===
-          // Visible if: user toggled "More" OR any field has input
-          if (_showExtraFields || _hasTarget || _otherAmount > 0 || _onlineAmount > 0) ...[
-            // === TARGET AMOUNT ===
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _targetAmountController,
-                      decoration: InputDecoration(
-                        labelText: loc.t('targetAmount'),
-                        prefixText: '$_currencySymbol ',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                        suffixIcon: _targetAmountController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _targetAmountController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  if (_showExtraFields && !_hasTarget && _otherAmount == 0 && _onlineAmount == 0)
-                    IconButton(
-                      icon: const Icon(Icons.expand_less),
-                      tooltip: 'Hide',
-                      onPressed: () {
-                        setState(() {
-                          _showExtraFields = false;
-                        });
-                      },
-                    ),
-                ],
-              ),
-            ),
-            
-            // === TARGET vs ACTUAL COMPARISON ===
-            if (_hasTarget)
+
+            // === COLLAPSIBLE EXTRA FIELDS (Payable/Receivable + Target/Other/Online) ===
+            // Visible if: user toggled "More" OR any field has input
+            if (_showExtraFields || _hasTarget || _otherAmount > 0 || _onlineAmount > 0) ...[
+              // === PAYABLE / RECEIVABLE TOGGLE (moved inside More section) ===
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _difference >= 0
-                      ? AppColors.success.withOpacity(0.15)
-                      : AppColors.danger.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: _difference >= 0
-                        ? AppColors.success
-                        : AppColors.danger,
-                  ),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   children: [
-                    Icon(
-                      _difference >= 0 ? Icons.check_circle : Icons.warning,
-                      color: _difference >= 0 ? AppColors.success : AppColors.danger,
-                      size: 24,
-                    ),
-                    const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _difference >= 0 ? 'Target Reached!' : 'Short of Target',
-                            style: theme.textTheme.bodyMedium?.copyWith(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _transactionType = loc.t('payable')),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _transactionType == loc.t('payable')
+                                ? AppColors.danger.withOpacity(0.2)
+                                : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
+                            borderRadius: const BorderRadius.horizontal(left: Radius.circular(8)),
+                            border: Border.all(
+                              color: _transactionType == loc.t('payable')
+                                  ? AppColors.danger
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                          child: Text(
+                            loc.t('payable'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                              color: _transactionType == loc.t('payable')
+                                  ? AppColors.danger
+                                  : AppColors.textSecondary,
                             ),
                           ),
-                          Text(
-                            _difference >= 0
-                                ? 'Surplus: $_currencySymbol${_difference.toStringAsFixed(2)}'
-                                : 'Need: $_currencySymbol${_difference.abs().toStringAsFixed(2)} more',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: _difference >= 0 ? AppColors.success : AppColors.danger,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Target',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _transactionType = loc.t('receivable')),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _transactionType == loc.t('receivable')
+                                ? AppColors.success.withOpacity(0.2)
+                                : (isDark ? AppColors.bgCardDark : AppColors.bgCard),
+                            borderRadius: const BorderRadius.horizontal(right: Radius.circular(8)),
+                            border: Border.all(
+                              color: _transactionType == loc.t('receivable')
+                                  ? AppColors.success
+                                  : AppColors.textSecondary,
+                            ),
+                          ),
+                          child: Text(
+                            loc.t('receivable'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _transactionType == loc.t('receivable')
+                                  ? AppColors.success
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                         ),
-                        Text(
-                          '$_currencySymbol${_targetAmount.toStringAsFixed(2)}',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Actual: $_currencySymbol${_grandTotal.toStringAsFixed(2)}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _difference >= 0 ? AppColors.success : AppColors.danger,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            
-            // === OTHER + ONLINE AMOUNT ===
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _otherAmountController,
-                      decoration: InputDecoration(
-                        labelText: loc.t('otherAmount'),
-                        prefixText: '$_currencySymbol ',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                        suffixIcon: _otherAmountController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _otherAmountController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
+
+              // === TARGET AMOUNT ===
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _targetAmountController,
+                        decoration: InputDecoration(
+                          labelText: loc.t('targetAmount'),
+                          prefixText: '$_currencySymbol ',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          suffixIcon: _targetAmountController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _targetAmountController.clear();
+                                    setState(() {});
+                                  },
+                                )
+                              : null,
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                        onChanged: (_) => setState(() {}),
                       ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                      onChanged: (_) => setState(() {}),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _onlineAmountController,
-                      decoration: InputDecoration(
-                        labelText: loc.t('onlineAmount'),
-                        prefixText: '$_currencySymbol ',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                        suffixIcon: _onlineAmountController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
-                                onPressed: () {
-                                  _onlineAmountController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
+                    if (_showExtraFields && !_hasTarget && _otherAmount == 0 && _onlineAmount == 0)
+                      IconButton(
+                        icon: const Icon(Icons.expand_less),
+                        tooltip: 'Hide',
+                        onPressed: () {
+                          setState(() {
+                            _showExtraFields = false;
+                          });
+                        },
                       ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+
+              // === TARGET vs ACTUAL COMPARISON ===
+              if (_hasTarget)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _difference >= 0
+                        ? AppColors.success.withOpacity(0.15)
+                        : AppColors.danger.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _difference >= 0
+                          ? AppColors.success
+                          : AppColors.danger,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _difference >= 0 ? Icons.check_circle : Icons.warning,
+                        color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _difference >= 0 ? 'Target Reached!' : 'Short of Target',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                              ),
+                            ),
+                            Text(
+                              _difference >= 0
+                                  ? 'Surplus: $_currencySymbol${_difference.toStringAsFixed(2)}'
+                                  : 'Need: $_currencySymbol${_difference.abs().toStringAsFixed(2)} more',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Target',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Text(
+                            '$_currencySymbol${_targetAmount.toStringAsFixed(2)}',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Actual: $_currencySymbol${_grandTotal.toStringAsFixed(2)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _difference >= 0 ? AppColors.success : AppColors.danger,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+              // === OTHER + ONLINE AMOUNT ===
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _otherAmountController,
+                        decoration: InputDecoration(
+                          labelText: loc.t('otherAmount'),
+                          prefixText: '$_currencySymbol ',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          suffixIcon: _otherAmountController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _otherAmountController.clear();
+                                    setState(() {});
+                                  },
+                                )
+                              : null,
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _onlineAmountController,
+                        decoration: InputDecoration(
+                          labelText: loc.t('onlineAmount'),
+                          prefixText: '$_currencySymbol ',
+                          border: const OutlineInputBorder(),
+                          isDense: true,
+                          suffixIcon: _onlineAmountController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _onlineAmountController.clear();
+                                    setState(() {});
+                                  },
+                                )
+                              : null,
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
           
           // === DENOMINATION LIST (vertical, scrollable, inline editable) ===
