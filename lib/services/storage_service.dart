@@ -75,7 +75,7 @@ class StorageService extends ChangeNotifier {
   }
   
   // === Theme ===
-  bool get isDarkMode => _prefs?.getBool('isDarkMode') ?? true;
+  bool get isDarkMode => _prefs?.getBool('isDarkMode') ?? false;
   
   Future<void> setDarkMode(bool value) async {
     await _prefs?.setBool('isDarkMode', value);
