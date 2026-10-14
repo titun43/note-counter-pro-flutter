@@ -82,10 +82,25 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        NOTES=$(printf '# Note Counter Pro v3.13.0 (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: 3.13.0 (versionCode: 80)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## 3 Fixes in v3.13.0\n\n### 1. All Customers Now Visible in Khata\n- Previously only pending customers (balance != 0) were shown\n- Now ALL customers are shown: new, settled, and pending\n- Settled customers show green "SETTLED" badge instead of amount\n- Section header changed from "Pending Entries" to "All Customers"\n- User can find any customer and tap to go to their page\n\n### 2. Clear All Data Now Clears QR History\n- Clear All Data was not clearing QR Code History\n- Now clears: entries, customers, bills, QR history, last backup time\n- Complete clean slate\n\n### 3. Interstitial Ads Frequency Reduced\n- Page change ads: every 3 changes → every 6 changes (50% less)\n- Save In/Out ads: was every save → now every 3rd save (67% less)\n- Much less annoying for users\n\nVersion: 3.13.0 (versionCode: 80)')
-        gh release create v3.13.1-flutter \
+        # Extract version from pubspec.yaml (e.g. "3.13.3+83" → "3.13.3")
+        VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f 1)
+        VERSION_CODE=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d '+' -f 2)
+        TAG="v${VERSION}-flutter"
+        echo "Creating release with tag: $TAG (versionCode: $VERSION_CODE)"
+
+        NOTES=$(printf '# Note Counter Pro v%s (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: %s (versionCode: %s)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Recent changes (v3.13.3)\n- Auto-hide Payable/Receivable toggle when counting notes (small Show button to bring back)\n- Smaller note widget UI for better fit (more notes visible without scrolling)\n- Added localization for "Show" button (English / Bengali / Hindi)\n- Test mode: real ads OFF (useTestAds = true) for testing before going live\n\nVersion: %s (versionCode: %s)' "$VERSION" "$VERSION" "$VERSION_CODE" "$VERSION" "$VERSION_CODE")
+
+        # Check if release with same tag already exists, if so delete it first
+        if gh release view "$TAG" >/dev/null 2>&1; then
+          echo "Release $TAG already exists, deleting old release..."
+          gh release delete "$TAG" --yes
+          # Also delete the tag
+          git push origin ":refs/tags/$TAG" 2>/dev/null || true
+        fi
+
+        gh release create "$TAG" \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v3.13.0 (Flutter - All Customers + Clear QR + Less Ads)" \
+          --title "Note Counter Pro v${VERSION} (Flutter - Hide Toggle + Smaller Notes + Test Mode)" \
           --notes "$NOTES" \
           --latest
