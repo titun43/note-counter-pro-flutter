@@ -34,7 +34,7 @@ class TtsService {
       await _tts.setEngine('android');
       // Try to route through loudspeaker (speakerphone-style)
       // flutter_tts exposes this only via awaitSpeakCompletion; volume boost is platform-side.
-      await _tts.setSpeechRate(0.85); // slightly slower for clarity
+      await _tts.setSpeechRate(0.45); // slower for clarity (default 0.85 was too fast)
       await _tts.setVolume(1.0); // max volume
       await _tts.setPitch(1.0);
       _initialized = true;
