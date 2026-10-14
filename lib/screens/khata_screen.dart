@@ -4,12 +4,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import '../services/contact_picker_service.dart';
 import '../services/pdf_service.dart';
+import '../services/reminder_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
+import '../widgets/reminder_template_picker.dart';
+import '../widgets/send_reminder_to_all_dialog.dart';
 import 'customer_detail_screen.dart';
 import 'customers_screen.dart';
+import 'reminder_history_screen.dart';
 
 class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
@@ -399,7 +403,7 @@ class _KhataScreenState extends State<KhataScreen> {
     }
   }
 
-  /// Open WhatsApp chat
+  /// Open WhatsApp chat with template picker (Idea 1, 2, 8)
   Future<void> _openWhatsApp(String? phone, String name, double balance) async {
     if (phone == null || phone.isEmpty) {
       if (mounted) {
@@ -409,23 +413,48 @@ class _KhataScreenState extends State<KhataScreen> {
       }
       return;
     }
-    final loc = context.loc;
-    final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
-    // Remove leading 0 if present and add country code 91 for India
-    String waPhone = cleanPhone;
-    if (waPhone.startsWith('0')) {
-      waPhone = '91${waPhone.substring(1)}';
-    } else if (!waPhone.startsWith('91') && waPhone.length == 10) {
-      waPhone = '91$waPhone';
+    // Find the customer object
+    final storage = context.read<StorageService>();
+    final customer = storage.customers.firstWhere(
+      (c) => c.name == name && c.phone == phone,
+      orElse: () => Customer.create(name: name, phone: phone),
+    );
+    final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
+
+    if (!mounted) return;
+    await showReminderTemplatePicker(
+      context: context,
+      customer: customer,
+      balance: balance.abs(),
+      currencySymbol: symbol,
+      channel: 'whatsapp',
+    );
+  }
+
+  /// Send reminder to all pending customers (Idea 4)
+  Future<void> _sendReminderToAll() async {
+    final storage = context.read<StorageService>();
+    final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
+    final customers = storage.customers
+        .where((c) => c.balance.abs() > 0.01)
+        .toList();
+    if (customers.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.loc.t('noPendingCustomers'))),
+        );
+      }
+      return;
     }
-    final symbol = AppConstants.getCurrencySymbol(
-        context.read<StorageService>().defaultCurrency);
-    final msg = loc.t('reminderMsg',
-        params: {'name': name, 'amount': '$symbol${balance.abs().toStringAsFixed(2)}'});
-    final uri = Uri.parse('https://wa.me/$waPhone?text=${Uri.encodeComponent(msg)}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => SendReminderToAllDialog(
+        customers: customers,
+        channel: 'whatsapp',
+      ),
+    );
   }
 
   /// Get sort icon based on current sort
@@ -644,6 +673,19 @@ class _KhataScreenState extends State<KhataScreen> {
                         tooltip: loc.t('sortBy'),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                      // Reminder history button
+                      IconButton(
+                        icon: const Icon(Icons.history, color: Color(0xFFD4AF37)),
+                        tooltip: loc.t('reminderHistory'),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
+                          );
+                        },
                       ),
                       // PDF share button
                       IconButton(
@@ -872,20 +914,56 @@ class _KhataScreenState extends State<KhataScreen> {
                                   color: textColor,
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD4AF37).withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '${customers.length}',
-                                  style: const TextStyle(
-                                    color: Color(0xFFD4AF37),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Send Reminder to All button
+                                  if (customers.any((c) => c.balance.abs() > 0.01))
+                                    InkWell(
+                                      onTap: _sendReminderToAll,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF25D366).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: const Color(0xFF25D366), width: 1),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.send, size: 12, color: Color(0xFF25D366)),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              loc.t('remindAll'),
+                                              style: const TextStyle(
+                                                color: Color(0xFF25D366),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(width: 6),
+                                  // Customer count badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFD4AF37).withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${customers.length}',
+                                      style: const TextStyle(
+                                        color: Color(0xFFD4AF37),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),

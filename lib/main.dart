@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/storage_service.dart';
 import 'services/admob_service.dart';
+import 'services/notification_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -41,6 +42,13 @@ void main() async {
   Future.delayed(const Duration(seconds: 3), () {
     AdMobService.initialize().catchError((e) {
       debugPrint('AdMob init failed: $e');
+    });
+  });
+
+  // Initialize notification service for scheduled reminders (v3.15.0)
+  Future.delayed(const Duration(seconds: 5), () {
+    NotificationService().init().catchError((e) {
+      debugPrint('NotificationService init failed: $e');
     });
   });
 }

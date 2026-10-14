@@ -8,11 +8,14 @@ import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/backup_service.dart';
 import '../services/tts_service.dart';
+import '../services/notification_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'upi_qr_screen.dart';
 import 'reports_screen.dart';
 import 'bills_screen.dart';
+import 'reminder_settings_screen.dart';
+import 'reminder_history_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -412,6 +415,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _voiceEnabled,
               onChanged: (value) => _setVoiceEnabled(value),
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active, color: AppColors.warning),
+            title: Text(loc.t('reminderSettings')),
+            subtitle: Text(loc.t('reminderSettingsDesc')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history, color: AppColors.info),
+            title: Text(loc.t('reminderHistory')),
+            subtitle: Text(loc.t('reminderHistoryDesc')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
+              );
+            },
           ),
           
           // === LANGUAGE ===

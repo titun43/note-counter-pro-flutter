@@ -152,6 +152,66 @@ class StorageService extends ChangeNotifier {
         businessUpiId.isNotEmpty;
   }
 
+  // === REMINDER SETTINGS (v3.15.0) ===
+  // Default reminder template: friendly / formal / strict
+  String get defaultReminderTemplate =>
+      _prefs?.getString('default_reminder_template') ?? 'friendly';
+
+  Future<void> setDefaultReminderTemplate(String template) async {
+    await _prefs?.setString('default_reminder_template', template);
+    notifyListeners();
+  }
+
+  // Reminder schedule
+  bool get reminderEnabled => _prefs?.getBool('reminder_enabled') ?? false;
+
+  Future<void> setReminderEnabled(bool value) async {
+    await _prefs?.setBool('reminder_enabled', value);
+    notifyListeners();
+  }
+
+  // Frequency: 'daily', 'weekly', 'monthly'
+  String get reminderFrequency =>
+      _prefs?.getString('reminder_frequency') ?? 'weekly';
+
+  Future<void> setReminderFrequency(String value) async {
+    await _prefs?.setString('reminder_frequency', value);
+    notifyListeners();
+  }
+
+  // Day of week (1=Monday ... 7=Sunday) for weekly, day of month (1-28) for monthly
+  int get reminderDay => _prefs?.getInt('reminder_day') ?? 6; // default Saturday
+
+  Future<void> setReminderDay(int value) async {
+    await _prefs?.setInt('reminder_day', value);
+    notifyListeners();
+  }
+
+  // Hour of day (0-23)
+  int get reminderHour => _prefs?.getInt('reminder_hour') ?? 10;
+
+  Future<void> setReminderHour(int value) async {
+    await _prefs?.setInt('reminder_hour', value);
+    notifyListeners();
+  }
+
+  // Minute (0-59)
+  int get reminderMinute => _prefs?.getInt('reminder_minute') ?? 0;
+
+  Future<void> setReminderMinute(int value) async {
+    await _prefs?.setInt('reminder_minute', value);
+    notifyListeners();
+  }
+
+  // Only send to pending customers (balance != 0)
+  bool get reminderPendingOnly =>
+      _prefs?.getBool('reminder_pending_only') ?? true;
+
+  Future<void> setReminderPendingOnly(bool value) async {
+    await _prefs?.setBool('reminder_pending_only', value);
+    notifyListeners();
+  }
+
   // === Entries ===
   List<Entry> get entries {
     final sorted = List<Entry>.from(_entries);
