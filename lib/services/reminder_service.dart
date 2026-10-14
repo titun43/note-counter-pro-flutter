@@ -18,6 +18,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -277,20 +278,23 @@ class ReminderService {
       final amount = balance.abs().toStringAsFixed(2);
       final upiLink = _buildUpiLink(upiId, business, balance.abs());
 
-      // Generate QR image
+      // Render QR as image via QrImage widget → toImage → toByteData
       final qrPainter = QrPainter(
         data: upiLink,
         version: QrVersions.auto,
         gapless: true,
-        size: 320,
+        // size is passed via toImage() below (qr_flutter 4.x API)
       );
 
       final tempDir = await getTemporaryDirectory();
       final qrPath = '${tempDir.path}/qr_${customer.id}_${DateTime.now().millisecondsSinceEpoch}.png';
       final qrFile = File(qrPath);
-      final qrBytes = await qrPainter.toImage(320);
-      final byteData = await qrBytes.toByteData(format: ImageByteFormat.png);
-      await qrFile.writeAsBytes(byteData!.buffer.asUint8List());
+
+      // qr_flutter 4.x: QrPainter.toImage(size) returns ui.Image
+      final uiImage = await qrPainter.toImage(320);
+      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return false;
+      await qrFile.writeAsBytes(byteData.buffer.asUint8List());
 
       // Build share text
       final language = storage.languageCode;
