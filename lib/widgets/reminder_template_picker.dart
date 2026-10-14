@@ -133,7 +133,7 @@ class ReminderTemplatePicker extends StatelessWidget {
 
     if (!success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.loc.t('noPhone'))),
+        SnackBar(content: Text(context.loc.t('noPhoneCustomer'))),
       );
     }
   }

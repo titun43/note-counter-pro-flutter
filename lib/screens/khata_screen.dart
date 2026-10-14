@@ -408,7 +408,7 @@ class _KhataScreenState extends State<KhataScreen> {
     if (phone == null || phone.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.loc.t('noPhone'))),
+          SnackBar(content: Text(context.loc.t('noPhoneCustomer'))),
         );
       }
       return;
