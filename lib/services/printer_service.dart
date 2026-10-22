@@ -19,7 +19,6 @@ import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
 import 'storage_service.dart';
-import 'premium_service.dart';
 
 class PrinterService {
   PrinterService._();
@@ -35,19 +34,12 @@ class PrinterService {
   String? get lastConnectedHost => _lastConnectedHost;
 
   /// Connect to a network printer (most common ESC/POS printers support
-  /// TCP/IP on port 9100). For Bluetooth-only printers, the user typically
-  /// pairs via Android Bluetooth settings, then the printer appears with
-  /// a virtual serial port — but for simplicity, we support network printers
-  /// first. Bluetooth ESC/POS can be added with `esc_pos_bluetooth` package
-  /// if needed.
+  /// TCP/IP on port 9100).
+  /// NOTE: Receipt Printer is FREE for all users (not premium-gated).
   Future<bool> connect({
     required String host,
     int port = 9100,
   }) async {
-    if (!PremiumService().isPremium) {
-      debugPrint('PrinterService: premium required');
-      return false;
-    }
 
     try {
       final profile = await CapabilityProfile.load();
@@ -81,12 +73,12 @@ class PrinterService {
   }
 
   /// Print a cash-in/cash-out receipt
+  /// NOTE: Receipt Printer is FREE for all users (not premium-gated).
   Future<bool> printReceipt({
     required Entry entry,
     required StorageService storage,
     String? customerName,
   }) async {
-    if (!PremiumService().isPremium) return false;
     if (!_isConnected || _printer == null) {
       debugPrint('PrinterService: not connected');
       return false;

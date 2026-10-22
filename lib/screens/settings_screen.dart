@@ -415,11 +415,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.fingerprint),
-            title: const Text('App Lock'),
+            title: Row(
+              children: [
+                const Text('App Lock'),
+                if (!PremiumService().isPremium)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text('PRO',
+                        style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
             subtitle: const Text('Fingerprint / PIN to open app'),
             trailing: Switch(
-              value: storage.appLockEnabled,
-              onChanged: (value) => storage.setAppLockEnabled(value),
+              value: PremiumService().isPremium ? storage.appLockEnabled : false,
+              onChanged: (value) {
+                if (!PremiumService().isPremium) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                  return;
+                }
+                storage.setAppLockEnabled(value);
+              },
             ),
           ),
           // === PREMIUM UPGRADE ===
@@ -518,11 +540,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.record_voice_over),
-            title: Text(loc.t('voiceAnnouncement')),
+            title: Row(
+              children: [
+                Text(loc.t('voiceAnnouncement')),
+                if (!PremiumService().isPremium)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text('PRO',
+                        style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
             subtitle: Text(loc.t('voiceAnnouncementDesc')),
             trailing: Switch(
-              value: _voiceEnabled,
-              onChanged: (value) => _setVoiceEnabled(value),
+              value: PremiumService().isPremium ? _voiceEnabled : false,
+              onChanged: (value) {
+                if (!PremiumService().isPremium) {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                  return;
+                }
+                _setVoiceEnabled(value);
+              },
             ),
           ),
           ListTile(
@@ -762,9 +806,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _openPrivacyPolicy,
           ),
           ListTile(
-            leading: const Icon(Icons.email, color: AppColors.textSecondary),
-            title: const Text('Support Email'),
-            subtitle: const Text(AppConstants.supportEmail),
+            leading: Icon(Icons.email,
+                color: PremiumService().isPremium
+                    ? AppColors.primary
+                    : AppColors.textSecondary),
+            title: Row(
+              children: [
+                const Text('Support Email'),
+                if (PremiumService().isPremium)
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.success,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text('PRIORITY',
+                        style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+            subtitle: Text(PremiumService().isPremium
+                ? '${AppConstants.supportEmail}\n(Priority support — faster response)'
+                : 'Upgrade to Premium for priority support'),
+            isThreeLine: PremiumService().isPremium,
             onTap: _sendFeedback,
           ),
           

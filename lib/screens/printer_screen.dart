@@ -8,11 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/entry.dart';
 import '../services/printer_service.dart';
-import '../services/premium_service.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
-import 'premium_screen.dart';
 
 class PrinterScreen extends StatefulWidget {
   const PrinterScreen({super.key});
@@ -116,14 +114,11 @@ class _PrinterScreenState extends State<PrinterScreen> {
   Widget build(BuildContext context) {
     final loc = context.loc;
     final theme = Theme.of(context);
-    final isPremium = PremiumService().isPremium;
     final isConnected = PrinterService().isConnected;
 
     return Scaffold(
       appBar: AppBar(title: Text(loc.t('printer'))),
-      body: !isPremium
-          ? _buildPremiumRequired(context)
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -286,43 +281,6 @@ class _PrinterScreenState extends State<PrinterScreen> {
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildPremiumRequired(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.workspace_premium,
-                size: 80, color: Color(0xFFD4AF37)),
-            const SizedBox(height: 16),
-            Text(
-              context.loc.t('printerPremiumRequired'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.loc.t('cloudBackupPremiumDesc'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const PremiumScreen()),
-              ),
-              icon: const Icon(Icons.workspace_premium),
-              label: Text(context.loc.t('premiumUpgradeTitle')),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
