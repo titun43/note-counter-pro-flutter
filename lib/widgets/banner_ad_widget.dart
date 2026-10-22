@@ -55,6 +55,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Premium users never see banner ads
+    if (!AdMobService.shouldShowAds) {
+      return const SizedBox.shrink();
+    }
     if (!_isLoaded || _bannerAd == null) {
       return const SizedBox(height: 50);
     }

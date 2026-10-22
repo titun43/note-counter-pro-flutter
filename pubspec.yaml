@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.15.3+92
+version: 3.16.0+93
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -61,6 +61,10 @@ dependencies:
   # Time zone support for scheduled notifications
   flutter_timezone: ^3.0.1
   timezone: ^0.9.4
+
+  # In-App Purchase (Premium subscription for ad-free experience)
+  # Native Google Play Billing Library 8.1.0 already in android/app/build.gradle
+  in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_test:

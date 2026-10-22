@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'services/storage_service.dart';
 import 'services/admob_service.dart';
 import 'services/notification_service.dart';
+import 'services/premium_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -49,6 +50,14 @@ void main() async {
   Future.delayed(const Duration(seconds: 5), () {
     NotificationService().init().catchError((e) {
       debugPrint('NotificationService init failed: $e');
+    });
+  });
+
+  // Initialize Premium service (In-App Purchase) — restore previous purchases
+  // Premium must init BEFORE AdMob so shouldShowAds returns correct value.
+  Future.delayed(const Duration(seconds: 2), () {
+    PremiumService().init().catchError((e) {
+      debugPrint('PremiumService init failed: $e');
     });
   });
 }

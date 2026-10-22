@@ -9,6 +9,7 @@ import '../services/storage_service.dart';
 import '../services/backup_service.dart';
 import '../services/tts_service.dart';
 import '../services/notification_service.dart';
+import '../services/premium_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'upi_qr_screen.dart';
@@ -16,6 +17,7 @@ import 'reports_screen.dart';
 import 'bills_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'reminder_history_screen.dart';
+import 'premium_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -27,12 +29,22 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   PackageInfo? _packageInfo;
   bool _voiceEnabled = true;
+  // Notifier so the Premium tile re-renders when user returns from
+  // PremiumScreen after a successful purchase.
+  final ValueNotifier<bool> _premiumNotifier = ValueNotifier<bool>(false);
 
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
     _loadVoiceSetting();
+    _premiumNotifier.value = PremiumService().isPremium;
+  }
+
+  @override
+  void dispose() {
+    _premiumNotifier.dispose();
+    super.dispose();
   }
 
   Future<void> _loadVoiceSetting() async {
@@ -406,6 +418,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: storage.appLockEnabled,
               onChanged: (value) => storage.setAppLockEnabled(value),
             ),
+          ),
+          // === PREMIUM UPGRADE ===
+          // Visible only when user is NOT premium yet. Once premium,
+          // the tile changes to a "Premium Active" status badge.
+          ValueListenableBuilder(
+            valueListenable: _premiumNotifier,
+            builder: (context, isPremium, _) {
+              if (isPremium) {
+                return ListTile(
+                  leading: const Icon(Icons.workspace_premium,
+                      color: Color(0xFFD4AF37)),
+                  title: Text(loc.t('premiumActive'),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(loc.t('premiumActiveSub')),
+                  trailing: const Icon(Icons.check_circle,
+                      color: AppColors.success),
+                );
+              }
+              return Card(
+                margin: const EdgeInsets.symmetric(
+                    horizontal: 0, vertical: 6),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD4AF37), Color(0xFFB8941F)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(Icons.workspace_premium,
+                        color: Colors.white, size: 28),
+                    title: Text(
+                      loc.t('premiumUpgradeTitle'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      loc.t('premiumUpgradeSub'),
+                      style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                    ),
+                    trailing: const Icon(Icons.chevron_right,
+                        color: Colors.white),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PremiumScreen()),
+                      );
+                      // Refresh premium state when returning
+                      _premiumNotifier.value = PremiumService().isPremium;
+                    },
+                  ),
+                ),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.record_voice_over),

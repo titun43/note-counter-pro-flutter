@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../utils/constants.dart';
+import 'premium_service.dart';
 
 class AdMobService {
   static bool _initialized = false;
@@ -33,6 +34,9 @@ class AdMobService {
     if (useTestAds) return _testInterstitialAdUnitId;
     return AppConstants.admobInterstitialAdUnitId;
   }
+
+  /// Premium users never see ads. Check this before showing any ad.
+  static bool get shouldShowAds => !PremiumService().isPremium;
 
   /// Initialize AdMob - safe, won't crash app
   static Future<void> initialize() async {
@@ -78,6 +82,9 @@ class AdMobService {
   }
 
   static void showInterstitial() {
+    // Premium users never see ads
+    if (!shouldShowAds) return;
+
     if (_interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
