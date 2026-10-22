@@ -14,8 +14,8 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:esc_pos_printer/esc_pos_printer.dart';
-import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:esc_pos_printer_plus/esc_pos_printer_plus.dart';
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
 import 'storage_service.dart';

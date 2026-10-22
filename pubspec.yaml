@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.18.0+98
+version: 3.18.1+99
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -72,8 +72,9 @@ dependencies:
   http: ^1.2.0
 
   # Bluetooth Receipt Printer — premium feature
-  esc_pos_printer: ^4.1.0
-  esc_pos_utils: ^1.1.0
+  # Using _plus variants which are compatible with image 4.x
+  esc_pos_printer_plus: ^1.0.10
+  esc_pos_utils_plus: ^2.0.2
 
   # Refer & Earn — unique code generation
   crypto: ^3.0.3
