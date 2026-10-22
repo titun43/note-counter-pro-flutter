@@ -310,5 +310,8 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
 }
 
 extension on String {
-  bool get digitOrDot => (this >= '0' && this <= '9') || this == '.';
+  bool get digitOrDot {
+    final c = codeUnitAt(0);
+    return (c >= 48 && c <= 57) || this == '.';
+  }
 }
