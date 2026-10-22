@@ -138,7 +138,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 title: 'Voice Announcement', subtitle: 'Voice reads out totals on save'),
             _BenefitTile(icon: Icons.support_agent, color: AppColors.primary,
                 title: 'Priority Support', subtitle: 'Direct email support'),
-            _BenefitTile(icon: Icons.update, color: AppColors.accentColor ?? AppColors.primary,
+            _BenefitTile(icon: Icons.update, color: AppColors.primary,
                 title: loc.t('premiumBenefit3Title'), subtitle: loc.t('premiumBenefit3Sub')),
 
             const SizedBox(height: 24),
