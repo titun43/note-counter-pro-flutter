@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/entry.dart';
 import '../services/printer_service.dart';
 import '../services/premium_service.dart';
 import '../services/storage_service.dart';
