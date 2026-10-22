@@ -8,7 +8,6 @@
 
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-import '../widgets/banner_ad_widget.dart';
 import 'standard_calculator.dart';
 import 'scientific_calculator.dart';
 import 'programmer_calculator.dart';
@@ -99,8 +98,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             Expanded(
               child: _buildCurrentMode(),
             ),
-            // Banner ad (free users see, premium don't)
-            const BannerAdWidget(),
           ],
         ),
       ),
