@@ -19,8 +19,7 @@ class BackupService {
   /// Returns the file path, or null on failure.
   static Future<String?> createAndShareBackup(StorageService storage) async {
     try {
-      final data = storage.exportAllData();
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
+      final jsonStr = await createBackupJson(storage);
 
       final now = DateTime.now();
       final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
@@ -45,6 +44,13 @@ class BackupService {
       debugPrint('Backup creation failed: $e');
       return null;
     }
+  }
+
+  /// Create backup JSON string (for cloud backup use).
+  /// Returns the JSON string.
+  static Future<String> createBackupJson(StorageService storage) async {
+    final data = storage.exportAllData();
+    return const JsonEncoder.withIndent('  ').convert(data);
   }
 
   /// Pick a JSON backup file and restore data from it.

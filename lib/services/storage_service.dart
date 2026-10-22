@@ -122,6 +122,15 @@ class StorageService extends ChangeNotifier {
     // Don't notify listeners to avoid triggering auto-backup loop
   }
 
+  // === Last Cloud Backup Time (Google Drive) ===
+  String? get lastCloudBackupTime =>
+      _prefs?.getString('lastCloudBackupTime');
+
+  Future<void> setLastCloudBackup(DateTime time) async {
+    await _prefs?.setString(
+        'lastCloudBackupTime', time.toIso8601String());
+  }
+
   // === Business Details ===
   String get businessName => _prefs?.getString('businessName') ?? '';
   String get businessOwner => _prefs?.getString('businessOwner') ?? '';

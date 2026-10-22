@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.16.1+94
+version: 3.17.0+95
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -65,6 +65,19 @@ dependencies:
   # In-App Purchase (Premium subscription for ad-free experience)
   # Native Google Play Billing Library 8.1.0 already in android/app/build.gradle
   in_app_purchase: ^3.2.0
+
+  # Cloud Backup (Google Drive) — premium feature
+  google_sign_in: ^6.2.1
+  googleapis: ^13.0.0
+  googleapis_auth: ^1.6.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+
+  # Bluetooth Receipt Printer — premium feature
+  esc_pos_printer: ^4.1.0
+  esc_pos_utils: ^1.1.0
+
+  # Refer & Earn — unique code generation
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

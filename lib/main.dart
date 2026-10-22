@@ -6,6 +6,8 @@ import 'services/storage_service.dart';
 import 'services/admob_service.dart';
 import 'services/notification_service.dart';
 import 'services/premium_service.dart';
+import 'services/cloud_backup_service.dart';
+import 'services/referral_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -58,6 +60,18 @@ void main() async {
   Future.delayed(const Duration(seconds: 2), () {
     PremiumService().init().catchError((e) {
       debugPrint('PremiumService init failed: $e');
+    });
+  });
+
+  // Initialize Cloud Backup service (Google Drive) — premium feature
+  Future.delayed(const Duration(seconds: 4), () {
+    CloudBackupService().init();
+  });
+
+  // Initialize Referral service — generate/load unique code
+  Future.delayed(const Duration(seconds: 6), () {
+    ReferralService().init().catchError((e) {
+      debugPrint('ReferralService init failed: $e');
     });
   });
 }
