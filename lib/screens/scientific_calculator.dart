@@ -265,7 +265,7 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.zero,
                             backgroundColor: _getButtonColor(label, isDark),
-                            foregroundColor: _getButtonTextColor(label),
+                            foregroundColor: _getButtonTextColor(label, isDark),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -298,14 +298,14 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
     return isDark ? Colors.grey[850] : Colors.grey[100];
   }
 
-  Color _getButtonTextColor(String label) {
+  Color _getButtonTextColor(String label, bool isDark) {
     if (label == '=') return Colors.white;
     if (['÷', '×', '-', '+'].contains(label)) return AppColors.primary;
     if (['sin','cos','tan','asin','acos','atan','log','ln','√','^','π','e','n!','deg/rad'].contains(label)) {
       return AppColors.info;
     }
     if (label == 'C' || label == '⌫') return Colors.red;
-    return Colors.black87;
+    return isDark ? Colors.white : Colors.black87;
   }
 }
 

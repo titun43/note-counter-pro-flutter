@@ -143,7 +143,10 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                 if (_expression.isNotEmpty && _expression != _display)
                   Text(
                     _expression,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[400] : Colors.grey[500],
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -180,7 +183,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                           style: ElevatedButton.styleFrom(
                             padding: EdgeInsets.zero,
                             backgroundColor: _getButtonColor(label, isDark),
-                            foregroundColor: _getButtonTextColor(label),
+                            foregroundColor: _getButtonTextColor(label, isDark),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -215,8 +218,8 @@ class _StandardCalculatorState extends State<StandardCalculator> {
     return isDark ? Colors.grey[850] : Colors.grey[100];
   }
 
-  Color _getButtonTextColor(String btn) {
+  Color _getButtonTextColor(String btn, bool isDark) {
     if ('+-×÷=C⌫'.contains(btn)) return Colors.white;
-    return Colors.black87;
+    return isDark ? Colors.white : Colors.black87;
   }
 }

@@ -198,7 +198,7 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
                     backgroundColor: _btnColor(label, isDark),
-                    foregroundColor: _btnTextColor(label),
+                    foregroundColor: _btnTextColor(label, isDark),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: FittedBox(
@@ -239,9 +239,9 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
     return isDark ? Colors.grey[850] : Colors.grey[100];
   }
 
-  Color _btnTextColor(String label) {
+  Color _btnTextColor(String label, bool isDark) {
     if (label == '=') return Colors.white;
     if (label == 'C' || label == '⌫') return Colors.red;
-    return Colors.black87;
+    return isDark ? Colors.white : Colors.black87;
   }
 }
