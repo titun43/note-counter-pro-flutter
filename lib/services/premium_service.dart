@@ -59,6 +59,11 @@ class PremiumService {
 
   /// Restore previous purchases from Google Play.
   /// Called automatically on init, and manually from Settings.
+  ///
+  /// In in_app_purchase 3.x, Google Play automatically delivers past
+  /// purchases through the purchaseStream on connection. So we just
+  /// need to ensure the connection is open — the stream listener will
+  /// receive any restored purchases as PurchaseStatus.restored events.
   Future<void> _restorePurchases() async {
     try {
       final available = await _iap.isAvailable();
@@ -66,19 +71,10 @@ class PremiumService {
         debugPrint('PremiumService: IAP not available');
         return;
       }
-
-      // Query past purchases — Google Play auto-delivers consumables,
-      // but for non-consumable lifetime products, this returns the
-      // user's purchase if they ever bought it on this Google account.
-      final result = await _iap.queryPastPurchases();
-      if (result.error != null) {
-        debugPrint('PremiumService: queryPastPurchases error: ${result.error}');
-        return;
-      }
-
-      for (final purchase in result.pastPurchases) {
-        _handlePurchase(purchase);
-      }
+      // Google Play auto-delivers past purchases via purchaseStream.
+      // No need to call queryPastPurchases (removed in in_app_purchase 3.x).
+      // The purchaseStream listener (_onPurchaseUpdated) handles them.
+      debugPrint('PremiumService: IAP available, waiting for stream events');
     } catch (e) {
       debugPrint('PremiumService: restorePurchases failed (non-fatal): $e');
     }
