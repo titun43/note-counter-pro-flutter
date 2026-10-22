@@ -13,6 +13,7 @@ import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final String customerId;
@@ -892,14 +893,18 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             Positioned(
               left: 24,
               top: 0,
-              bottom: 0,
+              bottom: 50, // Leave space for banner ad
               child: Container(
                 width: 1.5,
                 color: marginLineColor,
               ),
             ),
             // Ruled lines
-            Positioned.fill(
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 50,
               child: CustomPaint(
                 painter: RuledLinesPainter(ruledLineColor),
               ),
@@ -1328,6 +1333,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 

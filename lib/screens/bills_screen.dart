@@ -4,6 +4,7 @@ import '../services/storage_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class BillsScreen extends StatefulWidget {
   const BillsScreen({super.key});
@@ -41,9 +42,12 @@ class _BillsScreenState extends State<BillsScreen> {
     
     return Scaffold(
       appBar: AppBar(title: Text(loc.t('bills'))),
-      body: Consumer<StorageService>(
-        builder: (context, storage, child) {
-          final bills = storage.bills;
+      body: Column(
+        children: [
+          Expanded(
+            child: Consumer<StorageService>(
+              builder: (context, storage, child) {
+                final bills = storage.bills;
           
           if (bills.isEmpty) {
             return Center(
@@ -101,6 +105,10 @@ class _BillsScreenState extends State<BillsScreen> {
             },
           );
         },
+      ),
+          ),
+          const BannerAdWidget(),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createBill,

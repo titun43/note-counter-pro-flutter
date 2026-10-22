@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -26,9 +27,12 @@ class ReportsScreen extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(title: Text(loc.t('reports'))),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
           _buildReportCard(
             context,
             title: loc.t('thisWeek'),
@@ -91,6 +95,10 @@ class ReportsScreen extends StatelessWidget {
                 trailing: Text(entry.currency),
               ),
             )),
+              ],
+            ),
+          ),
+          const BannerAdWidget(),
         ],
       ),
     );
