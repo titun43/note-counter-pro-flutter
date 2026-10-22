@@ -10,6 +10,10 @@
 //   2. backup() — upload JSON backup file to Drive
 //   3. restore() — download latest backup from Drive
 //   4. signOut() — disconnect Google account
+//
+// NOTE: google_sign_in 6.x no longer provides authenticatedClient() extension.
+// We build a custom http.BaseClient that injects the auth headers into
+// every request — this works with googleapis DriveApi.
 // =============================================================================
 
 import 'dart:convert';
@@ -17,7 +21,6 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 import 'backup_service.dart';
@@ -34,10 +37,6 @@ class CloudBackupService {
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: _scopes,
-    // ServerClientId intentionally omitted — we only need client-side access
-    // for Drive appData. The OAuth client ID is configured in the native
-    // Android config (android/app/src/main/AndroidManifest.xml or
-    // google-services.json).
   );
 
   GoogleSignInAccount? _currentUser;
@@ -54,13 +53,11 @@ class CloudBackupService {
     _googleSignIn.onCurrentUserChanged.listen((account) {
       _currentUser = account;
     });
-    // Silent sign-in attempt (if user previously signed in)
     _googleSignIn.signInSilently().catchError((_) => null);
   }
 
   /// Sign in to Google with Drive.appData scope
   Future<bool> signIn() async {
-    // Premium-only feature
     if (!PremiumService().isPremium) {
       debugPrint('CloudBackupService: premium required');
       return false;
@@ -83,8 +80,21 @@ class CloudBackupService {
     } catch (_) {}
   }
 
+  /// Build an authenticated http.Client from GoogleSignInAccount.
+  /// google_sign_in 6.x no longer provides authenticatedClient() extension,
+  /// so we wrap the auth headers in a custom http.BaseClient.
+  Future<http.Client?> _getAuthClient() async {
+    if (_currentUser == null) return null;
+    try {
+      final headers = await _currentUser!.authHeaders;
+      return _AuthHeadersClient(headers);
+    } catch (e) {
+      debugPrint('CloudBackupService: _getAuthClient failed: $e');
+      return null;
+    }
+  }
+
   /// Backup app data to Google Drive (appData folder)
-  /// Returns true on success.
   Future<bool> backup(StorageService storage) async {
     if (!PremiumService().isPremium) return false;
     if (_currentUser == null) {
@@ -95,19 +105,17 @@ class CloudBackupService {
     _isBackingUp = true;
 
     try {
-      final httpClient = await _currentUser!.authenticatedClient();
+      final httpClient = await _getAuthClient();
       if (httpClient == null) {
         debugPrint('CloudBackupService: failed to get authenticated client');
         return false;
       }
       final driveApi = drive.DriveApi(httpClient);
 
-      // Generate JSON backup
       final backupJson = await BackupService.createBackupJson(storage);
       final bytes = Uint8List.fromList(utf8.encode(backupJson));
       final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
 
-      // Upload to Drive appData folder
       final fileToUpload = drive.File()
         ..name = 'note_counter_backup_$timestamp.json'
         ..parents = ['appDataFolder'];
@@ -122,7 +130,6 @@ class CloudBackupService {
         uploadMedia: media,
       );
 
-      // Save last backup timestamp
       await storage.setLastCloudBackup(DateTime.now());
       debugPrint('CloudBackupService: backup uploaded successfully');
       return true;
@@ -135,7 +142,6 @@ class CloudBackupService {
   }
 
   /// Restore latest backup from Google Drive
-  /// Returns the backup JSON string, or null on failure.
   Future<String?> restore() async {
     if (!PremiumService().isPremium) return null;
     if (_currentUser == null) {
@@ -146,11 +152,10 @@ class CloudBackupService {
     _isRestoring = true;
 
     try {
-      final httpClient = await _currentUser!.authenticatedClient();
+      final httpClient = await _getAuthClient();
       if (httpClient == null) return null;
       final driveApi = drive.DriveApi(httpClient);
 
-      // List backup files in appData folder, sorted by modifiedTime desc
       final fileList = await driveApi.files.list(
         spaces: 'appDataFolder',
         orderBy: 'modifiedTime desc',
@@ -166,7 +171,6 @@ class CloudBackupService {
       final latestFile = fileList.files!.first;
       debugPrint('CloudBackupService: restoring ${latestFile.name}');
 
-      // Download file content
       final media = await driveApi.files.get(
         latestFile.id!,
         downloadOptions: drive.DownloadOptions.fullMedia,
@@ -192,7 +196,7 @@ class CloudBackupService {
   Future<List<Map<String, dynamic>>> listBackups() async {
     if (!PremiumService().isPremium || _currentUser == null) return [];
     try {
-      final httpClient = await _currentUser!.authenticatedClient();
+      final httpClient = await _getAuthClient();
       if (httpClient == null) return [];
       final driveApi = drive.DriveApi(httpClient);
 
@@ -215,5 +219,27 @@ class CloudBackupService {
       debugPrint('CloudBackupService: listBackups failed: $e');
       return [];
     }
+  }
+}
+
+/// Custom http.BaseClient that injects Google auth headers into every request.
+/// Required because google_sign_in 6.x removed the authenticatedClient()
+/// extension — we have to construct a client ourselves.
+class _AuthHeadersClient extends http.BaseClient {
+  final Map<String, String> _authHeaders;
+  final http.Client _inner = http.Client();
+
+  _AuthHeadersClient(this._authHeaders);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers.addAll(_authHeaders);
+    return _inner.send(request);
+  }
+
+  @override
+  void close() {
+    _inner.close();
+    super.close();
   }
 }

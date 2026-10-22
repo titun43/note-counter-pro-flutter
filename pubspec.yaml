@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.17.1+96
+version: 3.17.2+97
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -69,8 +69,7 @@ dependencies:
   # Cloud Backup (Google Drive) — premium feature
   google_sign_in: ^6.2.1
   googleapis: ^13.0.0
-  googleapis_auth: ^1.6.0
-  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  http: ^1.2.0
 
   # Bluetooth Receipt Printer — premium feature
   esc_pos_printer: ^4.1.0
