@@ -4,13 +4,13 @@ import '../utils/constants.dart';
 class StandardCalculator extends StatefulWidget {
   final double? initialValue;
   final String currencyCode;
-  
+
   const StandardCalculator({
     super.key,
     this.initialValue,
     this.currencyCode = 'INR',
   });
-  
+
   @override
   State<StandardCalculator> createState() => _StandardCalculatorState();
 }
@@ -20,9 +20,10 @@ class _StandardCalculatorState extends State<StandardCalculator> {
   String _expression = '';
   final List<String> _history = [];
   bool _showHistory = false;
-  
-  String get _currencySymbol => AppConstants.getCurrencySymbol(widget.currencyCode);
-  
+
+  String get _currencySymbol =>
+      AppConstants.getCurrencySymbol(widget.currencyCode);
+
   @override
   void initState() {
     super.initState();
@@ -36,7 +37,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       _expression = _display;
     }
   }
-  
+
   void _onButtonPressed(String value) {
     setState(() {
       if (value == 'C') {
@@ -64,75 +65,60 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       }
     });
   }
-  
-  String _formatResult(double value) {
-    if (value == value.toInt()) {
-      return value.toInt().toString();
-    }
-    return value.toStringAsFixed(2);
-  }
-  
+
   double _evaluate(String expr) {
     expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
-    final sanitized = expr.replaceAll(RegExp(r'[^0-9+\-*/.]'), '');
-    final tokens = _tokenize(sanitized);
-    return _parseExpression(tokens);
-  }
-  
-  List<String> _tokenize(String expr) {
-    final tokens = <String>[];
-    var current = '';
-    for (final char in expr.split('')) {
-      if ('+-*/'.contains(char)) {
-        if (current.isNotEmpty) {
-          tokens.add(current);
-          current = '';
+    double eval(String e) {
+      e = e.trim();
+      if (e.isEmpty) return 0;
+      while (e.contains('(')) {
+        final start = e.lastIndexOf('(');
+        final end = e.indexOf(')', start);
+        if (end == -1) throw Exception('Missing )');
+        final subResult = eval(e.substring(start + 1, end));
+        e = e.substring(0, start) + subResult.toString() + e.substring(end + 1);
+      }
+      final addSub = RegExp(r'([+-])');
+      final parts = e.split(addSub);
+      if (parts.length > 1) {
+        double result = double.tryParse(parts[0]) ?? 0;
+        for (int i = 1; i < parts.length; i += 2) {
+          final op = parts[i];
+          final val = double.tryParse(parts[i + 1]) ?? 0;
+          if (op == '+') result += val;
+          if (op == '-') result -= val;
         }
-        tokens.add(char);
-      } else {
-        current += char;
+        return result;
       }
+      final mulDiv = RegExp(r'([*/])');
+      final mdParts = e.split(mulDiv);
+      if (mdParts.length > 1) {
+        double result = double.tryParse(mdParts[0]) ?? 0;
+        for (int i = 1; i < mdParts.length; i += 2) {
+          final op = mdParts[i];
+          final val = double.tryParse(mdParts[i + 1]) ?? 0;
+          if (op == '*') result *= val;
+          if (op == '/') result /= val;
+        }
+        return result;
+      }
+      return double.tryParse(e) ?? 0;
     }
-    if (current.isNotEmpty) tokens.add(current);
-    return tokens;
+    return eval(expr);
   }
-  
-  double _parseExpression(List<String> tokens) {
-    if (tokens.isEmpty) return 0;
-    
-    var i = 0;
-    while (i < tokens.length) {
-      if (tokens[i] == '*' || tokens[i] == '/') {
-        final left = double.parse(tokens[i - 1]);
-        final right = double.parse(tokens[i + 1]);
-        final result = tokens[i] == '*' ? left * right : left / right;
-        tokens[i - 1] = result.toString();
-        tokens.removeAt(i);
-        tokens.removeAt(i);
-      } else {
-        i++;
-      }
+
+  String _formatResult(double val) {
+    if (val == val.truncateToDouble()) {
+      return val.toStringAsFixed(0);
     }
-    
-    var result = double.parse(tokens[0]);
-    for (var j = 1; j < tokens.length; j += 2) {
-      final op = tokens[j];
-      final num = double.parse(tokens[j + 1]);
-      if (op == '+') {
-        result += num;
-      } else if (op == '-') {
-        result -= num;
-      }
-    }
-    
-    return result;
+    return val.toStringAsFixed(2);
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final buttons = [
       ['C', '⌫', '÷', '×'],
       ['7', '8', '9', '-'],
@@ -140,178 +126,97 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       ['1', '2', '3', '='],
       ['0', '.', '00', ''],
     ];
-    
+
     return Column(
-        children: [
-            // Top bar: initial value + history button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                children: [
-                  if (widget.initialValue != null && widget.initialValue! > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.download, color: AppColors.info, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$_currencySymbol${widget.initialValue!.toStringAsFixed(2)}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.info,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(
-                      _showHistory ? Icons.history_toggle_off : Icons.history,
-                      color: AppColors.info,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _showHistory = !_showHistory;
-                      });
-                    },
-                    tooltip: 'History',
+      children: [
+        // Display area
+        Expanded(
+          flex: 2,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            alignment: Alignment.bottomRight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (_expression.isNotEmpty && _expression != _display)
+                  Text(
+                    _expression,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
-            ),
-            
-            // History panel (collapsible)
-            if (_showHistory)
-              Container(
-                height: 120,
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.bgCardDark : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
-                ),
-                child: _history.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No history yet',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _history.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Text(
-                              _history[index],
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                              textAlign: TextAlign.end,
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            
-            // Display
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                alignment: Alignment.bottomRight,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (_expression.isNotEmpty && _expression != _display)
-                      Text(
-                        _expression,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          _currencySymbol,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _display,
-                          style: theme.textTheme.displayMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _display,
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            
-            // Buttons
-            for (final row in buttons)
-              Expanded(
+          ),
+        ),
+        // Buttons
+        Expanded(
+          flex: 5,
+          child: Column(
+            children: buttons.map((row) {
+              return Expanded(
                 child: Row(
-                  children: [
-                    for (final btn in row)
-                      if (btn.isNotEmpty)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: FilledButton(
-                              onPressed: () => _onButtonPressed(btn),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: _getButtonColor(btn),
-                                foregroundColor: _getButtonTextColor(btn),
-                                padding: const EdgeInsets.all(16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                btn,
-                                style: const TextStyle(fontSize: 24),
+                  children: row.map((label) {
+                    if (label.isEmpty) return const Expanded(child: SizedBox());
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: ElevatedButton(
+                          onPressed: () => _onButtonPressed(label),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            backgroundColor: _getButtonColor(label, isDark),
+                            foregroundColor: _getButtonTextColor(label),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                         ),
-                    if (row.last.isEmpty) const Spacer(),
-                  ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ),
-          ],
+              );
+            }).toList(),
+          ),
         ),
+      ],
     );
   }
-  
-  Color _getButtonColor(String btn) {
+
+  Color? _getButtonColor(String btn, bool isDark) {
     if ('+-×÷'.contains(btn)) return AppColors.primary;
     if (btn == '=') return AppColors.success;
     if (btn == 'C' || btn == '⌫') return AppColors.danger;
-    return Theme.of(context).colorScheme.surface;
+    return isDark ? Colors.grey[850] : Colors.grey[100];
   }
-  
+
   Color _getButtonTextColor(String btn) {
     if ('+-×÷=C⌫'.contains(btn)) return Colors.white;
-    return Theme.of(context).colorScheme.onSurface;
+    return Colors.black87;
   }
 }
