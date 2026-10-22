@@ -18,6 +18,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
+import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 import 'backup_service.dart';
 import 'premium_service.dart';
@@ -94,7 +95,11 @@ class CloudBackupService {
     _isBackingUp = true;
 
     try {
-      final httpClient = await _currentUser!.authHeaders;
+      final httpClient = await _currentUser!.authenticatedClient();
+      if (httpClient == null) {
+        debugPrint('CloudBackupService: failed to get authenticated client');
+        return false;
+      }
       final driveApi = drive.DriveApi(httpClient);
 
       // Generate JSON backup
@@ -141,7 +146,8 @@ class CloudBackupService {
     _isRestoring = true;
 
     try {
-      final httpClient = await _currentUser!.authHeaders;
+      final httpClient = await _currentUser!.authenticatedClient();
+      if (httpClient == null) return null;
       final driveApi = drive.DriveApi(httpClient);
 
       // List backup files in appData folder, sorted by modifiedTime desc
@@ -149,7 +155,7 @@ class CloudBackupService {
         spaces: 'appDataFolder',
         orderBy: 'modifiedTime desc',
         pageSize: 1,
-        fields: 'files(id, name, modifiedTime)',
+        q: "name contains 'note_counter_backup_'",
       );
 
       if (fileList.files == null || fileList.files!.isEmpty) {
@@ -186,14 +192,15 @@ class CloudBackupService {
   Future<List<Map<String, dynamic>>> listBackups() async {
     if (!PremiumService().isPremium || _currentUser == null) return [];
     try {
-      final httpClient = await _currentUser!.authHeaders;
+      final httpClient = await _currentUser!.authenticatedClient();
+      if (httpClient == null) return [];
       final driveApi = drive.DriveApi(httpClient);
 
       final fileList = await driveApi.files.list(
         spaces: 'appDataFolder',
         orderBy: 'modifiedTime desc',
         pageSize: 10,
-        fields: 'files(id, name, modifiedTime, size)',
+        q: "name contains 'note_counter_backup_'",
       );
 
       return (fileList.files ?? []).map((f) {
