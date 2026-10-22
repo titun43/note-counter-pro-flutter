@@ -18,6 +18,9 @@ import 'bills_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'reminder_history_screen.dart';
 import 'premium_screen.dart';
+import 'cloud_backup_screen.dart';
+import 'printer_screen.dart';
+import 'refer_earn_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -481,6 +484,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               );
             },
+          ),
+          // === PREMIUM FEATURES (Cloud Backup, Printer, Refer & Earn) ===
+          ListTile(
+            leading: const Icon(Icons.cloud_upload, color: AppColors.info),
+            title: Text(loc.t('cloudBackup')),
+            subtitle: Text(loc.t('cloudBackupSettingsDesc')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CloudBackupScreen()),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.print, color: AppColors.primary),
+            title: Text(loc.t('printer')),
+            subtitle: Text(loc.t('printerSettingsDesc')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PrinterScreen()),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.card_giftcard, color: AppColors.success),
+            title: Text(loc.t('referEarn')),
+            subtitle: Text(loc.t('referEarnSettingsDesc')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReferEarnScreen()),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.record_voice_over),
