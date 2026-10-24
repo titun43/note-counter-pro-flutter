@@ -268,8 +268,11 @@ class _MainScaffoldState extends State<MainScaffold> {
             child: Text(loc.t('exitNo')),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop(true);
+              // Wait for dialog to fully close before exiting
+              // Prevents dialog from showing on reopen
+              await Future.delayed(const Duration(milliseconds: 300));
               SystemNavigator.pop();
             },
             style: FilledButton.styleFrom(

@@ -2,9 +2,13 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Dark mode splash background -->
     <item android:drawable="@color/splash_bg"/>
-    <item>
+    <item
+        android:left="100dp"
+        android:right="100dp"
+        android:top="120dp"
+        android:bottom="180dp">
         <bitmap
-            android:gravity="center_horizontal|center_vertical"
+            android:gravity="center"
             android:src="@drawable/app_logo"/>
     </item>
 </layer-list>
