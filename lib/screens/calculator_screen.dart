@@ -14,6 +14,7 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import '../services/admob_service.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'standard_calculator.dart';
 import 'scientific_calculator.dart';
 import 'programmer_calculator.dart';
@@ -234,7 +235,13 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Column(
+    // Check if we have an initialValue — if yes, we were opened via
+    // Navigator.push from Home screen, so we need our own Scaffold +
+    // SafeArea + BannerAd. If no initialValue, we're a tab inside
+    // main.dart which already provides Scaffold + BannerAd.
+    final bool standalone = widget.initialValue != null && widget.initialValue! > 0;
+
+    Widget content = Column(
       children: [
         // Top bar: menu icon + mode name
         Container(
@@ -250,6 +257,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           ),
           child: Row(
             children: [
+              if (standalone)
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 22),
+                  onPressed: () => Navigator.pop(context),
+                  tooltip: 'Back',
+                ),
               IconButton(
                 icon: const Icon(Icons.apps, size: 24),
                 onPressed: _showMenu,
@@ -262,7 +275,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 ),
               ),
               const Spacer(),
-              if (widget.initialValue != null && widget.initialValue! > 0)
+              if (standalone)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -287,6 +300,24 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         ),
       ],
     );
+
+    // If standalone (opened from Home via Navigator.push), wrap with
+    // Scaffold + SafeArea + BannerAd so layout is correct.
+    if (standalone) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              const BannerAdWidget(),
+              Expanded(child: content),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Otherwise, we're a tab inside main.dart — just return the Column
+    return content;
   }
 
   Widget _buildCurrentMode() {
