@@ -9,13 +9,13 @@ class ProgrammerCalculator extends StatefulWidget {
 }
 
 class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
-  int _base = 10; // 10=DEC, 16=HEX, 8=OCT, 2=BIN
+  int _base = 10;
   String _display = '0';
   String _expression = '';
 
   void _onButton(String value) {
     setState(() {
-      if (value == 'C') {
+      if (value == 'AC') {
         _display = '0';
         _expression = '';
       } else if (value == '⌫') {
@@ -25,7 +25,7 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
         }
       } else if (value == '=') {
         _evaluate();
-      } else if (value == 'AND' || value == 'OR' || value == 'XOR' || value == 'NOT') {
+      } else if (['AND','OR','XOR','NOT'].contains(value)) {
         _expression += ' $value ';
         _display = _expression;
       } else {
@@ -39,26 +39,19 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
     try {
       String expr = _expression.trim();
       if (expr.contains(' AND ')) {
-        final parts = expr.split(' AND ');
-        final a = int.parse(parts[0], radix: _base);
-        final b = int.parse(parts[1], radix: _base);
-        _display = (a & b).toRadixString(_base).toUpperCase();
+        final p = expr.split(' AND ');
+        _display = ((int.parse(p[0], radix: _base)) & (int.parse(p[1], radix: _base))).toRadixString(_base).toUpperCase();
       } else if (expr.contains(' OR ')) {
-        final parts = expr.split(' OR ');
-        final a = int.parse(parts[0], radix: _base);
-        final b = int.parse(parts[1], radix: _base);
-        _display = (a | b).toRadixString(_base).toUpperCase();
+        final p = expr.split(' OR ');
+        _display = ((int.parse(p[0], radix: _base)) | (int.parse(p[1], radix: _base))).toRadixString(_base).toUpperCase();
       } else if (expr.contains(' XOR ')) {
-        final parts = expr.split(' XOR ');
-        final a = int.parse(parts[0], radix: _base);
-        final b = int.parse(parts[1], radix: _base);
-        _display = (a ^ b).toRadixString(_base).toUpperCase();
+        final p = expr.split(' XOR ');
+        _display = ((int.parse(p[0], radix: _base)) ^ (int.parse(p[1], radix: _base))).toRadixString(_base).toUpperCase();
       } else if (expr.contains(' NOT ')) {
         final a = int.parse(expr.replaceAll('NOT ', ''), radix: _base);
         _display = (~a).toRadixString(_base).toUpperCase();
       } else {
-        final val = int.parse(expr, radix: _base);
-        _display = val.toRadixString(_base).toUpperCase();
+        _display = int.parse(expr, radix: _base).toRadixString(_base).toUpperCase();
       }
       _expression = _display;
     } catch (_) {
@@ -69,9 +62,9 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
   void _changeBase(int base) {
     setState(() {
       try {
-        final val = _expression.isNotEmpty ? int.parse(_expression, radix: _base) : 0;
+        final v = _expression.isNotEmpty ? int.parse(_expression, radix: _base) : 0;
         _base = base;
-        _display = val.toRadixString(base).toUpperCase();
+        _display = v.toRadixString(base).toUpperCase();
         _expression = _display;
       } catch (_) {
         _base = base;
@@ -81,167 +74,190 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
     });
   }
 
-  String _getOtherBases() {
+  String _allBases() {
     try {
-      final val = int.parse(_expression.isNotEmpty ? _expression : '0', radix: _base);
-      return 'DEC: ${val}\nHEX: ${val.toRadixString(16).toUpperCase()}\n'
-             'OCT: ${val.toRadixString(8)}\nBIN: ${val.toRadixString(2)}';
+      final v = int.parse(_expression.isNotEmpty ? _expression : '0', radix: _base);
+      return 'DEC:${v}  HEX:${v.toRadixString(16).toUpperCase()}  OCT:${v.toRadixString(8)}  BIN:${v.toRadixString(2)}';
     } catch (_) {
       return '';
     }
+  }
+
+  List<String> get _activeDigits {
+    if (_base == 16) return ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
+    if (_base == 10) return ['0','1','2','3','4','5','6','7','8','9'];
+    if (_base == 8) return ['0','1','2','3','4','5','6','7'];
+    return ['0','1'];
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5);
 
-    // Determine which buttons to show based on base
-    List<String> hexDigits = ['A', 'B', 'C', 'D', 'E', 'F'];
-    List<String> activeDigits;
-    if (_base == 16) {
-      activeDigits = ['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'];
-    } else if (_base == 10) {
-      activeDigits = ['0','1','2','3','4','5','6','7','8','9'];
-    } else if (_base == 8) {
-      activeDigits = ['0','1','2','3','4','5','6','7'];
-    } else {
-      activeDigits = ['0','1'];
+    // Build digit rows (4 per row)
+    List<List<String>> digitRows = [];
+    List<String> digits = List.from(_activeDigits);
+    digitRows.add(['AC', '%', '⌫', '÷']);
+    for (int i = 0; i < digits.length; i += 3) {
+      final row = <String>[];
+      for (int j = i; j < i + 3 && j < digits.length; j++) {
+        row.add(digits[j]);
+      }
+      while (row.length < 3) row.add('');
+      if (i == 0) { row.add('×'); }
+      else if (i == 3) { row.add('-'); }
+      else if (i == 6) { row.add('+'); }
+      else if (i == 9) { row.add('='); }
+      else { row.add(''); }
+      digitRows.add(row);
+    }
+    // Ensure at least 5 rows
+    while (digitRows.length < 5) {
+      digitRows.add(['', '', '', '']);
     }
 
-    return Column(
-      children: [
-        // Base selector
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: [
-              _baseButton('DEC', 10),
-              _baseButton('HEX', 16),
-              _baseButton('OCT', 8),
-              _baseButton('BIN', 2),
-            ],
-          ),
-        ),
-        // Multi-base display
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: (isDark ? Colors.grey[850] : Colors.grey[100]),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            _getOtherBases(),
-            style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.grey[600]),
-          ),
-        ),
-        // Main display
-        Expanded(
-          flex: 1,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            alignment: Alignment.bottomRight,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(_display,
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
-                      fontFamily: 'monospace')),
+    return Container(
+      color: bgColor,
+      child: Column(
+        children: [
+          // Base selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _baseBtn('DEC', 10, isDark),
+                _baseBtn('HEX', 16, isDark),
+                _baseBtn('OCT', 8, isDark),
+                _baseBtn('BIN', 2, isDark),
+              ],
             ),
           ),
-        ),
-        // Bitwise ops
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: ['AND', 'OR', 'XOR', 'NOT', '<<', '>>'].map((op) {
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: ElevatedButton(
-                    onPressed: () => _onButton(op),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      backgroundColor: AppColors.info.withOpacity(0.15),
-                      foregroundColor: AppColors.info,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(op, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+          // Multi-base display
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(_allBases(),
+                style: TextStyle(fontSize: 10, fontFamily: 'monospace',
+                    color: isDark ? Colors.grey[400] : Colors.grey[600])),
           ),
-        ),
-        // Digit buttons
-        Expanded(
-          flex: 3,
-          child: GridView.count(
-            crossAxisCount: 4,
-            padding: const EdgeInsets.all(4),
-            childAspectRatio: 1.5,
-            children: [
-              'C', '⌫', '', '=',
-              ...activeDigits,
-            ].map((label) {
-              if (label.isEmpty) return const SizedBox();
-              return Padding(
-                padding: const EdgeInsets.all(2),
-                child: ElevatedButton(
-                  onPressed: () => _onButton(label),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    backgroundColor: _btnColor(label, isDark),
-                    foregroundColor: _btnTextColor(label, isDark),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-                  ),
-                ),
-              );
-            }).toList(),
+          // Main display
+          Expanded(
+            flex: 2,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              alignment: Alignment.bottomRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(_display,
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                        fontFamily: 'monospace')),
+              ),
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _baseButton(String label, int base) {
-    final active = _base == base;
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(2),
-        child: ElevatedButton(
-          onPressed: () => _changeBase(base),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            backgroundColor: active ? AppColors.primary : null,
-            foregroundColor: active ? Colors.white : null,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          // Bitwise ops row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ['AND','OR','XOR','NOT'].map((op) => _smallBtn(op, isDark)).toList(),
+            ),
           ),
-          child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-        ),
+          // Digit buttons (round)
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: digitRows.take(5).map((row) => Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: row.map((label) => label.isEmpty
+                      ? const SizedBox(width: 64, height: 64)
+                      : _btn(label, isDark)).toList(),
+                )).toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Color? _btnColor(String label, bool isDark) {
-    if (label == 'C' || label == '⌫') return Colors.red.withOpacity(0.2);
-    if (label == '=') return AppColors.primary;
-    return isDark ? Colors.grey[850] : Colors.grey[100];
+  Widget _baseBtn(String label, int base, bool isDark) {
+    final active = _base == base;
+    return Container(
+      height: 36,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      child: ElevatedButton(
+        onPressed: () => _changeBase(base),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: active ? const Color(0xFFFF9500) : (isDark ? Colors.grey[800] : Colors.grey[300]),
+          foregroundColor: active ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 0,
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      ),
+    );
   }
 
-  Color _btnTextColor(String label, bool isDark) {
-    if (label == '=') return Colors.white;
-    if (label == 'C' || label == '⌫') return Colors.red;
-    return isDark ? Colors.white : Colors.black87;
+  Widget _smallBtn(String label, bool isDark) {
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.all(2),
+      child: ElevatedButton(
+        onPressed: () => _onButton(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? const Color(0xFF1E3A5F) : const Color(0xFFE3F2FD),
+          foregroundColor: const Color(0xFF1976D2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 0,
+        ),
+        child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  Widget _btn(String label, bool isDark) {
+    final isOp = ['÷','×','-','+'].contains(label);
+    final isEq = label == '=';
+    final isFn = ['AC','%','⌫'].contains(label);
+
+    Color bg, fg;
+    if (isEq) { bg = const Color(0xFFFF9500); fg = Colors.white; }
+    else if (isOp) { bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0E0E0); fg = const Color(0xFFFF9500); }
+    else if (isFn) { bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFD1D1D1); fg = isDark ? Colors.white : Colors.black87; }
+    else { bg = isDark ? const Color(0xFF2C2C2C) : Colors.white; fg = isDark ? Colors.white : Colors.black87; }
+
+    return Container(
+      width: 60,
+      height: 60,
+      margin: const EdgeInsets.all(3),
+      child: ElevatedButton(
+        onPressed: () => _onButton(label),
+        style: ElevatedButton.styleFrom(
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+          backgroundColor: bg,
+          foregroundColor: fg,
+          elevation: 0,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500,
+              fontFamily: isOp || isFn ? null : 'monospace')),
+        ),
+      ),
+    );
   }
 }

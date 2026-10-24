@@ -13,6 +13,7 @@
 
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
+import '../services/admob_service.dart';
 import 'standard_calculator.dart';
 import 'scientific_calculator.dart';
 import 'programmer_calculator.dart';
@@ -35,6 +36,7 @@ class CalculatorScreen extends StatefulWidget {
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
   int _currentMode = 0; // 0=Standard, 1=Scientific, 2=Programmer, 3=Date
+  int _modeChangeCount = 0; // For interstitial ad frequency
 
   static const _modes = [
     {'icon': Icons.calculate, 'name': 'Standard'},
@@ -108,8 +110,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                     final selected = i == _currentMode;
                     return GestureDetector(
                       onTap: () {
-                        setState(() => _currentMode = i);
                         Navigator.pop(ctx);
+                        if (i != _currentMode) {
+                          _modeChangeCount++;
+                          // Show interstitial every 3 mode changes
+                          if (_modeChangeCount >= 3) {
+                            _modeChangeCount = 0;
+                            AdMobService.showInterstitial();
+                          }
+                          setState(() => _currentMode = i);
+                        }
                       },
                       child: Container(
                         margin: const EdgeInsets.all(4),

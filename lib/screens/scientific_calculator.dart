@@ -16,7 +16,7 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
 
   void _onButton(String value) {
     setState(() {
-      if (value == 'C') {
+      if (value == 'AC') {
         _display = '0';
         _expression = '';
       } else if (value == '⌫') {
@@ -34,11 +34,9 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
       } else if (value == 'e') {
         _expression += '2.718281828459045';
         _display = _expression;
-      } else if (value == 'sin' || value == 'cos' || value == 'tan' ||
-                 value == 'asin' || value == 'acos' || value == 'atan' ||
-                 value == 'log' || value == 'ln' || value == 'sqrt' ||
-                 value == 'exp') {
-        _expression += '$value(';
+      } else if (['sin','cos','tan','asin','acos','atan','log','ln','√','exp'].contains(value)) {
+        final fn = value == '√' ? 'sqrt' : value;
+        _expression += '$fn(';
         _display = _expression;
       } else {
         _expression += value;
@@ -49,269 +47,215 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
 
   void _evaluate() {
     try {
-      String expr = _expression;
-      // Replace symbols
-      expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
-
-      // Handle functions
-      final funcs = ['asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sqrt', 'exp'];
-      for (final f in funcs) {
-        expr = expr.replaceAll('$f(', '_$f(');
-      }
-      expr = expr.replaceAll('log(', '_log(');
-      expr = expr.replaceAll('ln(', '_ln(');
-
-      double result = _evalExpression(expr);
-      if (result.isNaN || result.isInfinite) {
-        _display = 'Error';
-      } else {
-        _display = _formatResult(result);
-        _expression = _display;
-      }
+      String expr = _expression.replaceAll('×', '*').replaceAll('÷', '/');
+      double result = _evalExpr(expr);
+      _display = result.isNaN || result.isInfinite ? 'Error' : _fmt(result);
+      _expression = _display;
     } catch (_) {
       _display = 'Error';
     }
   }
 
-  double _evalExpression(String expr) {
-    // Simple recursive descent parser
-    expr = expr.replaceAll(' ', '');
-    if (expr.isEmpty) return 0;
-    int pos = 0;
-    return _parseExpr(expr, pos).$1;
+  double _evalExpr(String s) {
+    s = s.replaceAll(' ', '');
+    if (s.isEmpty) return 0;
+    return _parse(s, 0).$1;
   }
 
-  (double, int) _parseExpr(String s, int pos) {
-    double val = 0;
-    (val, pos) = _parseTerm(s, pos);
+  (double, int) _parse(String s, int pos) {
+    double v;
+    (v, pos) = _term(s, pos);
     while (pos < s.length && (s[pos] == '+' || s[pos] == '-')) {
       final op = s[pos++];
-      double rhs;
-      (rhs, pos) = _parseTerm(s, pos);
-      val = op == '+' ? val + rhs : val - rhs;
+      double r;
+      (r, pos) = _term(s, pos);
+      v = op == '+' ? v + r : v - r;
     }
-    return (val, pos);
+    return (v, pos);
   }
 
-  (double, int) _parseTerm(String s, int pos) {
-    double val = 0;
-    (val, pos) = _parseFactor(s, pos);
+  (double, int) _term(String s, int pos) {
+    double v;
+    (v, pos) = _factor(s, pos);
     while (pos < s.length && (s[pos] == '*' || s[pos] == '/')) {
       final op = s[pos++];
-      double rhs;
-      (rhs, pos) = _parseFactor(s, pos);
-      val = op == '*' ? val * rhs : val / rhs;
+      double r;
+      (r, pos) = _factor(s, pos);
+      v = op == '*' ? v * r : v / r;
     }
-    return (val, pos);
+    return (v, pos);
   }
 
-  (double, int) _parseFactor(String s, int pos) {
+  (double, int) _factor(String s, int pos) {
     if (pos >= s.length) return (0, pos);
-
-    // Functions
-    if (s[pos] == '_') {
-      pos++;
-      String func = '';
-      while (pos < s.length && s[pos] != '(') {
-        func += s[pos++];
+    // Check for function names
+    for (final fn in ['asin','acos','atan','sin','cos','tan','sqrt','exp','log','ln']) {
+      if (pos + fn.length <= s.length && s.substring(pos, pos + fn.length) == fn) {
+        pos += fn.length;
+        if (pos < s.length && s[pos] == '(') pos++;
+        double arg;
+        (arg, pos) = _parse(s, pos);
+        if (pos < s.length && s[pos] == ')') pos++;
+        double r;
+        switch (fn) {
+          case 'sin': r = sin(_isDegree ? arg * pi / 180 : arg); break;
+          case 'cos': r = cos(_isDegree ? arg * pi / 180 : arg); break;
+          case 'tan': r = tan(_isDegree ? arg * pi / 180 : arg); break;
+          case 'asin': r = _isDegree ? asin(arg) * 180 / pi : asin(arg); break;
+          case 'acos': r = _isDegree ? acos(arg) * 180 / pi : acos(arg); break;
+          case 'atan': r = _isDegree ? atan(arg) * 180 / pi : atan(arg); break;
+          case 'log': r = log(arg) / 2.302585; break;
+          case 'ln': r = log(arg); break;
+          case 'sqrt': r = sqrt(arg); break;
+          case 'exp': r = exp(arg); break;
+          default: r = 0;
+        }
+        // Power after function
+        if (pos < s.length && s[pos] == '^') {
+          pos++;
+          double e;
+          (e, pos) = _factor(s, pos);
+          r = pow(r, e).toDouble();
+        }
+        return (r, pos);
       }
-      pos++; // skip (
-      double arg;
-      (arg, pos) = _parseExpr(s, pos);
-      if (pos < s.length && s[pos] == ')') pos++;
-
-      double result;
-      switch (func) {
-        case 'sin':
-          result = sin(_isDegree ? arg * pi / 180 : arg);
-          break;
-        case 'cos':
-          result = cos(_isDegree ? arg * pi / 180 : arg);
-          break;
-        case 'tan':
-          result = tan(_isDegree ? arg * pi / 180 : arg);
-          break;
-        case 'asin':
-          result = _isDegree ? asin(arg) * 180 / pi : asin(arg);
-          break;
-        case 'acos':
-          result = _isDegree ? acos(arg) * 180 / pi : acos(arg);
-          break;
-        case 'atan':
-          result = _isDegree ? atan(arg) * 180 / pi : atan(arg);
-          break;
-        case 'log':
-          result = log(arg) / ln10;
-          break;
-        case 'ln':
-          result = log(arg);
-          break;
-        case 'sqrt':
-          result = sqrt(arg);
-          break;
-        case 'exp':
-          result = exp(arg);
-          break;
-        default:
-          result = 0;
-      }
-      return (result, pos);
     }
-
     // Parentheses
     if (s[pos] == '(') {
       pos++;
-      double val;
-      (val, pos) = _parseExpr(s, pos);
+      double v;
+      (v, pos) = _parse(s, pos);
       if (pos < s.length && s[pos] == ')') pos++;
-      return (val, pos);
+      return (v, pos);
     }
-
-    // Power
-    double val;
-    (val, pos) = _parseNumber(s, pos);
+    // Number
+    double v;
+    (v, pos) = _num(s, pos);
     if (pos < s.length && s[pos] == '^') {
       pos++;
-      double exp;
-      (exp, pos) = _parseFactor(s, pos);
-      return (pow(val, exp).toDouble(), pos);
+      double e;
+      (e, pos) = _factor(s, pos);
+      return (pow(v, e).toDouble(), pos);
     }
-
-    return (val, pos);
+    return (v, pos);
   }
 
-  (double, int) _parseNumber(String s, int pos) {
-    String num = '';
-    while (pos < s.length && (s[pos].digitOrDot)) {
-      num += s[pos++];
+  (double, int) _num(String s, int pos) {
+    String n = '';
+    while (pos < s.length && _isDigitOrDot(s[pos])) {
+      n += s[pos++];
     }
-    return (double.tryParse(num) ?? 0, pos);
+    return (double.tryParse(n) ?? 0, pos);
   }
 
-  static const ln10 = 2.302585092994046;
+  bool _isDigitOrDot(String c) =>
+      c.codeUnitAt(0) >= 48 && c.codeUnitAt(0) <= 57 || c == '.';
 
-  String _formatResult(double val) {
-    if (val == val.truncateToDouble()) {
-      return val.toStringAsFixed(0);
-    }
-    return val.toStringAsFixed(6).replaceAll(RegExp(r'0+$'), '');
+  String _fmt(double v) {
+    if (v == v.truncateToDouble()) return v.toStringAsFixed(0);
+    return v.toStringAsFixed(6).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5);
 
     final rows = [
       ['sin', 'cos', 'tan', 'π'],
-      ['asin', 'acos', 'atan', 'e'],
-      ['log', 'ln', '√', '^'],
-      ['(', ')', 'n!', 'deg/rad'],
-      ['C', '⌫', '÷', '×'],
-      ['7', '8', '9', '-'],
-      ['4', '5', '6', '+'],
-      ['1', '2', '3', '='],
-      ['0', '.', '00', ''],
+      ['log', 'ln', '√', 'e'],
+      ['AC', '%', '⌫', '÷'],
+      ['7', '8', '9', '×'],
+      ['4', '5', '6', '-'],
+      ['1', '2', '3', '+'],
+      ['0', '.', '^', '='],
     ];
 
-    return Column(
-      children: [
-        // Display
-        Expanded(
-          flex: 2,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            alignment: Alignment.bottomRight,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (_expression.isNotEmpty && _expression != _display)
-                  Text(_expression,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(_display,
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black,
-                      )),
-                ),
-                const SizedBox(height: 4),
-                Text(_isDegree ? 'DEG' : 'RAD',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400])),
-              ],
+    return Container(
+      color: bgColor,
+      child: Column(
+        children: [
+          // Display
+          Expanded(
+            flex: 2,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              alignment: Alignment.bottomRight,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (_expression.isNotEmpty && _expression != _display)
+                    Text(_expression,
+                        style: TextStyle(fontSize: 13,
+                            color: isDark ? Colors.grey[400] : Colors.grey[500]),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(_display,
+                        style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(_isDegree ? 'DEG' : 'RAD',
+                      style: TextStyle(fontSize: 10, color: Colors.grey[400])),
+                ],
+              ),
             ),
           ),
-        ),
-        // Buttons
-        Expanded(
-          flex: 5,
-          child: Column(
-            children: rows.map((row) {
-              return Expanded(
-                child: Row(
-                  children: row.map((label) {
-                    if (label.isEmpty) return const Expanded(child: SizedBox());
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: ElevatedButton(
-                          onPressed: () => _onButton(label),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            backgroundColor: _getButtonColor(label, isDark),
-                            foregroundColor: _getButtonTextColor(label, isDark),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(label,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              );
-            }).toList(),
+          // Round buttons
+          Expanded(
+            flex: 6,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: rows.map((row) => Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: row.map((label) => _btn(label, isDark)).toList(),
+                )).toList(),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Color? _getButtonColor(String label, bool isDark) {
-    if (label == 'C' || label == '⌫') return Colors.red.withOpacity(0.2);
-    if (label == '=') return AppColors.primary;
-    if (['÷', '×', '-', '+'].contains(label)) return AppColors.primary.withOpacity(0.15);
-    if (['sin','cos','tan','asin','acos','atan','log','ln','√','^','π','e','n!','deg/rad'].contains(label)) {
-      return AppColors.info.withOpacity(0.15);
-    }
-    return isDark ? Colors.grey[850] : Colors.grey[100];
-  }
+  Widget _btn(String label, bool isDark) {
+    final isOp = ['÷','×','-','+'].contains(label);
+    final isEq = label == '=';
+    final isFn = ['AC','%','⌫'].contains(label);
+    final isSci = ['sin','cos','tan','log','ln','√','π','e','^'].contains(label);
 
-  Color _getButtonTextColor(String label, bool isDark) {
-    if (label == '=') return Colors.white;
-    if (['÷', '×', '-', '+'].contains(label)) return AppColors.primary;
-    if (['sin','cos','tan','asin','acos','atan','log','ln','√','^','π','e','n!','deg/rad'].contains(label)) {
-      return AppColors.info;
-    }
-    if (label == 'C' || label == '⌫') return Colors.red;
-    return isDark ? Colors.white : Colors.black87;
-  }
-}
+    Color bg, fg;
+    if (isEq) { bg = const Color(0xFFFF9500); fg = Colors.white; }
+    else if (isOp) { bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0E0E0); fg = const Color(0xFFFF9500); }
+    else if (isFn) { bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFD1D1D1); fg = isDark ? Colors.white : Colors.black87; }
+    else if (isSci) { bg = isDark ? const Color(0xFF1E3A5F) : const Color(0xFFE3F2FD); fg = const Color(0xFF1976D2); }
+    else { bg = isDark ? const Color(0xFF2C2C2C) : Colors.white; fg = isDark ? Colors.white : Colors.black87; }
 
-extension on String {
-  bool get digitOrDot {
-    final c = codeUnitAt(0);
-    return (c >= 48 && c <= 57) || this == '.';
+    return Container(
+      width: 60,
+      height: 60,
+      margin: const EdgeInsets.all(3),
+      child: ElevatedButton(
+        onPressed: () => _onButton(label),
+        style: ElevatedButton.styleFrom(
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+          backgroundColor: bg,
+          foregroundColor: fg,
+          elevation: 0,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+        ),
+      ),
+    );
   }
 }

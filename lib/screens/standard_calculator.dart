@@ -21,9 +21,6 @@ class _StandardCalculatorState extends State<StandardCalculator> {
   final List<String> _history = [];
   bool _showHistory = false;
 
-  String get _currencySymbol =>
-      AppConstants.getCurrencySymbol(widget.currencyCode);
-
   @override
   void initState() {
     super.initState();
@@ -38,9 +35,9 @@ class _StandardCalculatorState extends State<StandardCalculator> {
     }
   }
 
-  void _onButtonPressed(String value) {
+  void _onButton(String value) {
     setState(() {
-      if (value == 'C') {
+      if (value == 'AC') {
         _display = '0';
         _expression = '';
       } else if (value == '=') {
@@ -50,7 +47,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
           if (_history.length > 20) _history.removeLast();
           _display = _formatResult(result);
           _expression = _display;
-        } catch (e) {
+        } catch (_) {
           _display = 'Error';
           _expression = '';
         }
@@ -58,6 +55,14 @@ class _StandardCalculatorState extends State<StandardCalculator> {
         if (_expression.isNotEmpty) {
           _expression = _expression.substring(0, _expression.length - 1);
           _display = _expression.isEmpty ? '0' : _expression;
+        }
+      } else if (value == '%') {
+        if (_expression.isNotEmpty) {
+          try {
+            final val = _evaluate(_expression);
+            _expression = (val / 100).toString();
+            _display = _formatResult(val / 100);
+          } catch (_) {}
         }
       } else {
         _expression += value;
@@ -74,197 +79,181 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       while (e.contains('(')) {
         final start = e.lastIndexOf('(');
         final end = e.indexOf(')', start);
-        if (end == -1) throw Exception('Missing )');
-        final subResult = eval(e.substring(start + 1, end));
-        e = e.substring(0, start) + subResult.toString() + e.substring(end + 1);
+        if (end == -1) throw Exception(')');
+        final sub = eval(e.substring(start + 1, end));
+        e = e.substring(0, start) + sub.toString() + e.substring(end + 1);
       }
-      final addSub = RegExp(r'([+-])');
-      final parts = e.split(addSub);
+      final parts = e.split(RegExp(r'([+-])'));
       if (parts.length > 1) {
-        double result = double.tryParse(parts[0]) ?? 0;
+        double r = double.tryParse(parts[0]) ?? 0;
         for (int i = 1; i < parts.length; i += 2) {
-          final op = parts[i];
-          final val = double.tryParse(parts[i + 1]) ?? 0;
-          if (op == '+') result += val;
-          if (op == '-') result -= val;
+          final v = double.tryParse(parts[i + 1]) ?? 0;
+          if (parts[i] == '+') r += v;
+          if (parts[i] == '-') r -= v;
         }
-        return result;
+        return r;
       }
-      final mulDiv = RegExp(r'([*/])');
-      final mdParts = e.split(mulDiv);
-      if (mdParts.length > 1) {
-        double result = double.tryParse(mdParts[0]) ?? 0;
-        for (int i = 1; i < mdParts.length; i += 2) {
-          final op = mdParts[i];
-          final val = double.tryParse(mdParts[i + 1]) ?? 0;
-          if (op == '*') result *= val;
-          if (op == '/') result /= val;
+      final md = e.split(RegExp(r'([*/])'));
+      if (md.length > 1) {
+        double r = double.tryParse(md[0]) ?? 0;
+        for (int i = 1; i < md.length; i += 2) {
+          final v = double.tryParse(md[i + 1]) ?? 0;
+          if (md[i] == '*') r *= v;
+          if (md[i] == '/') r /= v;
         }
-        return result;
+        return r;
       }
       return double.tryParse(e) ?? 0;
     }
     return eval(expr);
   }
 
-  String _formatResult(double val) {
-    if (val == val.truncateToDouble()) {
-      return val.toStringAsFixed(0);
-    }
-    return val.toStringAsFixed(2);
+  String _formatResult(double v) {
+    if (v == v.truncateToDouble()) return v.toStringAsFixed(0);
+    return v.toStringAsFixed(2);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5);
 
-    final buttons = [
-      ['C', '⌫', '÷', '×'],
-      ['7', '8', '9', '-'],
-      ['4', '5', '6', '+'],
-      ['1', '2', '3', '='],
-      ['0', '.', '00', ''],
-    ];
-
-    return Column(
-      children: [
-        // Top bar: history toggle
-        if (_history.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => setState(() => _showHistory = !_showHistory),
-                icon: Icon(
-                  _showHistory ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                label: Text(
-                  _showHistory ? 'Hide History' : 'Show History (${_history.length})',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                  minimumSize: const Size(0, 28),
+    return Container(
+      color: bgColor,
+      child: Column(
+        children: [
+          // History toggle
+          if (_history.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _showHistory = !_showHistory),
+                  icon: Icon(_showHistory ? Icons.expand_less : Icons.expand_more, size: 18),
+                  label: Text(
+                    _showHistory ? 'Hide History' : 'Show History (${_history.length})',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 28)),
                 ),
               ),
             ),
-          ),
-        // History list
-        if (_showHistory && _history.isNotEmpty)
-          Container(
-            height: 80,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[850] : Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _history.length,
-              itemBuilder: (ctx, i) => Text(
-                _history[i],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                  fontFamily: 'monospace',
+          if (_showHistory && _history.isNotEmpty)
+            Container(
+              height: 70,
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[850] : Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: _history.length,
+                itemBuilder: (ctx, i) => Text(
+                  _history[i],
+                  style: TextStyle(fontSize: 12, fontFamily: 'monospace',
+                      color: isDark ? Colors.grey[400] : Colors.grey[600]),
                 ),
               ),
             ),
-          ),
-        // Display area
-        Expanded(
-          flex: 2,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            alignment: Alignment.bottomRight,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (_expression.isNotEmpty && _expression != _display)
-                  Text(
-                    _expression,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.grey[400] : Colors.grey[500],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          // Display
+          Expanded(
+            flex: 3,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              alignment: Alignment.bottomRight,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (_expression.isNotEmpty && _expression != _display)
+                    Text(_expression,
+                        style: TextStyle(fontSize: 14,
+                            color: isDark ? Colors.grey[400] : Colors.grey[500]),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(_display,
+                        style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black)),
                   ),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _display,
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        // Buttons
-        Expanded(
-          flex: 5,
-          child: Column(
-            children: buttons.map((row) {
-              return Expanded(
-                child: Row(
-                  children: row.map((label) {
-                    if (label.isEmpty) return const Expanded(child: SizedBox());
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: ElevatedButton(
-                          onPressed: () => _onButtonPressed(label),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            backgroundColor: _getButtonColor(label, isDark),
-                            foregroundColor: _getButtonTextColor(label, isDark),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              label,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              );
-            }).toList(),
+          // Round buttons
+          Expanded(
+            flex: 5,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _row(['AC', '%', '⌫', '÷'], isDark),
+                  _row(['7', '8', '9', '×'], isDark),
+                  _row(['4', '5', '6', '-'], isDark),
+                  _row(['1', '2', '3', '+'], isDark),
+                  _row(['0', '00', '.', '='], isDark),
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Color? _getButtonColor(String btn, bool isDark) {
-    if ('+-×÷'.contains(btn)) return AppColors.primary;
-    if (btn == '=') return AppColors.success;
-    if (btn == 'C' || btn == '⌫') return AppColors.danger;
-    return isDark ? Colors.grey[850] : Colors.grey[100];
+  Widget _row(List<String> labels, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: labels.map((label) => _roundButton(label, isDark)).toList(),
+    );
   }
 
-  Color _getButtonTextColor(String btn, bool isDark) {
-    if ('+-×÷=C⌫'.contains(btn)) return Colors.white;
-    return isDark ? Colors.white : Colors.black87;
+  Widget _roundButton(String label, bool isDark) {
+    final isOperator = ['÷', '×', '-', '+'].contains(label);
+    final isEquals = label == '=';
+    final isFunction = ['AC', '%', '⌫'].contains(label);
+
+    Color bg;
+    Color fg;
+    if (isEquals) {
+      bg = const Color(0xFFFF9500);
+      fg = Colors.white;
+    } else if (isOperator) {
+      bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE0E0E0);
+      fg = const Color(0xFFFF9500);
+    } else if (isFunction) {
+      bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFD1D1D1);
+      fg = isDark ? Colors.white : Colors.black87;
+    } else {
+      bg = isDark ? const Color(0xFF2C2C2C) : Colors.white;
+      fg = isDark ? Colors.white : Colors.black87;
+    }
+
+    return Container(
+      width: 64,
+      height: 64,
+      margin: const EdgeInsets.all(4),
+      child: ElevatedButton(
+        onPressed: () => _onButton(label),
+        style: ElevatedButton.styleFrom(
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+          backgroundColor: bg,
+          foregroundColor: fg,
+          elevation: 0,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label,
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500)),
+        ),
+      ),
+    );
   }
 }
