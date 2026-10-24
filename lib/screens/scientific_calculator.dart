@@ -36,7 +36,14 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
         _display = _expression;
       } else if (['sin','cos','tan','asin','acos','atan','log','ln','√','exp'].contains(value)) {
         final fn = value == '√' ? 'sqrt' : value;
+        // Auto-add opening paren + we'll auto-close on '='
         _expression += '$fn(';
+        _display = _expression;
+      } else if (value == '(' || value == ')') {
+        _expression += value;
+        _display = _expression;
+      } else if (value == '^') {
+        _expression += '^';
         _display = _expression;
       } else {
         _expression += value;
@@ -52,9 +59,23 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
           .replaceAll('÷', '/')
           .replaceAll('−', '-');
 
-      // Replace constants
-      expr = expr.replaceAll('π', '3.141592653589793');
-      expr = expr.replaceAll('e', '2.718281828459045');
+      // Auto-close unclosed parentheses
+      int openCount = '('.allMatches(expr).length;
+      int closeCount = ')'.allMatches(expr).length;
+      while (openCount > closeCount) {
+        expr += ')';
+        closeCount++;
+      }
+
+      // Replace π constant (be careful not to replace inside function names)
+      expr = expr.replaceAll('π', '(3.141592653589793)');
+
+      // Replace standalone 'e' constant (not inside 'exp' or scientific notation)
+      // We use a regex that matches 'e' not preceded/followed by letters
+      expr = expr.replaceAllMapped(
+        RegExp(r'(?<![a-zA-Z])e(?![a-zA-Z])'),
+        (match) => '(2.718281828459045)',
+      );
 
       // Replace function calls with computed values
       // Handle nested parentheses first

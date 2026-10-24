@@ -38,6 +38,8 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
   void _evaluate() {
     try {
       String expr = _expression.trim();
+      
+      // Handle bitwise operations
       if (expr.contains(' AND ')) {
         final p = expr.split(' AND ');
         _display = ((int.parse(p[0], radix: _base)) & (int.parse(p[1], radix: _base))).toRadixString(_base).toUpperCase();
@@ -50,6 +52,22 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
       } else if (expr.contains(' NOT ')) {
         final a = int.parse(expr.replaceAll('NOT ', ''), radix: _base);
         _display = (~a).toRadixString(_base).toUpperCase();
+      } else if (expr.contains('+') || expr.contains('-') || expr.contains('*') || expr.contains('/')) {
+        // Arithmetic in current base
+        // Convert all numbers to decimal, evaluate, convert back
+        String decExpr = expr;
+        // Find all number tokens and convert from current base to decimal
+        final numberRegex = RegExp(r'[0-9A-Fa-f]+');
+        decExpr = decExpr.replaceAllMapped(numberRegex, (match) {
+          try {
+            return int.parse(match.group(0)!, radix: _base).toString();
+          } catch (_) {
+            return match.group(0)!;
+          }
+        });
+        // Now evaluate as decimal
+        final result = _evalDecimal(decExpr);
+        _display = result.toRadixString(_base).toUpperCase();
       } else {
         _display = int.parse(expr, radix: _base).toRadixString(_base).toUpperCase();
       }
@@ -57,6 +75,72 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
     } catch (_) {
       _display = 'Error';
     }
+  }
+
+  /// Simple decimal evaluator using Shunting Yard
+  int _evalDecimal(String expr) {
+    expr = expr.replaceAll(' ', '');
+    final tokens = <String>[];
+    int i = 0;
+    while (i < expr.length) {
+      final c = expr[i];
+      if ('+-*/'.contains(c)) {
+        if (c == '-' && (tokens.isEmpty || '+-*/'.contains(tokens.last))) {
+          String num = '-';
+          i++;
+          while (i < expr.length && expr[i].contains(RegExp(r'[0-9]'))) {
+            num += expr[i]; i++;
+          }
+          tokens.add(num);
+        } else {
+          tokens.add(c);
+          i++;
+        }
+      } else {
+        String num = '';
+        while (i < expr.length && expr[i].contains(RegExp(r'[0-9]'))) {
+          num += expr[i]; i++;
+        }
+        if (num.isNotEmpty) tokens.add(num);
+      }
+    }
+    // Shunting Yard
+    final output = <String>[];
+    final ops = <String>[];
+    int prec(String op) {
+      if (op == '+' || op == '-') return 1;
+      if (op == '*' || op == '/') return 2;
+      return 0;
+    }
+    for (final token in tokens) {
+      if (int.tryParse(token) != null) {
+        output.add(token);
+      } else {
+        while (ops.isNotEmpty && prec(ops.last) >= prec(token)) {
+          output.add(ops.removeLast());
+        }
+        ops.add(token);
+      }
+    }
+    while (ops.isNotEmpty) output.add(ops.removeLast());
+    // Evaluate RPN
+    final stack = <int>[];
+    for (final token in output) {
+      if (int.tryParse(token) != null) {
+        stack.add(int.parse(token));
+      } else {
+        if (stack.length < 2) throw Exception('Invalid');
+        final b = stack.removeLast();
+        final a = stack.removeLast();
+        switch (token) {
+          case '+': stack.add(a + b); break;
+          case '-': stack.add(a - b); break;
+          case '*': stack.add(a * b); break;
+          case '/': stack.add(a ~/ b); break; // integer division
+        }
+      }
+    }
+    return stack.isEmpty ? 0 : stack.last;
   }
 
   void _changeBase(int base) {
