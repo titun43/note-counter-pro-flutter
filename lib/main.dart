@@ -19,6 +19,7 @@ import 'screens/bills_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
+import 'screens/splash_screen.dart';
 import 'package:flutter/services.dart';
 
 void main() async {
@@ -91,13 +92,42 @@ class NoteCounterProApp extends StatelessWidget {
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
             themeMode: storage.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: storage.appLockEnabled
-                ? const AppLockWrapper()
-                : const MainScaffold(),
+            home: const _AppEntry(),
           ),
         );
       },
     );
+  }
+}
+
+/// Entry point — shows splash screen first, then transitions to MainScaffold.
+class _AppEntry extends StatefulWidget {
+  const _AppEntry();
+
+  @override
+  State<_AppEntry> createState() => _AppEntryState();
+}
+
+class _AppEntryState extends State<_AppEntry> {
+  bool _showSplash = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final storage = context.watch<StorageService>();
+
+    if (_showSplash) {
+      return SplashScreen(
+        onDone: () {
+          setState(() => _showSplash = false);
+        },
+      );
+    }
+
+    // After splash — check app lock
+    if (storage.appLockEnabled) {
+      return const AppLockWrapper();
+    }
+    return const MainScaffold();
   }
 }
 
@@ -203,7 +233,13 @@ class _MainScaffoldState extends State<MainScaffold> {
       const SettingsScreen(),
     ];
     
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showExitDialog(context);
+      },
+      child: Scaffold(
       body: SafeArea(
         child: Column(
           children: [
@@ -242,6 +278,34 @@ class _MainScaffoldState extends State<MainScaffold> {
             icon: const Icon(Icons.settings_outlined),
             selectedIcon: const Icon(Icons.settings),
             label: loc.t('settings'),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+  void _showExitDialog(BuildContext context) {
+    final loc = context.loc;
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(loc.t('exitTitle')),
+        content: Text(loc.t('exitMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(loc.t('exitNo')),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(true);
+              SystemNavigator.pop();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: Text(loc.t('exitYes')),
           ),
         ],
       ),
