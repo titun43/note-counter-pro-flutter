@@ -7,9 +7,6 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
     <!-- Notification permission for scheduled reminders (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Schedule exact alarm for reminders -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <!-- Receive boot completed to reschedule reminders after reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     
