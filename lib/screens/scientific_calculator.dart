@@ -36,14 +36,7 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
         _display = _expression;
       } else if (['sin','cos','tan','asin','acos','atan','log','ln','√','exp'].contains(value)) {
         final fn = value == '√' ? 'sqrt' : value;
-        // Auto-add opening paren + we'll auto-close on '='
         _expression += '$fn(';
-        _display = _expression;
-      } else if (value == '(' || value == ')') {
-        _expression += value;
-        _display = _expression;
-      } else if (value == '^') {
-        _expression += '^';
         _display = _expression;
       } else {
         _expression += value;
@@ -53,6 +46,7 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
   }
 
   void _evaluate() {
+    if (_expression.isEmpty) return;
     try {
       String expr = _expression
           .replaceAll('×', '*')
@@ -60,51 +54,28 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
           .replaceAll('−', '-');
 
       // Auto-close unclosed parentheses
-      int openCount = '('.allMatches(expr).length;
-      int closeCount = ')'.allMatches(expr).length;
-      while (openCount > closeCount) {
+      int open = 0;
+      for (int i = 0; i < expr.length; i++) {
+        if (expr[i] == '(') open++;
+        if (expr[i] == ')') open--;
+      }
+      while (open > 0) {
         expr += ')';
-        closeCount++;
+        open--;
       }
 
-      // Replace π constant (be careful not to replace inside function names)
-      expr = expr.replaceAll('π', '(3.141592653589793)');
-
-      // Replace standalone 'e' constant (not inside 'exp' or scientific notation)
-      // We use a regex that matches 'e' not preceded/followed by letters
-      expr = expr.replaceAllMapped(
-        RegExp(r'(?<![a-zA-Z])e(?![a-zA-Z])'),
-        (match) => '(2.718281828459045)',
-      );
-
-      // Replace function calls with computed values
-      // Handle nested parentheses first
-      while (expr.contains('(')) {
-        final start = expr.lastIndexOf('(');
-        final end = expr.indexOf(')', start);
-        if (end == -1) throw Exception('Missing )');
-        final subExpr = expr.substring(start + 1, end);
-        final subResult = _evalSimple(subExpr);
-        expr = expr.substring(0, start) + subResult.toString() + expr.substring(end + 1);
-      }
-
-      // Now handle function calls like sin(...), cos(...), etc.
-      // These were already converted to sin(VALUE) format
-      for (final fn in ['asin', 'acos', 'atan', 'sin', 'cos', 'tan', 'sqrt', 'exp', 'log', 'ln']) {
-        while (true) {
-          final fnIdx = expr.indexOf('$fn(');
-          if (fnIdx == -1) break;
-          // Find the matching closing paren
-          int depth = 1;
-          int i = fnIdx + fn.length + 1;
-          while (i < expr.length && depth > 0) {
-            if (expr[i] == '(') depth++;
-            if (expr[i] == ')') depth--;
-            if (depth == 0) break;
-            i++;
-          }
-          if (i >= expr.length) break;
-          final argStr = expr.substring(fnIdx + fn.length + 1, i);
+      // Step 1: Resolve all function calls (innermost first)
+      // Pattern: functionName(content) where content has no parentheses
+      final funcPattern = RegExp(r'(asin|acos|atan|sin|cos|tan|sqrt|exp|log|ln)\(([^()]+)\)');
+      bool changed = true;
+      int safety = 100; // prevent infinite loop
+      while (changed && safety > 0) {
+        changed = false;
+        safety--;
+        final match = funcPattern.firstMatch(expr);
+        if (match != null) {
+          final fn = match.group(1)!;
+          final argStr = match.group(2)!;
           final arg = _evalSimple(argStr);
           double result;
           switch (fn) {
@@ -120,44 +91,62 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
             case 'exp': result = exp(arg); break;
             default: result = 0;
           }
-          expr = expr.substring(0, fnIdx) + result.toString() + expr.substring(i + 1);
+          expr = expr.substring(0, match.start) + result.toString() + expr.substring(match.end);
+          changed = true;
         }
       }
 
-      // Handle power (^) — right to left
+      // Step 2: Resolve remaining parentheses (no functions inside)
+      while (expr.contains('(')) {
+        final start = expr.lastIndexOf('(');
+        final end = expr.indexOf(')', start);
+        if (end == -1) break;
+        final subExpr = expr.substring(start + 1, end);
+        final subResult = _evalSimple(subExpr);
+        expr = expr.substring(0, start) + subResult.toString() + expr.substring(end + 1);
+      }
+
+      // Step 3: Handle power (^) — right to left
       while (expr.contains('^')) {
         final idx = expr.lastIndexOf('^');
-        // Find left operand
+        // Find left operand (number before ^)
         int leftEnd = idx;
         int leftStart = leftEnd - 1;
-        while (leftStart >= 0 && (expr[leftStart].contains(RegExp(r'[0-9.]')) || expr[leftStart] == '-')) {
+        while (leftStart >= 0 && (expr[leftStart].contains(RegExp(r'[0-9.]')) ||
+               (expr[leftStart] == '-' && leftStart == 0))) {
           leftStart--;
         }
         leftStart++;
-        // Find right operand
+        // Find right operand (number after ^)
         int rightStart = idx + 1;
         int rightEnd = rightStart;
-        if (expr[rightEnd] == '-') rightEnd++;
+        if (rightEnd < expr.length && expr[rightEnd] == '-') rightEnd++;
         while (rightEnd < expr.length && expr[rightEnd].contains(RegExp(r'[0-9.]'))) {
           rightEnd++;
         }
+        if (leftStart >= leftEnd || rightStart >= rightEnd) break;
         final left = double.parse(expr.substring(leftStart, leftEnd));
         final right = double.parse(expr.substring(rightStart, rightEnd));
         final result = pow(left, right).toDouble();
         expr = expr.substring(0, leftStart) + result.toString() + expr.substring(rightEnd);
       }
 
+      // Step 4: Final evaluation with Shunting Yard
       final result = _evalSimple(expr);
-      _display = result.isNaN || result.isInfinite ? 'Error' : _fmt(result);
-      _expression = _display == 'Error' ? '' : _display;
-    } catch (_) {
+      if (result.isNaN || result.isInfinite) {
+        _display = 'Error';
+        _expression = '';
+      } else {
+        _display = _fmt(result);
+        _expression = _display;
+      }
+    } catch (e) {
       _display = 'Error';
       _expression = '';
     }
   }
 
   /// Evaluate simple expression (no functions, no parentheses, no ^)
-  /// Uses Shunting Yard algorithm.
   double _evalSimple(String expr) {
     expr = expr.trim();
     if (expr.isEmpty) return 0;
@@ -169,25 +158,21 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
       final c = expr[i];
       if (c == ' ') { i++; continue; }
       if ('+-*/'.contains(c)) {
+        // Check if this minus is a negative sign
         if (c == '-' && (tokens.isEmpty || '+-*/'.contains(tokens.last))) {
           String num = '-';
           i++;
           while (i < expr.length && expr[i].contains(RegExp(r'[0-9.]'))) {
             num += expr[i]; i++;
           }
-          tokens.add(num);
+          if (num.length > 1) tokens.add(num);
         } else {
           tokens.add(c);
           i++;
         }
       } else {
         String num = '';
-        while (i < expr.length && expr[i].contains(RegExp(r'[0-9.eE+-]'))) {
-          // Stop if it's an operator (not part of scientific notation)
-          if ('+-'.contains(expr[i]) && num.isNotEmpty &&
-              !expr[i - 1].toLowerCase().contains(RegExp(r'[e]'))) {
-            break;
-          }
+        while (i < expr.length && expr[i].contains(RegExp(r'[0-9.]'))) {
           num += expr[i]; i++;
         }
         if (num.isNotEmpty) tokens.add(num);
@@ -215,9 +200,7 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
         ops.add(token);
       }
     }
-    while (ops.isNotEmpty) {
-      output.add(ops.removeLast());
-    }
+    while (ops.isNotEmpty) output.add(ops.removeLast());
 
     // Evaluate RPN
     final stack = <double>[];
@@ -241,7 +224,10 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
 
   String _fmt(double v) {
     if (v == v.truncateToDouble()) return v.toStringAsFixed(0);
-    return v.toStringAsFixed(6).replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    String s = v.toStringAsFixed(6);
+    s = s.replaceAll(RegExp(r'0+$'), '');
+    s = s.replaceAll(RegExp(r'\.$'), '');
+    return s;
   }
 
   @override
@@ -253,11 +239,12 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
     final rows = [
       ['sin', 'cos', 'tan', 'π'],
       ['log', 'ln', '√', 'e'],
-      ['AC', '%', '⌫', '÷'],
-      ['7', '8', '9', '×'],
-      ['4', '5', '6', '-'],
-      ['1', '2', '3', '+'],
-      ['0', '.', '^', '='],
+      ['(', ')', '^', 'deg/rad'],
+      ['AC', '⌫', '÷', '×'],
+      ['7', '8', '9', '-'],
+      ['4', '5', '6', '+'],
+      ['1', '2', '3', '='],
+      ['0', '.', '00', ''],
     ];
 
     return Container(
@@ -303,7 +290,10 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: rows.map((row) => Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: row.map((label) => _btn(label, isDark)).toList(),
+                  children: row.map((label) {
+                    if (label.isEmpty) return const SizedBox(width: 60, height: 60);
+                    return _btn(label, isDark);
+                  }).toList(),
                 )).toList(),
               ),
             ),
@@ -316,8 +306,8 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
   Widget _btn(String label, bool isDark) {
     final isOp = ['÷','×','-','+'].contains(label);
     final isEq = label == '=';
-    final isFn = ['AC','%','⌫'].contains(label);
-    final isSci = ['sin','cos','tan','log','ln','√','π','e','^'].contains(label);
+    final isFn = ['AC','⌫'].contains(label);
+    final isSci = ['sin','cos','tan','log','ln','√','π','e','^','deg/rad','(',')'].contains(label);
 
     Color bg, fg;
     if (isEq) { bg = const Color(0xFFFF9500); fg = Colors.white; }
@@ -337,11 +327,11 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
           padding: EdgeInsets.zero,
           backgroundColor: bg,
           foregroundColor: fg,
-          elevation: 0,
+          elevation: 1,
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
-          child: Text(label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          child: Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         ),
       ),
     );
