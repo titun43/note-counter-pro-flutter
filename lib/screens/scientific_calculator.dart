@@ -59,80 +59,43 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
         if (expr[i] == '(') open++;
         if (expr[i] == ')') open--;
       }
-      while (open > 0) {
-        expr += ')';
-        open--;
-      }
+      while (open > 0) { expr += ')'; open--; }
 
-      // Step 1: Resolve all function calls (innermost first)
-      // Pattern: functionName(content) where content has no parentheses
-      final funcPattern = RegExp(r'(asin|acos|atan|sin|cos|tan|sqrt|exp|log|ln)\(([^()]+)\)');
-      bool changed = true;
-      int safety = 100; // prevent infinite loop
-      while (changed && safety > 0) {
-        changed = false;
-        safety--;
-        final match = funcPattern.firstMatch(expr);
-        if (match != null) {
-          final fn = match.group(1)!;
-          final argStr = match.group(2)!;
-          final arg = _evalSimple(argStr);
-          double result;
-          switch (fn) {
-            case 'sin': result = sin(_isDegree ? arg * pi / 180 : arg); break;
-            case 'cos': result = cos(_isDegree ? arg * pi / 180 : arg); break;
-            case 'tan': result = tan(_isDegree ? arg * pi / 180 : arg); break;
-            case 'asin': result = _isDegree ? asin(arg) * 180 / pi : asin(arg); break;
-            case 'acos': result = _isDegree ? acos(arg) * 180 / pi : acos(arg); break;
-            case 'atan': result = _isDegree ? atan(arg) * 180 / pi : atan(arg); break;
-            case 'log': result = log(arg) / 2.302585092994046; break;
-            case 'ln': result = log(arg); break;
-            case 'sqrt': result = sqrt(arg); break;
-            case 'exp': result = exp(arg); break;
-            default: result = 0;
-          }
-          expr = expr.substring(0, match.start) + result.toString() + expr.substring(match.end);
-          changed = true;
+      // Resolve step by step — innermost to outermost
+      // Repeat until no more changes (safety: 200 iterations)
+      for (int iter = 0; iter < 200; iter++) {
+        // Try to find innermost function call: fn(content_without_parens)
+        final fnMatch = RegExp(r'(asin|acos|atan|sin|cos|tan|sqrt|exp|log|ln)\(([^()]+)\)').firstMatch(expr);
+        if (fnMatch != null) {
+          final fn = fnMatch.group(1)!;
+          final argStr = fnMatch.group(2)!;
+          final arg = _safeEval(argStr);
+          final result = _applyFunction(fn, arg);
+          expr = expr.substring(0, fnMatch.start) + _safeNum(result) + expr.substring(fnMatch.end);
+          continue;
         }
-      }
 
-      // Step 2: Resolve remaining parentheses (no functions inside)
-      while (expr.contains('(')) {
-        final start = expr.lastIndexOf('(');
-        final end = expr.indexOf(')', start);
-        if (end == -1) break;
-        final subExpr = expr.substring(start + 1, end);
-        final subResult = _evalSimple(subExpr);
-        expr = expr.substring(0, start) + subResult.toString() + expr.substring(end + 1);
-      }
-
-      // Step 3: Handle power (^) — right to left
-      while (expr.contains('^')) {
-        final idx = expr.lastIndexOf('^');
-        // Find left operand (number before ^)
-        int leftEnd = idx;
-        int leftStart = leftEnd - 1;
-        while (leftStart >= 0 && (expr[leftStart].contains(RegExp(r'[0-9.]')) ||
-               (expr[leftStart] == '-' && leftStart == 0))) {
-          leftStart--;
+        // Try to find innermost parentheses: (content_without_parens)
+        final parenMatch = RegExp(r'\(([^()]+)\)').firstMatch(expr);
+        if (parenMatch != null) {
+          final inner = parenMatch.group(1)!;
+          final val = _safeEval(inner);
+          expr = expr.substring(0, parenMatch.start) + _safeNum(val) + expr.substring(parenMatch.end);
+          continue;
         }
-        leftStart++;
-        // Find right operand (number after ^)
-        int rightStart = idx + 1;
-        int rightEnd = rightStart;
-        if (rightEnd < expr.length && expr[rightEnd] == '-') rightEnd++;
-        while (rightEnd < expr.length && expr[rightEnd].contains(RegExp(r'[0-9.]'))) {
-          rightEnd++;
+
+        // No more parens or functions — handle power
+        final powIdx = expr.indexOf('^');
+        if (powIdx != -1) {
+          expr = _handlePower(expr, powIdx);
+          continue;
         }
-        if (leftStart >= leftEnd || rightStart >= rightEnd) break;
-        final left = double.parse(expr.substring(leftStart, leftEnd));
-        final right = double.parse(expr.substring(rightStart, rightEnd));
-        final result = pow(left, right).toDouble();
-        expr = expr.substring(0, leftStart) + result.toString() + expr.substring(rightEnd);
+
+        // Nothing left to resolve — final evaluation
+        break;
       }
 
-      // Step 4: Final evaluation with Shunting Yard
-      final result = _evalSimple(expr);
+      final result = _safeEval(expr);
       if (result.isNaN || result.isInfinite) {
         _display = 'Error';
         _expression = '';
@@ -146,84 +109,147 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
     }
   }
 
-  /// Evaluate simple expression (no functions, no parentheses, no ^)
-  double _evalSimple(String expr) {
-    expr = expr.trim();
-    if (expr.isEmpty) return 0;
+  double _applyFunction(String fn, double arg) {
+    try {
+      switch (fn) {
+        case 'sin': return sin(_isDegree ? arg * pi / 180 : arg);
+        case 'cos': return cos(_isDegree ? arg * pi / 180 : arg);
+        case 'tan': return tan(_isDegree ? arg * pi / 180 : arg);
+        case 'asin': return _isDegree ? asin(arg) * 180 / pi : asin(arg);
+        case 'acos': return _isDegree ? acos(arg) * 180 / pi : acos(arg);
+        case 'atan': return _isDegree ? atan(arg) * 180 / pi : atan(arg);
+        case 'log': return log(arg) / 2.302585092994046;
+        case 'ln': return log(arg);
+        case 'sqrt': return sqrt(arg);
+        case 'exp': return exp(arg);
+        default: return 0;
+      }
+    } catch (_) {
+      return double.nan;
+    }
+  }
 
-    // Tokenize
-    final tokens = <String>[];
-    int i = 0;
-    while (i < expr.length) {
-      final c = expr[i];
-      if (c == ' ') { i++; continue; }
-      if ('+-*/'.contains(c)) {
-        // Check if this minus is a negative sign
-        if (c == '-' && (tokens.isEmpty || '+-*/'.contains(tokens.last))) {
-          String num = '-';
-          i++;
+  /// Convert double to safe string (no scientific notation, no infinity)
+  String _safeNum(double v) {
+    if (v.isNaN || v.isInfinite) return '0';
+    // Avoid scientific notation by using fixed point
+    if (v == v.truncateToDouble() && v.abs() < 1e15) {
+      return v.toStringAsFixed(0);
+    }
+    return v.toString();
+  }
+
+  /// Handle one ^ operation at given index
+  String _handlePower(String expr, int idx) {
+    // Find left operand
+    int leftEnd = idx;
+    int leftStart = leftEnd - 1;
+    // Handle negative numbers
+    if (leftStart >= 0 && expr[leftStart] == '-') leftStart--;
+    while (leftStart >= 0 && expr[leftStart].contains(RegExp(r'[0-9.]'))) {
+      leftStart--;
+    }
+    leftStart++;
+    // Find right operand
+    int rightStart = idx + 1;
+    int rightEnd = rightStart;
+    if (rightEnd < expr.length && expr[rightEnd] == '-') rightEnd++;
+    while (rightEnd < expr.length && expr[rightEnd].contains(RegExp(r'[0-9.]'))) {
+      rightEnd++;
+    }
+    if (leftStart >= leftEnd || rightStart >= rightEnd) return expr;
+    final left = double.tryParse(expr.substring(leftStart, leftEnd)) ?? 0;
+    final right = double.tryParse(expr.substring(rightStart, rightEnd)) ?? 0;
+    final result = pow(left, right).toDouble();
+    return expr.substring(0, leftStart) + _safeNum(result) + expr.substring(rightEnd);
+  }
+
+  /// Safe simple expression evaluator — no functions, no parens, no ^.
+  /// Handles +, -, *, / with proper precedence.
+  /// CRASH-SAFE: returns 0 on any error.
+  double _safeEval(String expr) {
+    try {
+      expr = expr.trim();
+      if (expr.isEmpty) return 0;
+
+      // Simple approach: split by + and - (lowest precedence)
+      // Then evaluate each part for * and /
+
+      // First, handle * and / within each + - segment
+      // Tokenize into numbers and operators
+      final tokens = <dynamic>[];
+      int i = 0;
+      while (i < expr.length) {
+        final c = expr[i];
+        if (c == ' ') { i++; continue; }
+        if ('+-*/'.contains(c)) {
+          // Check for negative number
+          if (c == '-' && (tokens.isEmpty || tokens.last is String)) {
+            // Parse negative number
+            String num = '-';
+            i++;
+            while (i < expr.length && expr[i].contains(RegExp(r'[0-9.]'))) {
+              num += expr[i]; i++;
+            }
+            final v = double.tryParse(num);
+            if (v != null) tokens.add(v);
+          } else {
+            tokens.add(c);
+            i++;
+          }
+        } else {
+          String num = '';
           while (i < expr.length && expr[i].contains(RegExp(r'[0-9.]'))) {
             num += expr[i]; i++;
           }
-          if (num.length > 1) tokens.add(num);
-        } else {
-          tokens.add(c);
-          i++;
+          final v = double.tryParse(num);
+          if (v != null) tokens.add(v);
         }
-      } else {
-        String num = '';
-        while (i < expr.length && expr[i].contains(RegExp(r'[0-9.]'))) {
-          num += expr[i]; i++;
-        }
-        if (num.isNotEmpty) tokens.add(num);
       }
-    }
 
-    if (tokens.isEmpty) return 0;
+      if (tokens.isEmpty) return 0;
+      if (tokens.length == 1 && tokens[0] is double) return tokens[0];
 
-    // Shunting Yard
-    final output = <String>[];
-    final ops = <String>[];
-    int prec(String op) {
-      if (op == '+' || op == '-') return 1;
-      if (op == '*' || op == '/') return 2;
+      // First pass: handle * and /
+      final pass1 = <dynamic>[];
+      for (int j = 0; j < tokens.length; j++) {
+        if (tokens[j] is String && (tokens[j] == '*' || tokens[j] == '/')) {
+          if (pass1.isEmpty) continue;
+          final left = pass1.removeLast() as double;
+          if (j + 1 >= tokens.length || tokens[j + 1] is! double) continue;
+          final right = tokens[j + 1] as double;
+          double r;
+          if (tokens[j] == '*') r = left * right;
+          else r = right == 0 ? double.nan : left / right;
+          pass1.add(r);
+          j++; // skip right operand
+        } else if (tokens[j] is double) {
+          pass1.add(tokens[j]);
+        } else if (tokens[j] is String && (tokens[j] == '+' || tokens[j] == '-')) {
+          pass1.add(tokens[j]);
+        }
+      }
+
+      // Second pass: handle + and -
+      if (pass1.isEmpty) return 0;
+      double result = pass1[0] is double ? pass1[0] as double : 0;
+      for (int j = 1; j < pass1.length; j += 2) {
+        if (j + 1 >= pass1.length) break;
+        if (pass1[j] is! String) continue;
+        final op = pass1[j] as String;
+        final right = pass1[j + 1] as double;
+        if (op == '+') result += right;
+        if (op == '-') result -= right;
+      }
+      return result;
+    } catch (_) {
       return 0;
     }
-
-    for (final token in tokens) {
-      if (double.tryParse(token) != null) {
-        output.add(token);
-      } else {
-        while (ops.isNotEmpty && prec(ops.last) >= prec(token)) {
-          output.add(ops.removeLast());
-        }
-        ops.add(token);
-      }
-    }
-    while (ops.isNotEmpty) output.add(ops.removeLast());
-
-    // Evaluate RPN
-    final stack = <double>[];
-    for (final token in output) {
-      if (double.tryParse(token) != null) {
-        stack.add(double.parse(token));
-      } else {
-        if (stack.length < 2) throw Exception('Invalid');
-        final b = stack.removeLast();
-        final a = stack.removeLast();
-        switch (token) {
-          case '+': stack.add(a + b); break;
-          case '-': stack.add(a - b); break;
-          case '*': stack.add(a * b); break;
-          case '/': stack.add(a / b); break;
-        }
-      }
-    }
-    return stack.isEmpty ? 0 : stack.last;
   }
 
   String _fmt(double v) {
-    if (v == v.truncateToDouble()) return v.toStringAsFixed(0);
+    if (v.isNaN || v.isInfinite) return 'Error';
+    if (v == v.truncateToDouble() && v.abs() < 1e15) return v.toStringAsFixed(0);
     String s = v.toStringAsFixed(6);
     s = s.replaceAll(RegExp(r'0+$'), '');
     s = s.replaceAll(RegExp(r'\.$'), '');
