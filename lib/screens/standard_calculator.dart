@@ -19,7 +19,6 @@ class _StandardCalculatorState extends State<StandardCalculator> {
   String _display = '0';
   String _expression = '';
   final List<String> _history = [];
-  bool _showHistory = false;
 
   @override
   void initState() {
@@ -41,12 +40,14 @@ class _StandardCalculatorState extends State<StandardCalculator> {
         _display = '0';
         _expression = '';
       } else if (value == '=') {
+        if (_expression.isEmpty) return;
         try {
-          final result = _evaluate(_expression);
-          _history.insert(0, '$_expression = ${_formatResult(result)}');
+          final result = _eval(_expression);
+          final formatted = _fmt(result);
+          _history.insert(0, '$_expression = $formatted');
           if (_history.length > 20) _history.removeLast();
-          _display = _formatResult(result);
-          _expression = _display;
+          _display = formatted;
+          _expression = formatted;
         } catch (_) {
           _display = 'Error';
           _expression = '';
@@ -59,58 +60,211 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       } else if (value == '%') {
         if (_expression.isNotEmpty) {
           try {
-            final val = _evaluate(_expression);
-            _expression = (val / 100).toString();
-            _display = _formatResult(val / 100);
+            final val = _eval(_expression);
+            final pct = val / 100;
+            _expression = _fmt(pct);
+            _display = _fmt(pct);
           } catch (_) {}
         }
       } else {
+        // Prevent double operators
+        if ('+-×÷'.contains(value) && _expression.isNotEmpty) {
+          final last = _expression[_expression.length - 1];
+          if ('+-×÷'.contains(last)) {
+            _expression = _expression.substring(0, _expression.length - 1) + value;
+            _display = _expression;
+            return;
+          }
+        }
         _expression += value;
         _display = _expression;
       }
     });
   }
 
-  double _evaluate(String expr) {
-    expr = expr.replaceAll('×', '*').replaceAll('÷', '/');
-    double eval(String e) {
-      e = e.trim();
-      if (e.isEmpty) return 0;
-      while (e.contains('(')) {
-        final start = e.lastIndexOf('(');
-        final end = e.indexOf(')', start);
-        if (end == -1) throw Exception(')');
-        final sub = eval(e.substring(start + 1, end));
-        e = e.substring(0, start) + sub.toString() + e.substring(end + 1);
-      }
-      final parts = e.split(RegExp(r'([+-])'));
-      if (parts.length > 1) {
-        double r = double.tryParse(parts[0]) ?? 0;
-        for (int i = 1; i < parts.length; i += 2) {
-          final v = double.tryParse(parts[i + 1]) ?? 0;
-          if (parts[i] == '+') r += v;
-          if (parts[i] == '-') r -= v;
+  /// Robust expression evaluator — tokenizes then parses.
+  double _eval(String expr) {
+    // Replace display symbols
+    expr = expr.replaceAll('×', '*').replaceAll('÷', '/').replaceAll('−', '-');
+    expr = expr.trim();
+    if (expr.isEmpty) return 0;
+
+    // Tokenize: numbers and operators
+    final tokens = <String>[];
+    int i = 0;
+    while (i < expr.length) {
+      final c = expr[i];
+      if (c == ' ') { i++; continue; }
+      if ('+-*/'.contains(c)) {
+        // Handle negative numbers at start or after operator
+        if (c == '-' && (tokens.isEmpty || '+-*/('.contains(tokens.last))) {
+          // This is a negative sign, not subtraction
+          String num = '-';
+          i++;
+          while (i < expr.length && (expr[i].contains(RegExp(r'[0-9.]')))) {
+            num += expr[i];
+            i++;
+          }
+          tokens.add(num);
+        } else {
+          tokens.add(c);
+          i++;
         }
-        return r;
-      }
-      final md = e.split(RegExp(r'([*/])'));
-      if (md.length > 1) {
-        double r = double.tryParse(md[0]) ?? 0;
-        for (int i = 1; i < md.length; i += 2) {
-          final v = double.tryParse(md[i + 1]) ?? 0;
-          if (md[i] == '*') r *= v;
-          if (md[i] == '/') r /= v;
+      } else if (c == '(' || c == ')') {
+        tokens.add(c);
+        i++;
+      } else {
+        // Number
+        String num = '';
+        while (i < expr.length && expr[i].contains(RegExp(r'[0-9.]'))) {
+          num += expr[i];
+          i++;
         }
-        return r;
+        if (num.isNotEmpty) tokens.add(num);
       }
-      return double.tryParse(e) ?? 0;
     }
-    return eval(expr);
+
+    if (tokens.isEmpty) return 0;
+
+    // Shunting yard: convert to RPN then evaluate
+    final output = <String>[];
+    final ops = <String>[];
+    int prec(String op) {
+      if (op == '+' || op == '-') return 1;
+      if (op == '*' || op == '/') return 2;
+      return 0;
+    }
+
+    for (final token in tokens) {
+      if (double.tryParse(token) != null) {
+        output.add(token);
+      } else if (token == '(') {
+        ops.add(token);
+      } else if (token == ')') {
+        while (ops.isNotEmpty && ops.last != '(') {
+          output.add(ops.removeLast());
+        }
+        if (ops.isNotEmpty) ops.removeLast(); // remove (
+      } else {
+        // operator
+        while (ops.isNotEmpty && ops.last != '(' && prec(ops.last) >= prec(token)) {
+          output.add(ops.removeLast());
+        }
+        ops.add(token);
+      }
+    }
+    while (ops.isNotEmpty) {
+      output.add(ops.removeLast());
+    }
+
+    // Evaluate RPN
+    final stack = <double>[];
+    for (final token in output) {
+      if (double.tryParse(token) != null) {
+        stack.add(double.parse(token));
+      } else {
+        if (stack.length < 2) throw Exception('Invalid');
+        final b = stack.removeLast();
+        final a = stack.removeLast();
+        switch (token) {
+          case '+': stack.add(a + b); break;
+          case '-': stack.add(a - b); break;
+          case '*': stack.add(a * b); break;
+          case '/': stack.add(a / b); break;
+        }
+      }
+    }
+    return stack.isEmpty ? 0 : stack.last;
   }
 
-  String _formatResult(double v) {
+  String _fmt(double v) {
+    if (v.isNaN || v.isInfinite) return 'Error';
     if (v == v.truncateToDouble()) return v.toStringAsFixed(0);
-    return v.toStringAsFixed(2);
+    // Limit to 8 decimal places, trim trailing zeros
+    String s = v.toStringAsFixed(8);
+    s = s.replaceAll(RegExp(r'0+$'), '');
+    s = s.replaceAll(RegExp(r'\.$'), '');
+    return s;
+  }
+
+  void _showHistory() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.history, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('History',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    if (_history.isNotEmpty)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _history.clear();
+                          Navigator.pop(ctx);
+                        }),
+                        child: const Text('Clear', style: TextStyle(fontSize: 13)),
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // History list
+              if (_history.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('No history yet',
+                      style: TextStyle(color: Colors.grey)),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _history.length,
+                    itemBuilder: (ctx, i) => ListTile(
+                      title: Text(
+                        _history[i],
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                          color: isDark ? Colors.grey[300] : Colors.grey[700],
+                        ),
+                      ),
+                      onTap: () {
+                        // Tap to reuse result
+                        final parts = _history[i].split(' = ');
+                        if (parts.length == 2) {
+                          setState(() {
+                            _display = parts[1];
+                            _expression = parts[1];
+                          });
+                        }
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -123,41 +277,34 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       color: bgColor,
       child: Column(
         children: [
-          // History toggle
-          if (_history.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => setState(() => _showHistory = !_showHistory),
-                  icon: Icon(_showHistory ? Icons.expand_less : Icons.expand_more, size: 18),
-                  label: Text(
-                    _showHistory ? 'Hide History' : 'Show History (${_history.length})',
-                    style: const TextStyle(fontSize: 12),
+          // Top bar with history (⋮) button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            child: Row(
+              children: [
+                if (_history.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF9500).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${_history.length}',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFFFF9500), fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  style: TextButton.styleFrom(minimumSize: const Size(0, 28)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.more_vert, size: 22),
+                  onPressed: _showHistory,
+                  tooltip: 'History',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
-              ),
+              ],
             ),
-          if (_showHistory && _history.isNotEmpty)
-            Container(
-              height: 70,
-              margin: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey[850] : Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: _history.length,
-                itemBuilder: (ctx, i) => Text(
-                  _history[i],
-                  style: TextStyle(fontSize: 12, fontFamily: 'monospace',
-                      color: isDark ? Colors.grey[400] : Colors.grey[600]),
-                ),
-              ),
-            ),
+          ),
           // Display
           Expanded(
             flex: 3,
@@ -178,18 +325,18 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(_display,
-                        style: TextStyle(fontSize: 44, fontWeight: FontWeight.bold,
+                        style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : Colors.black)),
                   ),
                 ],
               ),
             ),
           ),
-          // Round buttons
+          // Round buttons — bigger (72px)
           Expanded(
             flex: 5,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -235,10 +382,11 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       fg = isDark ? Colors.white : Colors.black87;
     }
 
+    // Bigger buttons: 72px
     return Container(
-      width: 64,
-      height: 64,
-      margin: const EdgeInsets.all(4),
+      width: 72,
+      height: 72,
+      margin: const EdgeInsets.all(3),
       child: ElevatedButton(
         onPressed: () => _onButton(label),
         style: ElevatedButton.styleFrom(
@@ -246,12 +394,12 @@ class _StandardCalculatorState extends State<StandardCalculator> {
           padding: EdgeInsets.zero,
           backgroundColor: bg,
           foregroundColor: fg,
-          elevation: 0,
+          elevation: 1,
         ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(label,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500)),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
         ),
       ),
     );
