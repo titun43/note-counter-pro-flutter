@@ -1,9 +1,14 @@
 // =============================================================================
-// Note Counter Pro - Calculator Screen (Multi-Mode with Drawer)
+// Note Counter Pro - Calculator Screen (Multi-Mode with Bottom Sheet Menu)
 // =============================================================================
 // Modes: Standard, Scientific, Programmer, Date Calculation
 // Converters: 12 types (Currency, Length, Weight, etc.)
-// All FREE for all users. Free users see ads, premium users don't.
+// All FREE for all users. Free users see ads (from main.dart top banner),
+// premium users don't.
+//
+// NOTE: This screen does NOT use its own Scaffold — main.dart provides
+// the Scaffold with a top banner ad. We use a BottomSheet for mode
+// selection instead of a Drawer (Drawer needs its own Scaffold).
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -38,69 +43,239 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     {'icon': Icons.calendar_today, 'name': 'Date Calc'},
   ];
 
-  void _navigateToConverter(int index) {
-    Navigator.pop(context); // close drawer
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConverterScreen(initialType: index),
+  static const _converters = [
+    {'icon': Icons.currency_exchange, 'name': 'Currency'},
+    {'icon': Icons.straighten, 'name': 'Length'},
+    {'icon': Icons.scale, 'name': 'Weight & Mass'},
+    {'icon': Icons.thermostat, 'name': 'Temperature'},
+    {'icon': Icons.bolt, 'name': 'Energy'},
+    {'icon': Icons.crop_square, 'name': 'Area'},
+    {'icon': Icons.speed, 'name': 'Speed'},
+    {'icon': Icons.access_time, 'name': 'Time'},
+    {'icon': Icons.flash_on, 'name': 'Power'},
+    {'icon': Icons.storage, 'name': 'Data'},
+    {'icon': Icons.compress, 'name': 'Pressure'},
+    {'icon': Icons.architecture, 'name': 'Angle'},
+  ];
+
+  void _showMenu() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) {
+        final theme = Theme.of(context);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Calculator Modes',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Calculator modes grid
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.0,
+                  children: List.generate(_modes.length, (i) {
+                    final mode = _modes[i];
+                    final selected = i == _currentMode;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _currentMode = i);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.primary.withOpacity(0.15)
+                              : (theme.brightness == Brightness.dark
+                                  ? Colors.grey[850]
+                                  : Colors.grey[100]),
+                          borderRadius: BorderRadius.circular(12),
+                          border: selected
+                              ? Border.all(color: AppColors.primary, width: 2)
+                              : null,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              mode['icon'] as IconData,
+                              size: 28,
+                              color: selected ? AppColors.primary : null,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              mode['name'] as String,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: selected ? FontWeight.bold : null,
+                                color: selected ? AppColors.primary : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 4),
+              // Converter section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Converters',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 2.2,
+                  children: List.generate(_converters.length, (i) {
+                    final conv = _converters[i];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ConverterScreen(initialType: i),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.grey[850]
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(conv['icon'] as IconData, size: 18),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                conv['name'] as String,
+                                style: const TextStyle(fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      drawer: _buildDrawer(context, theme),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top bar with menu icon
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                children: [
-                  Builder(
-                    builder: (context) => IconButton(
-                      icon: const Icon(Icons.menu, size: 28),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                      tooltip: 'Calculator Modes',
-                    ),
+    return Column(
+      children: [
+        // Top bar: menu icon + mode name
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey[900] : Colors.grey[50],
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.apps, size: 24),
+                onPressed: _showMenu,
+                tooltip: 'Calculator Modes & Converters',
+              ),
+              Text(
+                _modes[_currentMode]['name'] as String,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              if (widget.initialValue != null && widget.initialValue! > 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Text(
-                    _modes[_currentMode]['name'] as String,
-                    style: theme.textTheme.titleMedium?.copyWith(
+                  child: Text(
+                    '${AppConstants.getCurrencySymbol(widget.currencyCode)}${widget.initialValue!.toStringAsFixed(2)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.info,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Spacer(),
-                  if (widget.initialValue != null && widget.initialValue! > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${AppConstants.getCurrencySymbol(widget.currencyCode)}${widget.initialValue!.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.info,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            // Calculator content
-            Expanded(
-              child: _buildCurrentMode(),
-            ),
-          ],
+                ),
+            ],
+          ),
         ),
-      ),
+        // Calculator content
+        Expanded(
+          child: _buildCurrentMode(),
+        ),
+      ],
     );
   }
 
@@ -118,84 +293,5 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
           currencyCode: widget.currencyCode,
         );
     }
-  }
-
-  Widget _buildDrawer(BuildContext context, ThemeData theme) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-            ),
-            child: Text(
-              'Calculator',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _sectionHeader('CALCULATOR'),
-          ..._modes.asMap().entries.map((entry) {
-            final i = entry.key;
-            final mode = entry.value;
-            return ListTile(
-              leading: Icon(mode['icon'] as IconData,
-                  color: i == _currentMode ? theme.colorScheme.primary : null),
-              title: Text(mode['name'] as String,
-                  style: i == _currentMode
-                      ? TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)
-                      : null),
-              selected: i == _currentMode,
-              onTap: () {
-                setState(() => _currentMode = i);
-                Navigator.pop(context);
-              },
-            );
-          }),
-          const Divider(),
-          _sectionHeader('CONVERTER'),
-          _converterItem(Icons.currency_exchange, 'Currency', 0),
-          _converterItem(Icons.straighten, 'Length', 1),
-          _converterItem(Icons.scale, 'Weight & Mass', 2),
-          _converterItem(Icons.thermostat, 'Temperature', 3),
-          _converterItem(Icons.bolt, 'Energy', 4),
-          _converterItem(Icons.crop_square, 'Area', 5),
-          _converterItem(Icons.speed, 'Speed', 6),
-          _converterItem(Icons.access_time, 'Time', 7),
-          _converterItem(Icons.flash_on, 'Power', 8),
-          _converterItem(Icons.storage, 'Data', 9),
-          _converterItem(Icons.compress, 'Pressure', 10),
-          _converterItem(Icons.architecture, 'Angle', 11),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
-
-  Widget _converterItem(IconData icon, String name, int index) {
-    return ListTile(
-      leading: Icon(icon, size: 22),
-      title: Text(name, style: const TextStyle(fontSize: 14)),
-      onTap: () => _navigateToConverter(index),
-    );
   }
 }

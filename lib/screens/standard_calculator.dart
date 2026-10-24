@@ -129,6 +129,51 @@ class _StandardCalculatorState extends State<StandardCalculator> {
 
     return Column(
       children: [
+        // Top bar: history toggle
+        if (_history.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => setState(() => _showHistory = !_showHistory),
+                icon: Icon(
+                  _showHistory ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                ),
+                label: Text(
+                  _showHistory ? 'Hide History' : 'Show History (${_history.length})',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  minimumSize: const Size(0, 28),
+                ),
+              ),
+            ),
+          ),
+        // History list
+        if (_showHistory && _history.isNotEmpty)
+          Container(
+            height: 80,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: _history.length,
+              itemBuilder: (ctx, i) => Text(
+                _history[i],
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ),
         // Display area
         Expanded(
           flex: 2,
