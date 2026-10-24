@@ -19,7 +19,6 @@ import 'screens/bills_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
-import 'screens/splash_screen.dart';
 import 'package:flutter/services.dart';
 
 void main() async {
@@ -92,42 +91,13 @@ class NoteCounterProApp extends StatelessWidget {
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
             themeMode: storage.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const _AppEntry(),
+            home: storage.appLockEnabled
+                ? const AppLockWrapper()
+                : const MainScaffold(),
           ),
         );
       },
     );
-  }
-}
-
-/// Entry point — shows splash screen first, then transitions to MainScaffold.
-class _AppEntry extends StatefulWidget {
-  const _AppEntry();
-
-  @override
-  State<_AppEntry> createState() => _AppEntryState();
-}
-
-class _AppEntryState extends State<_AppEntry> {
-  bool _showSplash = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final storage = context.watch<StorageService>();
-
-    if (_showSplash) {
-      return SplashScreen(
-        onDone: () {
-          setState(() => _showSplash = false);
-        },
-      );
-    }
-
-    // After splash — check app lock
-    if (storage.appLockEnabled) {
-      return const AppLockWrapper();
-    }
-    return const MainScaffold();
   }
 }
 
