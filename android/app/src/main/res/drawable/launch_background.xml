@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/black"/>
+    <!-- Background color matching pubspec: #1A1A2E -->
+    <item android:drawable="@color/splash_bg"/>
+    <!-- Logo centered, slightly above center to avoid nav bar cutoff -->
     <item>
         <bitmap
-            android:gravity="center"
+            android:gravity="center_horizontal|center_vertical"
             android:src="@drawable/app_logo"/>
     </item>
 </layer-list>
