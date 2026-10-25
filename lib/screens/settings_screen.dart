@@ -53,6 +53,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // enabled. Without this listener, the toggles stay gated even after
     // the trial becomes active.
     PremiumService().addListener(_onPremiumChanged);
+    // Preload the rewarded ad so it's ready by the time the user taps
+    // "Watch Ad" or "Extend".
+    AdMobService.preloadRewardedAd();
     // Refresh the trial countdown label every 60 seconds while the trial
     // is active. The label shows "Trial Active: 23h 45m" and we want it
     // to count down in real time.
@@ -425,11 +428,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isPremium = PremiumService().isPremium;
 
     return Scaffold(
+      // No AppBar title — settings screen starts directly with the
+      // premium header card for a cleaner look. The AppBar itself is
+      // retained to give the status bar a proper background and to
+      // handle scroll padding.
       appBar: AppBar(
-        title: Text(
-          loc.t('settings'),
-          style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
-        ),
+        title: const SizedBox.shrink(),
+        forceMaterialTransparency: true,
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1240,13 +1245,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// Show a rewarded video ad. On successful completion, grant 1 day of
   /// premium trial. Updates the _premiumNotifier so the UI refreshes.
+  ///
+  /// If the ad isn't loaded yet, shows a loading dialog and polls every
+  /// second for up to 10 seconds before giving up. This fixes the UX
+  /// issue where the user taps "Extend" right after watching a previous
+  /// ad (when the new ad hasn't finished preloading yet) and just sees
+  /// an unhelpful "try again a moment" snackbar.
   Future<void> _watchRewardedAd() async {
     final loc = context.loc;
-    final shown = AdMobService.showRewardedAd(
+
+    // If ad already loaded, show immediately.
+    if (AdMobService.isRewardedAdReady) {
+      _doShowRewardedAd(loc);
+      return;
+    }
+
+    // Otherwise preload + show loading dialog with auto-retry.
+    AdMobService.preloadRewardedAd();
+    final ready = await _showRewardedAdLoadingDialog(loc);
+    if (!ready || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('adNotReadyMsg')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+      return;
+    }
+    _doShowRewardedAd(loc);
+  }
+
+  void _doShowRewardedAd(AppLocalizations loc) {
+    AdMobService.showRewardedAd(
       onRewardEarned: () async {
         await PremiumService().grantRewardedTrialDays(1);
         if (mounted) {
           _premiumNotifier.value = PremiumService().isPremium;
+          setState(() {}); // rebuild UI
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.t('rewardGrantedMsg')),
@@ -1257,15 +1294,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       },
     );
-    if (!shown && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loc.t('adNotReadyMsg')),
-          backgroundColor: AppColors.warning,
-          duration: const Duration(seconds: 2),
+  }
+
+  /// Show a loading dialog while waiting for the rewarded ad to preload.
+  /// Returns true if the ad became ready within 10 seconds, false otherwise.
+  Future<bool> _showRewardedAdLoadingDialog(AppLocalizations loc) async {
+    int attempts = 0;
+    const maxAttempts = 10;
+
+    if (!mounted) return false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(child: Text(loc.t('adLoadingMsg'))),
+          ],
         ),
-      );
+      ),
+    );
+
+    while (attempts < maxAttempts) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (AdMobService.isRewardedAdReady) {
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+        return true;
+      }
+      attempts++;
     }
+
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    return false;
   }
 
   /// Show export menu (entries / customers / both) — replaces 3 separate tiles

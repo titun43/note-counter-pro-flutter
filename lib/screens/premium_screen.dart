@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import '../services/premium_service.dart';
+import '../services/admob_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 
@@ -71,6 +72,91 @@ class _PremiumScreenState extends State<PremiumScreen> {
         const SnackBar(content: Text('No previous purchases found.')),
       );
     }
+  }
+
+  /// Show a rewarded video ad. On completion, grant 1 day of premium
+  /// trial via PremiumService.grantRewardedTrialDays(1).
+  /// Uses the same loading-dialog + auto-retry flow as the Settings screen
+  /// to avoid the "ad not ready, try again" UX problem.
+  Future<void> _watchRewardedAd() async {
+    final loc = context.loc;
+
+    // If ad already loaded, show immediately.
+    if (AdMobService.isRewardedAdReady) {
+      _doShowRewardedAd(loc);
+      return;
+    }
+
+    // Otherwise show a loading dialog and poll until ad is ready or
+    // we time out (10 seconds).
+    AdMobService.preloadRewardedAd();
+    final ready = await _showRewardedAdLoadingDialog();
+    if (!ready || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('adNotReadyMsg')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+      return;
+    }
+    _doShowRewardedAd(loc);
+  }
+
+  void _doShowRewardedAd(AppLocalizations loc) {
+    AdMobService.showRewardedAd(
+      onRewardEarned: () async {
+        await PremiumService().grantRewardedTrialDays(1);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('rewardGrantedMsg')),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          setState(() {}); // rebuild to show "Premium Active" state
+        }
+      },
+    );
+  }
+
+  /// Show a loading dialog while waiting for the rewarded ad to preload.
+  /// Returns true if the ad became ready within 10 seconds, false otherwise.
+  Future<bool> _showRewardedAdLoadingDialog() async {
+    final loc = context.loc;
+    int attempts = 0;
+    const maxAttempts = 10; // 10 attempts × 1 second = 10 second timeout
+
+    // Show a non-dismissible loading dialog.
+    if (!mounted) return false;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 20),
+            Expanded(child: Text(loc.t('adLoadingMsg'))),
+          ],
+        ),
+      ),
+    );
+
+    while (attempts < maxAttempts) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (AdMobService.isRewardedAdReady) {
+        if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+        return true;
+      }
+      attempts++;
+    }
+
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+    return false;
   }
 
   @override
@@ -166,7 +252,13 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
               ),
             ] else ...[
-              // Plan cards
+              // === FREE: Watch Ad → 1 Day Premium ===
+              // Highlighted card placed BEFORE paid plans so the user
+              // sees there is a free path before being asked to pay.
+              _RewardedAdCard(onWatch: _watchRewardedAd),
+              const SizedBox(height: 16),
+
+              // === Paid Plan Cards ===
               ...PremiumService.plans.map((plan) => _PlanCard(
                     plan: plan,
                     isLoading: _isLoading && _selectedPlan == plan['id'],
@@ -372,6 +464,166 @@ class _BenefitTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Highlighted "Watch Ad → 1 Day Free Premium" card shown on the Premium
+/// screen BEFORE the paid plan cards. Designed to grab the user's eye so
+/// they see there's a free path to premium before being asked to pay.
+class _RewardedAdCard extends StatefulWidget {
+  final VoidCallback onWatch;
+  const _RewardedAdCard({required this.onWatch});
+
+  @override
+  State<_RewardedAdCard> createState() => _RewardedAdCardState();
+}
+
+class _RewardedAdCardState extends State<_RewardedAdCard> {
+  @override
+  void initState() {
+    super.initState();
+    // Preload the rewarded ad as soon as the user opens the Premium
+    // screen, so by the time they tap "Watch Ad Now" the ad is likely
+    // already ready.
+    AdMobService.preloadRewardedAd();
+    // Listen for ad-readiness changes so we can toggle the button state.
+    AdMobService.addRewardedReadinessListener(_onReadinessChanged);
+  }
+
+  @override
+  void dispose() {
+    AdMobService.removeRewardedReadinessListener(_onReadinessChanged);
+    super.dispose();
+  }
+
+  void _onReadinessChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.loc;
+    final theme = Theme.of(context);
+    final ready = AdMobService.isRewardedAdReady;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        // Gold gradient background — eye-catching but not garish.
+        gradient: const LinearGradient(
+          colors: [Color(0xFFD4AF37), Color(0xFFFFD700), Color(0xFFD4AF37)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFD700), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // "FREE" badge in the top-right corner
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.success,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'FREE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.play_circle_filled,
+                        color: Colors.white, size: 32),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        loc.t('watchAdFreePremium'),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  loc.t('watchAdFreePremiumDesc'),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.95),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: widget.onWatch,
+                    icon: ready
+                        ? const Icon(Icons.play_arrow, size: 20)
+                        : const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                    label: Text(
+                      ready
+                          ? loc.t('watchAdNow')
+                          : loc.t('loadingAd'),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF8B0000),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

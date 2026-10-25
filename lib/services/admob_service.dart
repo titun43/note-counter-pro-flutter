@@ -308,11 +308,13 @@ class AdMobService {
             _rewardedAd = ad;
             _rewardedLoadAttempts = 0;
             debugPrint('AdMob: rewarded ad loaded');
+            _notifyRewardedReadinessChanged();
           },
           onAdFailedToLoad: (err) {
             _rewardedLoadAttempts++;
             _rewardedAd = null;
             debugPrint('AdMob: rewarded ad failed to load (attempt $_rewardedLoadAttempts): ${err.message}');
+            _notifyRewardedReadinessChanged();
             if (_rewardedLoadAttempts < 3) {
               _loadRewardedAd();
             }
@@ -346,12 +348,14 @@ class AdMobService {
         onAdDismissedFullScreenContent: (ad) {
           ad.dispose();
           _rewardedAd = null;
+          _notifyRewardedReadinessChanged();
           _loadRewardedAd();
           onAdDismissed?.call();
         },
         onAdFailedToShowFullScreenContent: (ad, err) {
           ad.dispose();
           _rewardedAd = null;
+          _notifyRewardedReadinessChanged();
           _loadRewardedAd();
         },
       );
@@ -370,4 +374,47 @@ class AdMobService {
 
   /// Whether a rewarded ad is currently loaded and ready to show.
   static bool get isRewardedAdReady => _rewardedAd != null;
+
+  // =========================================================================
+  // REWARDED AD PRELOAD + READINESS LISTENERS
+  // =========================================================================
+  //
+  // UI widgets (e.g. the Premium screen's "Watch Ad Now" button) want to
+  // reflect whether a rewarded ad is ready, and they want to be notified
+  // when it becomes ready. We expose a small listener API for this.
+
+  static final List<VoidCallback> _rewardedReadinessListeners = [];
+
+  /// Subscribe to rewarded-ad readiness changes. The listener is called
+  /// whenever the ad transitions between loaded/not-loaded states.
+  static void addRewardedReadinessListener(VoidCallback fn) {
+    if (!_rewardedReadinessListeners.contains(fn)) {
+      _rewardedReadinessListeners.add(fn);
+    }
+  }
+
+  /// Unsubscribe from rewarded-ad readiness changes.
+  static void removeRewardedReadinessListener(VoidCallback fn) {
+    _rewardedReadinessListeners.remove(fn);
+  }
+
+  /// Notify all subscribed listeners that readiness changed.
+  static void _notifyRewardedReadinessChanged() {
+    for (final fn in List<VoidCallback>.from(_rewardedReadinessListeners)) {
+      try {
+        fn();
+      } catch (e) {
+        debugPrint('Rewarded readiness listener error: $e');
+      }
+    }
+  }
+
+  /// Public preload entry point. Call this when the user opens a screen
+  /// that will likely show a rewarded ad (e.g. PremiumScreen, Settings
+  /// → PRO TOOLS). If the ad is already loaded or already loading, this
+  /// is a no-op.
+  static void preloadRewardedAd() {
+    if (_rewardedAd != null) return; // Already loaded
+    _loadRewardedAd();
+  }
 }

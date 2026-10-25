@@ -84,19 +84,27 @@ class NoteCounterProApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<StorageService>(
-      builder: (context, storage, child) {
+    // Selector watches ONLY isDarkMode + languageCode. Other storage
+    // changes (appLockEnabled toggle, currency change, etc.) do NOT
+    // rebuild the MaterialApp — preventing the flashing caused by the
+    // previous Consumer<StorageService> rebuilding the entire widget
+    // tree (including all BannerAdWidgets) on every storage change.
+    return Selector<StorageService, ({bool isDarkMode, String languageCode})>(
+      selector: (_, s) => (isDarkMode: s.isDarkMode, languageCode: s.languageCode),
+      builder: (context, state, child) {
         return LocalizationProvider(
-          languageCode: storage.languageCode,
+          languageCode: state.languageCode,
           child: MaterialApp(
             title: 'Note Counter Pro',
             debugShowCheckedModeBanner: false,
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
-            themeMode: storage.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: storage.appLockEnabled
-                ? const AppLockWrapper()
-                : const MainScaffold(),
+            themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            // Home is ALWAYS MainScaffold. App Lock is handled inside
+            // MainScaffold via Navigator.push on initial launch only —
+            // toggling the App Lock switch no longer kicks the user out
+            // of their current screen.
+            home: const MainScaffold(),
           ),
         );
       },
@@ -104,30 +112,8 @@ class NoteCounterProApp extends StatelessWidget {
   }
 }
 
-class AppLockWrapper extends StatefulWidget {
-  const AppLockWrapper({super.key});
-
-  @override
-  State<AppLockWrapper> createState() => _AppLockWrapperState();
-}
-
-class _AppLockWrapperState extends State<AppLockWrapper> {
-  bool _unlocked = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (_unlocked) {
-      return const MainScaffold();
-    }
-    return LockScreen(
-      onUnlocked: () {
-        setState(() {
-          _unlocked = true;
-        });
-      },
-    );
-  }
-}
+/// Old AppLockWrapper removed — MainScaffold now handles the lock screen
+/// via a one-time Navigator.push on cold start (see _showAppLockIfEnabled).
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -149,7 +135,32 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Show App Lock screen ONCE on cold start if the user previously
+    // enabled it in Settings. We use addPostFrameCallback so the
+    // MainScaffold is fully built before the lock screen pushes on top.
+    // Toggling the App Lock switch later (from Settings) does NOT
+    // trigger this — only the initial app launch does.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showAppLockIfEnabled();
+    });
     _checkForUpdate();
+  }
+
+  void _showAppLockIfEnabled() {
+    if (!mounted) return;
+    final storage = context.read<StorageService>();
+    if (storage.appLockEnabled) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => LockScreen(
+            onUnlocked: () => Navigator.of(context).pop(),
+          ),
+          // Disable swipe-back / system-back to dismiss the lock screen.
+          // User MUST authenticate to proceed.
+          fullscreenDialog: true,
+        ),
+      );
+    }
   }
 
   @override
