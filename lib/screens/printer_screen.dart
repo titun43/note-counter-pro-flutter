@@ -254,7 +254,7 @@ class _PrinterScreenState extends State<PrinterScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.grey[100]),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -263,7 +263,7 @@ class _PrinterScreenState extends State<PrinterScreen> {
                         Row(
                           children: [
                             Icon(Icons.info_outline,
-                                size: 18, color: Colors.grey[700]),
+                                size: 18, color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700])),
                             const SizedBox(width: 6),
                             Text(
                               loc.t('printerHelpTitle'),

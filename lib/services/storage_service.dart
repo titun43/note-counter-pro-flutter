@@ -632,4 +632,13 @@ class StorageService extends ChangeNotifier {
       debugPrint('Auto-backup failed: $e');
     }
   }
+
+  /// Dispose the themeNotifier to prevent memory leaks.
+  /// Called when the StorageService is no longer needed (app shutdown).
+  @override
+  void dispose() {
+    _autoBackupTimer?.cancel();
+    themeNotifier.dispose();
+    super.dispose();
+  }
 }

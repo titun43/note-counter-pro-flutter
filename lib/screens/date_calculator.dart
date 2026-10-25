@@ -213,7 +213,7 @@ class _DateCalculatorState extends State<DateCalculator> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           Text(value.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ],
       ),

@@ -209,7 +209,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               loc.t('premiumSubtitle'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[600],
+                color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]),
               ),
             ),
 
@@ -283,17 +283,17 @@ class _PremiumScreenState extends State<PremiumScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.grey[100]),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: Colors.grey[600]),
+                  Icon(Icons.info_outline, size: 18, color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600])),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(loc.t('premiumNote'),
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700])),
+                        style: theme.textTheme.bodySmall?.copyWith(color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[300] : Colors.grey[700]))),
                   ),
                 ],
               ),
@@ -321,7 +321,7 @@ class _PlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isBestValue ? const Color(0xFFD4AF37) : Colors.grey[300]!,
+          color: isBestValue ? const Color(0xFFD4AF37) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey[700]! : Colors.grey[300]!),
           width: isBestValue ? 2 : 1,
         ),
         color: isBestValue ? const Color(0xFFD4AF37).withOpacity(0.05) : null,
@@ -362,7 +362,7 @@ class _PlanCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 2),
                         Text(plan['description'] as String,
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            style: TextStyle(fontSize: 12, color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]))),
                       ],
                     ),
                   ),
@@ -382,7 +382,7 @@ class _PlanCard extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Text(plan['period'] as String,
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                style: TextStyle(fontSize: 12, color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]))),
                           ),
                         ],
                       ),
@@ -436,7 +436,7 @@ class _BenefitTile extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[200]!),
+        side: BorderSide(color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[800]! : Colors.grey[200]!)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -458,7 +458,7 @@ class _BenefitTile extends StatelessWidget {
                 children: [
                   Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]))),
                 ],
               ),
             ),

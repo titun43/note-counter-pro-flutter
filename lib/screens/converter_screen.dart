@@ -241,7 +241,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
                       color: AppColors.primary,
                     ),
                   ),
-                  Text(_toUnit, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                  Text(_toUnit, style: theme.textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),

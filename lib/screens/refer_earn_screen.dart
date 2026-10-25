@@ -287,7 +287,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[850] : Colors.grey[100]),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -332,7 +332,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
             Text(
               context.loc.t('cloudBackupPremiumDesc'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600])),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(

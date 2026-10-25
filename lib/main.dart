@@ -292,20 +292,25 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
         _showExitDialog(context);
       },
       child: Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Banner ad at top (after SafeArea for proper position)
-            const BannerAdWidget(),
-            // Main content
-            Expanded(
-              child: IndexedStack(
-                index: _currentIndex,
-                children: screens,
-              ),
+      body: Column(
+        children: [
+          // Banner ad at top — wrapped in SafeArea so it doesn't
+          // overlap the status bar. Each tab screen has its own
+          // SafeArea for its content, so we DON'T wrap the
+          // IndexedStack in SafeArea here (that would cause double
+          // padding).
+          SafeArea(
+            bottom: false,
+            child: const BannerAdWidget(),
+          ),
+          // Main content — each screen handles its own SafeArea
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: screens,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,

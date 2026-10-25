@@ -150,6 +150,15 @@ class PremiumService extends ChangeNotifier {
     );
 
     await _restorePurchases();
+
+    // CRITICAL: notify listeners after loading persisted state so that
+    // any UI widget bound to isPremium (Settings screen App Lock / Voice
+    // toggles, Premium screen, etc.) rebuilds with the correct premium
+    // state. Without this, the Settings screen keeps the stale
+    // isPremium=false from the first build (before init() completed)
+    // and the App Lock / Voice toggles stay gated even though a trial
+    // is active.
+    notifyListeners();
   }
 
   /// Grant the user a free premium trial by watching a rewarded ad.
