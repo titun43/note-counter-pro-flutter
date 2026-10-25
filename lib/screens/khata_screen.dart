@@ -650,7 +650,7 @@ class _KhataScreenState extends State<KhataScreen> {
               ),
               child: Column(
                 children: [
-                  // Title row
+                  // Title row — clean: 1 book icon + title + single overflow menu
                   Row(
                     children: [
                       const Icon(Icons.menu_book, color: Color(0xFFD4AF37), size: 28),
@@ -666,54 +666,84 @@ class _KhataScreenState extends State<KhataScreen> {
                           ),
                         ),
                       ),
-                      // Sort button
-                      IconButton(
-                        icon: Icon(_getSortIcon(), color: const Color(0xFFD4AF37)),
-                        onPressed: _showSortOptions,
+                      // Single overflow menu — replaces 4 cluttered icons
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: Color(0xFFD4AF37)),
                         tooltip: loc.t('sortBy'),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      ),
-                      // Reminder history button
-                      IconButton(
-                        icon: const Icon(Icons.history, color: Color(0xFFD4AF37)),
-                        tooltip: loc.t('reminderHistory'),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
-                          );
+                        color: isDark ? const Color(0xFF2C1810) : Colors.white,
+                        onSelected: (value) async {
+                          switch (value) {
+                            case 'sort':
+                              _showSortOptions();
+                              break;
+                            case 'history':
+                              if (!mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
+                              );
+                              break;
+                            case 'pdf':
+                              if (!mounted) return;
+                              final storage = context.read<StorageService>();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Generating PDF...'), duration: Duration(seconds: 1)),
+                              );
+                              await PdfService.generateKhataPdf(storage);
+                              break;
+                            case 'customers':
+                              if (!mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                              );
+                              break;
+                          }
                         },
-                      ),
-                      // PDF share button
-                      IconButton(
-                        icon: const Icon(Icons.picture_as_pdf, color: Color(0xFFD4AF37)),
-                        tooltip: 'Share PDF',
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        onPressed: () async {
-                          final storage = context.read<StorageService>();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Generating PDF...'), duration: Duration(seconds: 1)),
-                          );
-                          await PdfService.generateKhataPdf(storage);
-                        },
-                      ),
-                      // View all customers
-                      IconButton(
-                        icon: const Icon(Icons.people, color: Color(0xFFD4AF37)),
-                        tooltip: loc.t('customers'),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const CustomersScreen()),
-                          );
-                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: 'sort',
+                            child: Row(
+                              children: [
+                                Icon(_getSortIcon(), size: 20, color: const Color(0xFF8B0000)),
+                                const SizedBox(width: 12),
+                                Text(loc.t('sortBy')),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'history',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.history, size: 20, color: Color(0xFF8B0000)),
+                                const SizedBox(width: 12),
+                                Text(loc.t('reminderHistory')),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'pdf',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.picture_as_pdf, size: 20, color: Color(0xFF8B0000)),
+                                const SizedBox(width: 12),
+                                const Text('Share PDF'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'customers',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.people, size: 20, color: Color(0xFF8B0000)),
+                                const SizedBox(width: 12),
+                                Text(loc.t('customers')),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1189,186 +1219,302 @@ class _KhataEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final balanceColor = isToGive ? const Color(0xFFC62828) : const Color(0xFF2E7D32);
+    final isSettled = balance.abs() < 0.01;
 
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Serial number (handwritten style)
-            SizedBox(
-              width: 28,
-              child: Text(
-                '$serialNo.',
-                style: TextStyle(
-                  fontFamily: 'KhataHandwriting',
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: textColor.withOpacity(0.6),
-                ),
-              ),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: isSettled
+              ? (isDark
+                  ? const Color(0xFF2E7D32).withOpacity(0.12)
+                  : const Color(0xFF2E7D32).withOpacity(0.08))
+              : (isDark
+                  ? const Color(0xFF3E2723).withOpacity(0.55)
+                  : Colors.white.withOpacity(0.75)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSettled
+                ? const Color(0xFF2E7D32).withOpacity(0.3)
+                : const Color(0xFFD4AF37).withOpacity(0.3),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.25) : Colors.black.withOpacity(0.06),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-            // Customer info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name + balance row
-                  Row(
+          ],
+        ),
+        child: Column(
+          children: [
+            // === TOP ROW: avatar + name + meta + balance ===
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Avatar circle with first letter (color-coded)
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: _avatarGradient(customer.name),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      _avatarInitial(customer.name),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Name + meta
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          customer.name,
-                          style: TextStyle(
-                            fontFamily: 'KhataHandwriting',
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
+                      Text(
+                        customer.name,
+                        style: TextStyle(
+                          fontFamily: 'KhataHandwriting',
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(width: 8),
-                      if (balance == 0)
-                        // Settled badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFF2E7D32), width: 0.5),
-                          ),
-                          child: Text(
-                            'SETTLED',
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF2E7D32),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          if (hasPhone) ...[
+                            Icon(Icons.phone, size: 10, color: textColor.withOpacity(0.5)),
+                            const SizedBox(width: 3),
+                            Text(
+                              maskedPhone,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: textColor.withOpacity(0.55),
+                              ),
                             ),
-                          ),
-                        )
-                      else
-                        Text(
-                          '$currencySymbol${balance.abs().toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontFamily: 'KhataHandwriting',
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: balanceColor,
-                          ),
-                        ),
+                          ] else ...[
+                            Text(
+                              context.loc.t('noPhone'),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontStyle: FontStyle.italic,
+                                color: textColor.withOpacity(0.4),
+                              ),
+                            ),
+                          ],
+                          if (lastDate != null) ...[
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 5),
+                              width: 3,
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: textColor.withOpacity(0.4),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Text(
+                              '${context.loc.t('lastTxn')} ${lastDate!.day}/${lastDate!.month}',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: textColor.withOpacity(0.55),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  // Subtitle: phone + last txn
-                  Row(
-                    children: [
-                      if (hasPhone) ...[
-                        Icon(Icons.phone, size: 11, color: textColor.withOpacity(0.5)),
-                        const SizedBox(width: 4),
-                        Text(
-                          maskedPhone,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: textColor.withOpacity(0.5),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ] else ...[
-                        Text(
-                          context.loc.t('noPhone'),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontStyle: FontStyle.italic,
-                            color: textColor.withOpacity(0.4),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      if (lastDate != null) ...[
-                        Text(
-                          '${context.loc.t('lastTxn')} ${lastDate!.day}/${lastDate!.month}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: textColor.withOpacity(0.5),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  // Action buttons row (small)
-                  if (hasPhone || onWhatsApp != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
+                ),
+                // Balance / Settled badge
+                if (isSettled)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF2E7D32), width: 0.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (hasPhone)
-                          InkWell(
-                            onTap: onCall,
-                            borderRadius: BorderRadius.circular(4),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.call, size: 12, color: Colors.blue[700]),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    context.loc.t('callCustomer'),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.blue[700],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        const Icon(Icons.check_circle, size: 11, color: Color(0xFF2E7D32)),
+                        const SizedBox(width: 3),
+                        Text(
+                          context.loc.t('settled').toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E7D32),
                           ),
-                        if (hasPhone && onWhatsApp != null)
-                          const SizedBox(width: 12),
-                        if (onWhatsApp != null)
-                          InkWell(
-                            onTap: onWhatsApp,
-                            borderRadius: BorderRadius.circular(4),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.chat, size: 12, color: Colors.green[700]),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    context.loc.t('whatsappCustomer'),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.green[700],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        ),
                       ],
                     ),
-                  ],
-                ],
-              ),
+                  )
+                else
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '$currencySymbol${balance.abs().toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: balanceColor,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        isToGive
+                            ? context.loc.t('toGive')
+                            : context.loc.t('toTake'),
+                        style: TextStyle(
+                          fontSize: 8,
+                          color: textColor.withOpacity(0.5),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
-            // Chevron
-            Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: textColor.withOpacity(0.3),
+            // === ACTION ROW: only if phone or whatsapp available ===
+            if (hasPhone || onWhatsApp != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: textColor.withOpacity(0.1),
+                      width: 0.5,
+                      style: BorderStyle.solid,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (onWhatsApp != null)
+                      Expanded(
+                        child: _actionChip(
+                          icon: Icons.chat,
+                          label: context.loc.t('whatsappCustomer'),
+                          color: const Color(0xFF25D366),
+                          onTap: onWhatsApp!,
+                        ),
+                      ),
+                    if (onWhatsApp != null && hasPhone)
+                      const SizedBox(width: 8),
+                    if (hasPhone)
+                      Expanded(
+                        child: _actionChip(
+                          icon: Icons.call,
+                          label: context.loc.t('callCustomer'),
+                          color: const Color(0xFF1976D2),
+                          onTap: onCall!,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build a small action chip button (WhatsApp / Call)
+  Widget _actionChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// Generate consistent gradient color for avatar based on customer name hash
+  static const List<List<Color>> _avatarGradients = [
+    [Color(0xFFF59E0B), Color(0xFFD97706)], // amber
+    [Color(0xFF3B82F6), Color(0xFF1D4ED8)], // blue
+    [Color(0xFF10B981), Color(0xFF047857)], // green
+    [Color(0xFFEC4899), Color(0xFFBE185D)], // pink
+    [Color(0xFF8B5CF6), Color(0xFF6D28D9)], // purple
+    [Color(0xFF06B6D4), Color(0xFF0E7490)], // cyan
+  ];
+
+  static LinearGradient _avatarGradient(String name) {
+    final hash = name.codeUnits.fold(0, (prev, c) => prev + c);
+    final palette = _avatarGradients[hash % _avatarGradients.length];
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: palette,
+    );
+  }
+
+  /// Get the first character of the name (supports Bengali + Latin)
+  static String _avatarInitial(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '?';
+    // Use first unicode grapheme
+    final runes = trimmed.runes;
+    final first = runes.first;
+    return String.fromCharCode(first).toUpperCase();
   }
 }
