@@ -39,20 +39,14 @@ void main() async {
   );
   
   // Initialize AdMob 3 seconds after app starts (non-blocking, safe).
-  // IMPORTANT: AdMob init kicks off async ad loads (banner, interstitial,
-  // app open, rewarded). The ads take 2-5 seconds to actually load from
-  // the network, so we wait an EXTRA 4 seconds before trying to show the
-  // app-open ad on cold start. This gives the AppOpenAd.load() call
-  // enough time to complete and populate _appOpenAd.
+  // IMPORTANT: We do NOT show the app-open ad on cold start anymore.
+  // The lifecycle observer in MainScaffold shows it when the user
+  // RETURNS to the app from background. On a true cold start, the user
+  // just opened the app and we want them to actually USE it first.
+  // AdMob policy: app-open ads should appear on app foreground events
+  // (when the user comes back), not on the initial launch.
   Future.delayed(const Duration(seconds: 3), () {
-    AdMobService.initialize().then((_) {
-      // Wait 4 seconds (was 2) for app-open ad to actually load.
-      // If still not loaded, showAppOpenAd will trigger a reload and
-      // the next lifecycle resume will show it.
-      Future.delayed(const Duration(seconds: 4), () {
-        AdMobService.showAppOpenAd();
-      });
-    }).catchError((e) {
+    AdMobService.initialize().catchError((e) {
       debugPrint('AdMob init failed: $e');
     });
   });
@@ -169,13 +163,18 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
     super.didChangeAppLifecycleState(state);
     // Show app-open ad when the user returns to the app from background.
     // Skip the very first transition (cold start handled by app launch flow).
+    // The AdMobService.showAppOpenAd() itself enforces a 30-minute cooldown
+    // so users who frequently background/foreground the app don't get
+    // bombarded.
     if (state == AppLifecycleState.resumed) {
       if (_isFirstResume) {
         _isFirstResume = false;
         return;
       }
-      // Small delay so the UI has time to settle before the ad shows.
-      Future.delayed(const Duration(milliseconds: 500), () {
+      // Slightly longer delay so the UI has time to settle before the ad
+      // shows — and so that very brief background trips (notifications,
+      // permission dialogs) don't immediately trigger an ad.
+      Future.delayed(const Duration(seconds: 1), () {
         if (mounted) AdMobService.showAppOpenAd();
       });
     }

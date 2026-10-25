@@ -15,6 +15,16 @@ class AdMobService {
   static DateTime? _appOpenLoadTime;
   static bool _isShowingAppOpen = false;
 
+  /// Wall-clock time when the app-open ad was last SHOWN to the user.
+  /// Used to enforce a minimum cooldown between app-open ad impressions
+  /// so users don't get bombarded when frequently backgrounding/foregrounding.
+  static DateTime? _lastAppOpenAdShownTime;
+
+  /// Minimum time between consecutive app-open ad impressions.
+  /// 30 minutes — industry standard for app-open ads.
+  /// Set to 0 to disable cooldown entirely.
+  static const Duration _appOpenAdCooldown = Duration(minutes: 30);
+
   // Rewarded ad state
   static RewardedAd? _rewardedAd;
   static int _rewardedLoadAttempts = 0;
@@ -190,12 +200,31 @@ class AdMobService {
   }
 
   /// Try to show the app open ad. Called on app open / resume.
-  /// Returns true if the ad was shown immediately. If the ad is not yet
-  /// loaded, schedules a one-shot retry: polls every 1 second for up to
-  /// 6 seconds, and shows the ad as soon as it becomes available.
+  ///
+  /// Cooldown logic:
+  ///   - Skips if a previous app-open ad was shown less than
+  ///     [_appOpenAdCooldown] (30 min) ago. This prevents user fatigue
+  ///     when they rapidly background/foreground the app.
+  ///   - If the ad is not yet loaded, schedules a one-shot retry: polls
+  ///     every 1 second for up to 6 seconds, and shows the ad as soon
+  ///     as it becomes available (still respecting cooldown).
+  ///
+  /// Returns true if the ad was shown immediately.
   static bool showAppOpenAd() {
     if (!shouldShowAds) return false;
     if (_isShowingAppOpen) return false;
+
+    // Cooldown check — don't bombard the user.
+    if (_lastAppOpenAdShownTime != null) {
+      final elapsed = DateTime.now().difference(_lastAppOpenAdShownTime!);
+      if (elapsed < _appOpenAdCooldown) {
+        debugPrint('App open ad: skipping — cooldown '
+            '(${elapsed.inMinutes}m ${elapsed.inSeconds % 60}s elapsed, '
+            'need ${_appOpenAdCooldown.inMinutes}m)');
+        return false;
+      }
+    }
+
     if (!_isAppOpenAdAvailable) {
       // Ad not loaded yet — kick off a load and poll until it's ready.
       _loadAppOpenAd();
@@ -216,6 +245,7 @@ class AdMobService {
           _appOpenAd = null;
           _appOpenLoadTime = null;
           _isShowingAppOpen = false;
+          _lastAppOpenAdShownTime = DateTime.now();
           _loadAppOpenAd();
         },
         onAdFailedToShowFullScreenContent: (ad, err) {
@@ -223,10 +253,15 @@ class AdMobService {
           _appOpenAd = null;
           _appOpenLoadTime = null;
           _isShowingAppOpen = false;
+          // Don't update _lastAppOpenAdShownTime on failure — the ad
+          // didn't actually show, so cooldown shouldn't apply.
           _loadAppOpenAd();
         },
       );
       _appOpenAd!.show();
+      // Mark shown time proactively — if the user dismisses it, the
+      // onAdDismissed callback will re-update with the actual dismiss time.
+      _lastAppOpenAdShownTime = DateTime.now();
       return true;
     } catch (e) {
       debugPrint('App open ad show failed: $e');

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -35,6 +36,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Notifier so the Premium tile re-renders when user returns from
   // PremiumScreen after a successful purchase.
   final ValueNotifier<bool> _premiumNotifier = ValueNotifier<bool>(false);
+  // Periodic timer that refreshes the trial countdown every minute so the
+  // "Trial Active: 23h 45m" label stays accurate without user interaction.
+  Timer? _trialCountdownTimer;
 
   @override
   void initState() {
@@ -49,6 +53,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // enabled. Without this listener, the toggles stay gated even after
     // the trial becomes active.
     PremiumService().addListener(_onPremiumChanged);
+    // Refresh the trial countdown label every 60 seconds while the trial
+    // is active. The label shows "Trial Active: 23h 45m" and we want it
+    // to count down in real time.
+    _trialCountdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted && PremiumService().isTrialActive) {
+        // Toggle notifier so the ValueListenableBuilder re-renders the
+        // trial status tile with the updated remaining time.
+        _premiumNotifier.value = !_premiumNotifier.value;
+        _premiumNotifier.value = PremiumService().isPremium;
+      }
+    });
   }
 
   void _onPremiumChanged() {
@@ -59,6 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _trialCountdownTimer?.cancel();
     PremiumService().removeListener(_onPremiumChanged);
     _premiumNotifier.dispose();
     super.dispose();
@@ -632,34 +648,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
                 ),
               ),
-              // Rewarded ad — earn 1-day premium trial by watching a video ad
-              if (!isPremium) ...[
+              // Rewarded ad / trial status section.
+              // Visible when:
+              //   - user is NOT a paid premium user (paid users hide this)
+              //   - OR user has an active rewarded-ad trial (so they can see
+              //     the countdown and extend the trial by watching another ad)
+              // Hidden ONLY for users with a paid IAP plan.
+              if (!isPremium || PremiumService().isTrialActive) ...[
                 const _Divider(),
                 ValueListenableBuilder<bool>(
                   valueListenable: _premiumNotifier,
                   builder: (context, _, __) {
-                    // If trial became active after watching ad, hide this tile.
-                    if (PremiumService().isPremium) {
+                    // Trial active → show trial status + extend option
+                    if (PremiumService().isTrialActive) {
                       return ListTile(
-                        leading: const Icon(Icons.verified, color: AppColors.success),
+                        leading: const Icon(Icons.verified,
+                            color: AppColors.success),
                         title: Text(
                           '${loc.t('trialActive')}: ${PremiumService().trialRemainingLabel}',
                           style: const TextStyle(
-                              color: AppColors.success, fontWeight: FontWeight.bold),
+                              color: AppColors.success,
+                              fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(loc.t('trialActiveDesc')),
+                        trailing: AdMobService.isRewardedAdReady
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.add_circle,
+                                      color: AppColors.success, size: 20),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    loc.t('extend'),
+                                    style: const TextStyle(
+                                        color: AppColors.success,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              ),
+                        onTap: _watchRewardedAd,
                       );
                     }
+                    // Not premium at all → show "Watch Ad for 1 Day Free" CTA
                     return ListTile(
-                      leading: const Icon(Icons.play_circle_outline, color: AppColors.success),
+                      leading: const Icon(Icons.play_circle_outline,
+                          color: AppColors.success),
                       title: Text(loc.t('watchAdFreePremium')),
                       subtitle: Text(loc.t('watchAdFreePremiumDesc')),
                       trailing: AdMobService.isRewardedAdReady
-                          ? const Icon(Icons.chevron_right, color: AppColors.success)
+                          ? const Icon(Icons.chevron_right,
+                              color: AppColors.success)
                           : const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
                             ),
                       onTap: _watchRewardedAd,
                     );
