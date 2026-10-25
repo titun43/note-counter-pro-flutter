@@ -49,10 +49,19 @@ class _DateCalculatorState extends State<DateCalculator> {
 
   void _calculateAddSubtract() {
     setState(() {
+      final newYear = _baseDate.year + _addYears;
+      final newMonth = _baseDate.month + _addMonths;
+      // Normalize month overflow/underflow (e.g. month 13 → year+1, month 1)
+      final normalizedYear = newYear + ((newMonth - 1) ~/ 12);
+      final normalizedMonth = ((newMonth - 1) % 12) + 1;
+      // Cap the day to the number of days in the target month.
+      // This prevents DateTime from auto-rolling over (e.g. Feb 30 → Mar 2).
+      final daysInTargetMonth = DateTime(normalizedYear, normalizedMonth + 1, 0).day;
+      final cappedDay = _baseDate.day.clamp(1, daysInTargetMonth);
       _resultDate = DateTime(
-        _baseDate.year + _addYears,
-        _baseDate.month + _addMonths,
-        _baseDate.day + _addDays,
+        normalizedYear,
+        normalizedMonth,
+        cappedDay + _addDays,
       );
     });
   }

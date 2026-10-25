@@ -41,14 +41,58 @@ class PremiumService {
 
   static const String _prefsKey = 'is_premium';
   static const String _prefsPlanKey = 'premium_plan';
+  /// Timestamp (ms since epoch) when rewarded-ad premium trial expires.
+  /// 0 means no active trial. Set by grantRewardedTrialDays().
+  static const String _prefsTrialExpiryKey = 'rewarded_trial_expiry';
 
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   bool _isPremium = false;
   String _activePlan = '';
   bool _initialized = false;
+  /// Wall-clock millis when the current rewarded-ad trial expires.
+  /// 0 if no trial is active. Read from prefs on init.
+  int _trialExpiryMs = 0;
 
-  bool get isPremium => _isPremium;
+  bool get isPremium {
+    // Premium is true if either:
+    //   - User has a paid IAP plan (isPremium flag), OR
+    //   - Rewarded-ad trial is still active (expiry in the future)
+    if (_isPremium) return true;
+    if (_trialExpiryMs > 0) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now < _trialExpiryMs) return true;
+    }
+    return false;
+  }
+
+  /// Whether the currently active premium comes from a rewarded-ad trial
+  /// (rather than a paid IAP plan). Used to show appropriate UI labels.
+  bool get isTrialActive {
+    if (_isPremium) return false; // Paid plan takes precedence
+    if (_trialExpiryMs <= 0) return false;
+    return DateTime.now().millisecondsSinceEpoch < _trialExpiryMs;
+  }
+
+  /// Remaining trial time as a Duration (zero if no active trial).
+  Duration? get trialRemaining {
+    if (_trialExpiryMs <= 0) return null;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final diff = _trialExpiryMs - now;
+    if (diff <= 0) return Duration.zero;
+    return Duration(milliseconds: diff);
+  }
+
+  /// Human-readable trial expiry (e.g. "Expires in 23h 45m").
+  String get trialRemainingLabel {
+    final r = trialRemaining;
+    if (r == null || r == Duration.zero) return '';
+    final hours = r.inHours;
+    final minutes = r.inMinutes.remainder(60);
+    if (hours > 0) return '${hours}h ${minutes}m';
+    return '${minutes}m';
+  }
+
   String get activePlan => _activePlan;
 
   /// Available plans for UI display
@@ -89,7 +133,8 @@ class PremiumService {
       final prefs = await SharedPreferences.getInstance();
       _isPremium = prefs.getBool(_prefsKey) ?? false;
       _activePlan = prefs.getString(_prefsPlanKey) ?? '';
-    } catch (_) {}
+      _trialExpiryMs = prefs.getInt(_prefsTrialExpiryKey) ?? 0;
+    } catch (e) { debugPrint('PremiumService failed: $e'); }
 
     _subscription = _iap.purchaseStream.listen(
       _onPurchaseUpdated,
@@ -97,6 +142,26 @@ class PremiumService {
     );
 
     await _restorePurchases();
+  }
+
+  /// Grant the user a free premium trial by watching a rewarded ad.
+  /// Adds [days] days to the current trial expiry (or starts a new trial).
+  /// Stackable — multiple ad views extend the trial.
+  Future<void> grantRewardedTrialDays(int days) async {
+    final now = DateTime.now();
+    // If a trial is currently active, extend from its expiry; otherwise start fresh.
+    final baseMs = (_trialExpiryMs > now.millisecondsSinceEpoch)
+        ? _trialExpiryMs
+        : now.millisecondsSinceEpoch;
+    _trialExpiryMs = baseMs + (days * 24 * 60 * 60 * 1000);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_prefsTrialExpiryKey, _trialExpiryMs);
+    } catch (e) {
+      debugPrint('PremiumService: grantRewardedTrialDays failed: $e');
+    }
+    debugPrint('PremiumService: granted $days day(s) trial. Expires at '
+        '${DateTime.fromMillisecondsSinceEpoch(_trialExpiryMs).toIso8601String()}');
   }
 
   Future<void> _restorePurchases() async {
@@ -181,7 +246,7 @@ class PremiumService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefsKey, value);
       if (plan != null) await prefs.setString(_prefsPlanKey, plan);
-    } catch (_) {}
+    } catch (e) { debugPrint('PremiumService failed: $e'); }
     debugPrint('PremiumService: isPremium=$value, plan=${plan ?? _activePlan}');
   }
 

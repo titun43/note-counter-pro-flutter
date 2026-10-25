@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
 
 class ScientificCalculator extends StatefulWidget {
   const ScientificCalculator({super.key});
@@ -72,10 +71,12 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
         final formatted = _fmt(result);
         setState(() { _display = formatted; _expression = formatted; });
       }
-    } catch (_) {
-      setState(() { _display = 'Error'; _expression = ''; });
     } on Error {
-      // Catch StackOverflowError etc.
+      // Catch StackOverflowError etc. (must come BEFORE catch (_), otherwise
+      // catch (_) swallows everything and this branch becomes unreachable).
+      setState(() { _display = 'Error'; _expression = ''; });
+    } catch (e) {
+      debugPrint('Scientific calculator eval failed: $e');
       setState(() { _display = 'Error'; _expression = ''; });
     }
   }

@@ -12,6 +12,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
@@ -249,6 +250,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
           const SizedBox(height: 32),
         ],
       ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 

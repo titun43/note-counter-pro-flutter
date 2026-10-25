@@ -50,6 +50,8 @@ class AppConstants {
   static const String admobAppId = 'ca-app-pub-1742730064755213~6546486804';
   static const String admobBannerAdUnitId = 'ca-app-pub-1742730064755213/3078015084';
   static const String admobInterstitialAdUnitId = 'ca-app-pub-1742730064755213/1816904301';
+  static const String admobAppOpenAdUnitId = 'ca-app-pub-1742730064755213/7754649667';
+  static const String admobRewardedAdUnitId = 'ca-app-pub-1742730064755213/3923215864';
   
   // Currencies
   static const List<Map<String, String>> currencies = [

@@ -31,8 +31,6 @@ class CustomerDetailScreen extends StatefulWidget {
 
 class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   Customer? _customer;
-  final ScreenshotController _screenshotController = ScreenshotController();
-
   @override
   void initState() {
     super.initState();
@@ -489,7 +487,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       // Build the widget in an overlay
       final overlay = Overlay.of(context);
       late OverlayEntry entry;
-      Completer<Uint8List?> completer = Completer();
 
       entry = OverlayEntry(
         builder: (context) => Positioned(

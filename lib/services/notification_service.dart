@@ -183,7 +183,7 @@ class NotificationService {
       await _plugin.cancel(_reminderNotificationId);
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('next_reminder_time');
-    } catch (_) {}
+    } catch (e) { debugPrint('NotificationService failed: $e'); }
   }
 
   /// Get next scheduled reminder time (null if not scheduled).

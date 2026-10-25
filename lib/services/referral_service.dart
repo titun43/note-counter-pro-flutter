@@ -20,7 +20,6 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'premium_service.dart';
 
 class ReferralService {
   ReferralService._();
@@ -104,7 +103,7 @@ Features:
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('ReferralService failed: $e'); }
   }
 
   /// Submit a referral code (when a NEW user enters someone's code).
@@ -134,7 +133,7 @@ Features:
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_historyKey, jsonEncode(_history));
-    } catch (_) {}
+    } catch (e) { debugPrint('ReferralService failed: $e'); }
 
     return true;
   }
@@ -153,6 +152,6 @@ Features:
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_historyKey);
-    } catch (_) {}
+    } catch (e) { debugPrint('ReferralService failed: $e'); }
   }
 }

@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/referral_service.dart';
@@ -295,6 +296,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
                 ],
               ),
             ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 

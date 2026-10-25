@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../services/cloud_backup_service.dart';
@@ -267,6 +268,7 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
                     ],
                   ),
                 ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 

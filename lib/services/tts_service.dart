@@ -94,6 +94,9 @@ class TtsService {
     if (totalAmount <= 0) return null;
 
     final amountStr = totalAmount.toStringAsFixed(2);
+    // Convert symbol to a speakable currency word in the user's language.
+    // TTS engines speak "₹" poorly across locales; the localized word is clearer.
+    final currencyWord = _currencyWord(currencySymbol, language);
 
     switch (language) {
       case 'bn':
@@ -102,6 +105,7 @@ class TtsService {
           amount: amountStr,
           name: name,
           note: note,
+          currencyWord: currencyWord,
         );
       case 'hi':
         return _buildHi(
@@ -109,6 +113,7 @@ class TtsService {
           amount: amountStr,
           name: name,
           note: note,
+          currencyWord: currencyWord,
         );
       case 'en':
       default:
@@ -117,8 +122,37 @@ class TtsService {
           amount: amountStr,
           name: name,
           note: note,
+          currencyWord: currencyWord,
         );
     }
+  }
+
+  /// Map a currency symbol to a speakable word in the user's language.
+  /// Falls back to the symbol itself if we don't have a translation.
+  static String _currencyWord(String symbol, String language) {
+    // Symbol → currency code (only the ones we ship)
+    final code = const {
+      '₹': 'INR',
+      '\$': 'USD',
+      '€': 'EUR',
+      '£': 'GBP',
+      '৳': 'BDT',
+      'रू': 'NPR',
+    }[symbol];
+
+    if (code == null) return symbol;
+
+    // Localized spoken word for each currency code per app language.
+    final localized = const {
+      'INR': {'en': 'rupees', 'bn': 'টাকা', 'hi': 'रुपये'},
+      'USD': {'en': 'dollars', 'bn': 'ডলার', 'hi': 'डॉलर'},
+      'EUR': {'en': 'euros', 'bn': 'ইউরো', 'hi': 'यूरो'},
+      'GBP': {'en': 'pounds', 'bn': 'পাউন্ড', 'hi': 'पाउंड'},
+      'BDT': {'en': 'taka', 'bn': 'টাকা', 'hi': 'टका'},
+      'NPR': {'en': 'rupees', 'bn': 'টাকা', 'hi': 'रुपये'},
+    }[code];
+
+    return localized?[language] ?? symbol;
   }
 
   String _buildEn({
@@ -126,12 +160,13 @@ class TtsService {
     required String amount,
     String? name,
     String? note,
+    required String currencyWord,
   }) {
     final buf = StringBuffer();
     if (name != null && name.trim().isNotEmpty) {
       buf.write('Saved for ${name.trim()}. ');
     }
-    buf.write('Total amount: $amount rupees. ');
+    buf.write('Total amount: $amount $currencyWord. ');
     if (note != null && note.trim().isNotEmpty) {
       buf.write('Notes: ${note.trim()}.');
     }
@@ -143,12 +178,13 @@ class TtsService {
     required String amount,
     String? name,
     String? note,
+    required String currencyWord,
   }) {
     final buf = StringBuffer();
     if (name != null && name.trim().isNotEmpty) {
       buf.write('${name.trim()}-এর জন্য সেভ করা হলো। ');
     }
-    buf.write('মোট টাকা: $amount টাকা। ');
+    buf.write('মোট টাকা: $amount $currencyWord। ');
     if (note != null && note.trim().isNotEmpty) {
       buf.write('নোট: ${note.trim()}.');
     }
@@ -160,12 +196,13 @@ class TtsService {
     required String amount,
     String? name,
     String? note,
+    required String currencyWord,
   }) {
     final buf = StringBuffer();
     if (name != null && name.trim().isNotEmpty) {
       buf.write('${name.trim()} के लिए सेव किया गया। ');
     }
-    buf.write('कुल राशि: $amount रुपये। ');
+    buf.write('कुल राशि: $amount $currencyWord। ');
     if (note != null && note.trim().isNotEmpty) {
       buf.write('नोट्स: ${note.trim()}.');
     }
@@ -178,7 +215,8 @@ class TtsService {
   /// - [totalAmount]: total amount saved (0 → skipped).
   /// - [name]: optional customer/person name.
   /// - [note]: optional note text the user typed in the note field.
-  /// - [currencySymbol]: for reference (currently voice always says "rupees"/"টাকা"/"रुपये").
+  /// - [currencySymbol]: symbol like ₹, $, €, ৳ — converted to a speakable
+  ///   word based on app language (e.g. ₹ → "rupees" in en, "টাকা" in bn).
   Future<void> announceSave({
     required String transactionType,
     required double totalAmount,
@@ -214,7 +252,7 @@ class TtsService {
     try {
       await _ensureInitialized();
       await _tts.stop();
-    } catch (_) {}
+    } catch (e) { debugPrint('TtsService failed: $e'); }
   }
 
   /// Set the voice toggle persistently.
@@ -222,7 +260,7 @@ class TtsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('voice_announcement', enabled);
-    } catch (_) {}
+    } catch (e) { debugPrint('TtsService failed: $e'); }
   }
 
   /// Set the app language persistently (also used by other UI parts).
@@ -230,6 +268,6 @@ class TtsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('app_language', language);
-    } catch (_) {}
+    } catch (e) { debugPrint('TtsService failed: $e'); }
   }
 }

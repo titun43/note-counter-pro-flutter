@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import '../services/contact_picker_service.dart';
 import '../services/pdf_service.dart';
-import '../services/reminder_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
@@ -434,7 +433,6 @@ class _KhataScreenState extends State<KhataScreen> {
   /// Send reminder to all pending customers (Idea 4)
   Future<void> _sendReminderToAll() async {
     final storage = context.read<StorageService>();
-    final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
     final customers = storage.customers
         .where((c) => c.balance.abs() > 0.01)
         .toList();

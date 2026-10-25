@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'package:provider/provider.dart';
 import '../services/reminder_service.dart';
 import '../services/storage_service.dart';
@@ -138,6 +139,7 @@ class _ReminderHistoryScreenState extends State<ReminderHistoryScreen> {
                     );
                   },
                 ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 }

@@ -33,7 +33,6 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
   
   Future<void> _showAddCustomerDialog() async {
-    final loc = context.loc;
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final emailController = TextEditingController();

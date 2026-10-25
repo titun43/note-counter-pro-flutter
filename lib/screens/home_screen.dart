@@ -184,6 +184,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedCurrency = currencyCode;
       _clearCountControllers();
       _initCountControllers();
+      // Clear target/other/online amounts — they were entered in the old currency
+      // and would be semantically wrong after switching (e.g. ₹1000 target ≠ $1000 target).
+      _targetAmountController.clear();
+      _otherAmountController.clear();
+      _onlineAmountController.clear();
+      _hideTransactionToggle = false;
       context.read<StorageService>().setDefaultCurrency(currencyCode);
     });
   }
@@ -191,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _saveEntry(bool isCashIn) async {
     if (_grandTotal == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add some amount first!')),
+        SnackBar(content: Text(context.loc.t('addSomeAmount'))),
       );
       return;
     }
@@ -250,6 +256,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+
+    // Dispose controllers to prevent memory leak (was missing before).
+    nameController.dispose();
+    noteController.dispose();
 
     if (result == null) return; // User cancelled
 
@@ -320,6 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
       double savedOnlineAmount, String savedTransactionType, String savedCurrencySymbol) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = context.loc;
     final screenshotController = ScreenshotController();
 
     showDialog(
@@ -357,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Icon(Icons.receipt_long, color: Colors.white, size: 32),
                           const SizedBox(height: 8),
                           Text(
-                            isCashIn ? 'CASH IN' : 'CASH OUT',
+                            isCashIn ? loc.t('cashInCaps') : loc.t('cashOutCaps'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -491,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 OutlinedButton.icon(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close, color: Colors.white),
-                  label: const Text('Close', style: TextStyle(color: Colors.white)),
+                  label: Text(loc.t('close'), style: const TextStyle(color: Colors.white)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white54),
                   ),
@@ -531,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                   icon: const Icon(Icons.share),
-                  label: const Text('Share Image'),
+                  label: Text(loc.t('shareImage')),
                 ),
               ],
             ),
@@ -566,8 +577,9 @@ class _HomeScreenState extends State<HomeScreen> {
       double savedGrandTotal, int savedTotalNotes, double savedOtherAmount,
       double savedOnlineAmount, String savedTransactionType, String savedCurrencySymbol) {
     final receiptText = StringBuffer();
+    final loc = context.loc;
     receiptText.writeln('═══════════════════════');
-    receiptText.writeln('   ${isCashIn ? "CASH IN" : "CASH OUT"} RECEIPT');
+    receiptText.writeln('   ${isCashIn ? loc.t('cashInCaps') : loc.t('cashOutCaps')} ${loc.t('receipt')}');
     receiptText.writeln('═══════════════════════');
     receiptText.writeln('Note Counter Pro');
     receiptText.writeln('Date: ${entry.date.day}/${entry.date.month}/${entry.date.year}');
@@ -1003,6 +1015,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Show full QR detail dialog with large QR + pay button
   void _showQrDetailDialog(Map<String, String> qr, String upiString) {
     final theme = Theme.of(context);
+    final loc = context.loc;
     final name = qr['name'] ?? '';
     final upiId = qr['upiId'] ?? '';
     final amount = qr['amount'] ?? '';
@@ -1073,7 +1086,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close, size: 18),
-                      label: const Text('Close'),
+                      label: Text(loc.t('close')),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1087,7 +1100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                       icon: const Icon(Icons.add, size: 18),
-                      label: const Text('New QR'),
+                      label: Text(loc.t('newQr')),
                     ),
                   ),
                 ],
@@ -1123,6 +1136,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Show receipt dialog when tapping a history entry
   void _showHistoryReceiptDialog(Entry entry) {
     final theme = Theme.of(context);
+    final loc = context.loc;
     final isIn = entry.type == 'cash_in';
     final symbol = AppConstants.getCurrencySymbol(entry.currency);
 
@@ -1149,7 +1163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Icon(Icons.receipt_long, color: Colors.white, size: 32),
                     const SizedBox(height: 8),
                     Text(
-                      isIn ? 'CASH IN' : 'CASH OUT',
+                      isIn ? loc.t('cashInCaps') : loc.t('cashOutCaps'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -1261,7 +1275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.close),
-                            label: const Text('Close'),
+                            label: Text(loc.t('close')),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1291,10 +1305,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _shareHistoryEntry(Entry entry) {
     final isIn = entry.type == 'cash_in';
     final symbol = AppConstants.getCurrencySymbol(entry.currency);
+    final loc = context.loc;
 
     final text = StringBuffer();
     text.writeln('═══════════════════════');
-    text.writeln('   ${isIn ? "CASH IN" : "CASH OUT"} RECEIPT');
+    text.writeln('   ${isIn ? loc.t('cashInCaps') : loc.t('cashOutCaps')} ${loc.t('receipt')}');
     text.writeln('═══════════════════════');
     text.writeln('Note Counter Pro');
     text.writeln('Date: ${entry.date.day}/${entry.date.month}/${entry.date.year}');
@@ -1362,8 +1377,8 @@ class _HomeScreenState extends State<HomeScreen> {
       await storage.deleteEntry(entry.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Entry deleted'),
+          SnackBar(
+            content: Text(context.loc.t('entryDeleted')),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -1404,8 +1419,8 @@ class _HomeScreenState extends State<HomeScreen> {
       await storage.deleteQrHistory(index);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('QR deleted'),
+          SnackBar(
+            content: Text(context.loc.t('qrDeleted')),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -1416,11 +1431,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _sendToCalculator() {
     if (_grandTotal == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add some amount first!')),
+        SnackBar(content: Text(context.loc.t('addSomeAmount'))),
       );
       return;
     }
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1487,6 +1502,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
+                          fontFamily: 'KhataHandwriting',
+                          fontSize: 18,
                         ),
                       ),
                       Text(
@@ -1522,6 +1539,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.bgDark,
+                          fontFamily: 'KhataHandwriting',
+                          fontSize: 18,
                         ),
                       ),
                       Text(
@@ -1730,6 +1749,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               : null,
                         ),
                         keyboardType: TextInputType.number,
+                        maxLength: 12,
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
                         onChanged: (_) => setState(() {}),
                       ),
@@ -1846,6 +1866,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               : null,
                         ),
                         keyboardType: TextInputType.number,
+                        maxLength: 12,
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
                         onChanged: (_) => setState(() {}),
                       ),
@@ -1870,6 +1891,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               : null,
                         ),
                         keyboardType: TextInputType.number,
+                        maxLength: 12,
                         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
                         onChanged: (_) => setState(() {}),
                       ),
@@ -1888,7 +1910,6 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 final denom = _denominations[index];
                 final value = denom['value'] as int;
-                final name = denom['name'] as String;
                 final count = _getCount(value);
                 final subtotal = value * count;
                 

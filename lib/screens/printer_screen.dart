@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'package:provider/provider.dart';
 import '../models/entry.dart';
 import '../services/printer_service.dart';
@@ -281,6 +282,7 @@ class _PrinterScreenState extends State<PrinterScreen> {
                 ],
               ),
             ),
+      bottomNavigationBar: const BannerAdWidget(),
     );
   }
 }

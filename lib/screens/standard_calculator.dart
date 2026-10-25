@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class StandardCalculator extends StatefulWidget {
   final double? initialValue;
@@ -170,7 +170,10 @@ class _StandardCalculatorState extends State<StandardCalculator> {
           case '+': stack.add(a + b); break;
           case '-': stack.add(a - b); break;
           case '*': stack.add(a * b); break;
-          case '/': stack.add(a / b); break;
+          case '/':
+            if (b == 0) throw Exception('Division by zero');
+            stack.add(a / b);
+            break;
         }
       }
     }
@@ -206,7 +209,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                   children: [
                     const Icon(Icons.history, size: 20),
                     const SizedBox(width: 8),
-                    const Text('History',
+                    Text(context.loc.t('history'),
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const Spacer(),
                     if (_history.isNotEmpty)
@@ -215,7 +218,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                           _history.clear();
                           Navigator.pop(ctx);
                         }),
-                        child: const Text('Clear', style: TextStyle(fontSize: 13)),
+                        child: Text(context.loc.t('clearHistory'), style: const TextStyle(fontSize: 13)),
                       ),
                   ],
                 ),
@@ -223,10 +226,10 @@ class _StandardCalculatorState extends State<StandardCalculator> {
               const Divider(height: 1),
               // History list
               if (_history.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text('No history yet',
-                      style: TextStyle(color: Colors.grey)),
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(context.loc.t('noHistoryYet'),
+                      style: const TextStyle(color: Colors.grey)),
                 )
               else
                 ConstrainedBox(
@@ -298,7 +301,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                 IconButton(
                   icon: const Icon(Icons.more_vert, size: 22),
                   onPressed: _showHistory,
-                  tooltip: 'History',
+                  tooltip: context.loc.t('history'),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),

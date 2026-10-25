@@ -589,6 +589,14 @@ class StorageService extends ChangeNotifier {
     _scheduleAutoBackup();
   }
 
+  /// Public trigger for UI refresh after an external data mutation
+  /// (e.g. after BackupService.restoreFromFile or restoreFromLocalBackup).
+  /// Without this, the UI would not know that the data changed and would
+  /// show stale state until the next user action.
+  void triggerRefresh() {
+    notifyListeners();
+  }
+
   // === Auto-Backup ===
   // Debounced auto-backup: coalesce multiple changes within 5 seconds
   // into a single backup file write.

@@ -13,10 +13,7 @@ import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
-import 'screens/customers_screen.dart';
 import 'screens/khata_screen.dart';
-import 'screens/bills_screen.dart';
-import 'screens/reports_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
 import 'package:flutter/services.dart';
@@ -43,7 +40,13 @@ void main() async {
   
   // Initialize AdMob 3 seconds after app starts (non-blocking, safe)
   Future.delayed(const Duration(seconds: 3), () {
-    AdMobService.initialize().catchError((e) {
+    AdMobService.initialize().then((_) {
+      // Show app-open ad on cold start (after AdMob is initialized and the
+      // first frame has rendered). Premium users skip this via shouldShowAds.
+      Future.delayed(const Duration(seconds: 2), () {
+        AdMobService.showAppOpenAd();
+      });
+    }).catchError((e) {
       debugPrint('AdMob init failed: $e');
     });
   });
@@ -133,14 +136,43 @@ class MainScaffold extends StatefulWidget {
   State<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
+class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver {
   int _currentIndex = 0;
   int _pageChangeCount = 0; // For interstitial ad timing
-  
+
+  /// Whether the app has been backgrounded at least once. Used to ensure
+  /// the app-open ad only triggers when the user RETURNS to the app, not on
+  /// the very first launch (cold-start app open ads are handled separately).
+  bool _isFirstResume = true;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkForUpdate();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Show app-open ad when the user returns to the app from background.
+    // Skip the very first transition (cold start handled by app launch flow).
+    if (state == AppLifecycleState.resumed) {
+      if (_isFirstResume) {
+        _isFirstResume = false;
+        return;
+      }
+      // Small delay so the UI has time to settle before the ad shows.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) AdMobService.showAppOpenAd();
+      });
+    }
   }
   
   Future<void> _checkForUpdate() async {

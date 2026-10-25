@@ -32,6 +32,7 @@ class PrinterService {
 
   bool get isConnected => _isConnected;
   String? get lastConnectedHost => _lastConnectedHost;
+  int get lastConnectedPort => _lastConnectedPort;
 
   /// Connect to a network printer (most common ESC/POS printers support
   /// TCP/IP on port 9100).
@@ -69,7 +70,7 @@ class PrinterService {
     try {
       _printer?.disconnect();
       _isConnected = false;
-    } catch (_) {}
+    } catch (e) { debugPrint('PrinterService failed: $e'); }
   }
 
   /// Print a cash-in/cash-out receipt

@@ -77,7 +77,7 @@ class CloudBackupService {
     try {
       await _googleSignIn.signOut();
       _currentUser = null;
-    } catch (_) {}
+    } catch (e) { debugPrint('CloudBackupService failed: $e'); }
   }
 
   /// Build an authenticated http.Client from GoogleSignInAccount.

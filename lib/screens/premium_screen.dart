@@ -133,11 +133,11 @@ class _PremiumScreenState extends State<PremiumScreen> {
             _BenefitTile(icon: Icons.block, color: AppColors.danger,
                 title: loc.t('premiumBenefit1Title'), subtitle: loc.t('premiumBenefit1Sub')),
             _BenefitTile(icon: Icons.fingerprint, color: AppColors.success,
-                title: 'App Lock (Fingerprint/PIN)', subtitle: 'Secure your app with biometric lock'),
+                title: loc.t('appLock'), subtitle: loc.t('appLockDesc')),
             _BenefitTile(icon: Icons.record_voice_over, color: AppColors.info,
-                title: 'Voice Announcement', subtitle: 'Voice reads out totals on save'),
+                title: loc.t('voiceAnnouncement'), subtitle: loc.t('voiceAnnouncementDesc')),
             _BenefitTile(icon: Icons.support_agent, color: AppColors.primary,
-                title: 'Priority Support', subtitle: 'Direct email support'),
+                title: loc.t('prioritySupport'), subtitle: loc.t('prioritySupportDesc')),
             _BenefitTile(icon: Icons.update, color: AppColors.primary,
                 title: loc.t('premiumBenefit3Title'), subtitle: loc.t('premiumBenefit3Sub')),
 
@@ -222,9 +222,7 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isBestValue = plan['badge'] != null;
-    final isLifetime = plan['id'] == PremiumService.productIdLifetime;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

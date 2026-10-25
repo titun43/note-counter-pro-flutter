@@ -20,13 +20,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:screenshot/screenshot.dart';
 import '../models/customer.dart';
 import '../services/storage_service.dart';
 
@@ -275,7 +273,6 @@ class ReminderService {
       final business = storage.businessName.isNotEmpty
           ? storage.businessName
           : 'My Business';
-      final amount = balance.abs().toStringAsFixed(2);
       final upiLink = _buildUpiLink(upiId, business, balance.abs());
 
       // Render QR as image via QrImage widget → toImage → toByteData

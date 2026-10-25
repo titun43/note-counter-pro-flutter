@@ -89,7 +89,7 @@ class BackupService {
       // Import data
       final success = await storage.importData(backup);
       if (success) {
-        storage.notifyListeners();
+        storage.triggerRefresh();
       }
       return success;
     } catch (e) {
@@ -107,7 +107,6 @@ class BackupService {
 
       final now = DateTime.now();
       final timestamp = now.millisecondsSinceEpoch;
-      final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
       final dir = await getApplicationDocumentsDirectory();
       final backupDir = Directory('${dir.path}/$_backupDirName');
@@ -253,7 +252,7 @@ class BackupService {
 
       final success = await storage.importData(backup);
       if (success) {
-        storage.notifyListeners();
+        storage.triggerRefresh();
       }
       return success;
     } catch (e) {

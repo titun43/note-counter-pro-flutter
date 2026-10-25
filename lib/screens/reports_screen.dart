@@ -12,8 +12,9 @@ class ReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = context.loc;
     final theme = Theme.of(context);
-    final storage = context.read<StorageService>();
+    final storage = context.watch<StorageService>();
     final entries = storage.entries;
+    final currencySymbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
     
     final now = DateTime.now();
     final thisMonth = entries.where((e) =>
@@ -40,6 +41,7 @@ class ReportsScreen extends StatelessWidget {
             count: thisWeek.length,
             color: AppColors.info,
             icon: Icons.date_range,
+            currencySymbol: currencySymbol,
           ),
           const SizedBox(height: 12),
           _buildReportCard(
@@ -49,6 +51,7 @@ class ReportsScreen extends StatelessWidget {
             count: thisMonth.length,
             color: AppColors.primary,
             icon: Icons.calendar_month,
+            currencySymbol: currencySymbol,
           ),
           const SizedBox(height: 12),
           _buildReportCard(
@@ -58,6 +61,7 @@ class ReportsScreen extends StatelessWidget {
             count: entries.length,
             color: AppColors.success,
             icon: Icons.all_inclusive,
+            currencySymbol: currencySymbol,
           ),
           const SizedBox(height: 24),
           Text(
@@ -88,7 +92,7 @@ class ReportsScreen extends StatelessWidget {
                   backgroundColor: _getTypeColor(entry.type),
                   child: Icon(_getTypeIcon(entry.type), color: Colors.white),
                 ),
-                title: Text('₹${entry.amount.toStringAsFixed(2)}'),
+                title: Text('$currencySymbol${entry.amount.toStringAsFixed(2)}'),
                 subtitle: Text(
                   '${entry.customerName ?? 'Counter'} - ${entry.date.day}/${entry.date.month}/${entry.date.year}',
                 ),
@@ -111,6 +115,7 @@ class ReportsScreen extends StatelessWidget {
     required int count,
     required Color color,
     required IconData icon,
+    required String currencySymbol,
   }) {
     final theme = Theme.of(context);
     return Card(
@@ -135,7 +140,7 @@ class ReportsScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '₹${amount.toStringAsFixed(2)}',
+                    '$currencySymbol${amount.toStringAsFixed(2)}',
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: color,

@@ -9,6 +9,7 @@ import '../services/storage_service.dart';
 import '../services/backup_service.dart';
 import '../services/tts_service.dart';
 import '../services/premium_service.dart';
+import '../services/admob_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'upi_qr_screen.dart';
@@ -617,6 +618,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
                 ),
               ),
+              // Rewarded ad — earn 1-day premium trial by watching a video ad
+              if (!isPremium) ...[
+                const _Divider(),
+                ValueListenableBuilder<bool>(
+                  valueListenable: _premiumNotifier,
+                  builder: (context, _, __) {
+                    // If trial became active after watching ad, hide this tile.
+                    if (PremiumService().isPremium) {
+                      return ListTile(
+                        leading: const Icon(Icons.verified, color: AppColors.success),
+                        title: Text(
+                          '${loc.t('trialActive')}: ${PremiumService().trialRemainingLabel}',
+                          style: const TextStyle(
+                              color: AppColors.success, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(loc.t('trialActiveDesc')),
+                      );
+                    }
+                    return ListTile(
+                      leading: const Icon(Icons.play_circle_outline, color: AppColors.success),
+                      title: Text(loc.t('watchAdFreePremium')),
+                      subtitle: Text(loc.t('watchAdFreePremiumDesc')),
+                      trailing: AdMobService.isRewardedAdReady
+                          ? const Icon(Icons.chevron_right, color: AppColors.success)
+                          : const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                      onTap: _watchRewardedAd,
+                    );
+                  },
+                ),
+              ],
             ],
           ),
 
@@ -1137,6 +1172,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  /// Show a rewarded video ad. On successful completion, grant 1 day of
+  /// premium trial. Updates the _premiumNotifier so the UI refreshes.
+  Future<void> _watchRewardedAd() async {
+    final loc = context.loc;
+    final shown = AdMobService.showRewardedAd(
+      onRewardEarned: () async {
+        await PremiumService().grantRewardedTrialDays(1);
+        if (mounted) {
+          _premiumNotifier.value = PremiumService().isPremium;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('rewardGrantedMsg')),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      },
+    );
+    if (!shown && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('adNotReadyMsg')),
+          backgroundColor: AppColors.warning,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   /// Show export menu (entries / customers / both) — replaces 3 separate tiles
