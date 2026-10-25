@@ -71,8 +71,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _onPremiumChanged() {
     if (!mounted) return;
-    _premiumNotifier.value = PremiumService().isPremium;
-    setState(() {}); // rebuild so the gated toggles update their state
+    // Force the ValueNotifier to fire by toggling its value. Simply
+    // setting it to the same value (e.g. true → true) does NOT notify
+    // listeners. So we toggle to the opposite first, then set the
+    // correct value — this guarantees the listeners rebuild.
+    final newValue = PremiumService().isPremium;
+    if (_premiumNotifier.value == newValue) {
+      // Same value — force a rebuild via setState.
+      setState(() {});
+    } else {
+      _premiumNotifier.value = newValue;
+    }
   }
 
   @override
@@ -423,24 +432,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final loc = context.loc;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final storage = context.watch<StorageService>();
-    final isPremium = PremiumService().isPremium;
+
+    // Wrap the entire body in a ValueListenableBuilder on themeNotifier
+    // so that ALL settings cards (which use isDark for card background,
+    // borders, shadows) rebuild when dark mode is toggled — even though
+    // setDarkMode() no longer calls notifyListeners() on StorageService.
+    return ValueListenableBuilder<bool>(
+      valueListenable: storage.themeNotifier,
+      builder: (context, isDarkMode, _) {
+        final isDark = isDarkMode;
+        final isPremium = PremiumService().isPremium;
 
     return Scaffold(
-      // No AppBar title — settings screen starts directly with the
-      // premium header card for a cleaner look. The AppBar itself is
-      // retained to give the status bar a proper background and to
-      // handle scroll padding.
-      appBar: AppBar(
-        title: const SizedBox.shrink(),
-        forceMaterialTransparency: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: [
-          // ===== PROFILE / PREMIUM HEADER CARD =====
-          ValueListenableBuilder<bool>(
+      // No AppBar — saves ~56px of empty space at the top.
+      // SafeArea in body provides the status-bar padding.
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+          children: [
+            // ===== PROFILE / PREMIUM HEADER CARD =====
+            ValueListenableBuilder<bool>(
             valueListenable: _premiumNotifier,
             builder: (context, premium, _) {
               return _buildPremiumHeader(premium, isDark);
@@ -990,8 +1002,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-        ],
+          ],
+        ),
       ),
+    );
+      },
     );
   }
 

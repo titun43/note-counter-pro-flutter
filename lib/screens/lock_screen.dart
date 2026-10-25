@@ -64,8 +64,16 @@ class _LockScreenState extends State<LockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      body: Container(
+    // CRITICAL: PopScope prevents the user from dismissing the lock
+    // screen with the system back button. Without this, a user could
+    // bypass app lock by pressing back on Android.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        // Block all back navigation — user MUST authenticate.
+      },
+      child: Scaffold(
+        body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -159,6 +167,7 @@ class _LockScreenState extends State<LockScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
