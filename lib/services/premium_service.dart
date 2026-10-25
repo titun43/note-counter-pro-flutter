@@ -57,7 +57,6 @@ class PremiumService extends ChangeNotifier {
   StreamSubscription<List<PurchaseDetails>>? _subscription;
   bool _isPremium = false;
   String _activePlan = '';
-  bool _initialized = false;
   /// Wall-clock millis when the current rewarded-ad trial expires.
   /// 0 if no trial is active. Read from prefs on init.
   int _trialExpiryMs = 0;
@@ -132,11 +131,18 @@ class PremiumService extends ChangeNotifier {
     },
   ];
 
-  /// Initialize the service. Call once on app start.
+  /// Initialize the service. Called on app start.
+  ///
+  /// This method is SAFE to call multiple times — it will always reload
+  /// the persisted premium/trial state from SharedPreferences and notify
+  /// listeners. The previous version used an _initialized flag that
+  /// caused init() to silently skip on subsequent calls (e.g. after hot
+  /// restart), leaving the UI with stale isPremium=false even though a
+  /// trial was active.
+  ///
+  /// The IAP purchase stream subscription is only created once (guarded
+  /// by _subscription != null) to avoid duplicate listeners.
   Future<void> init() async {
-    if (_initialized) return;
-    _initialized = true;
-
     try {
       final prefs = await SharedPreferences.getInstance();
       _isPremium = prefs.getBool(_prefsKey) ?? false;
@@ -144,20 +150,19 @@ class PremiumService extends ChangeNotifier {
       _trialExpiryMs = prefs.getInt(_prefsTrialExpiryKey) ?? 0;
     } catch (e) { debugPrint('PremiumService failed: $e'); }
 
-    _subscription = _iap.purchaseStream.listen(
+    // Only subscribe to the IAP purchase stream once.
+    _subscription ??= _iap.purchaseStream.listen(
       _onPurchaseUpdated,
       onError: (e) => debugPrint('PremiumService: purchase stream error: $e'),
     );
 
     await _restorePurchases();
 
-    // CRITICAL: notify listeners after loading persisted state so that
-    // any UI widget bound to isPremium (Settings screen App Lock / Voice
-    // toggles, Premium screen, etc.) rebuilds with the correct premium
-    // state. Without this, the Settings screen keeps the stale
-    // isPremium=false from the first build (before init() completed)
-    // and the App Lock / Voice toggles stay gated even though a trial
-    // is active.
+    // CRITICAL: always notify listeners so any UI widget bound to
+    // isPremium (Settings screen App Lock / Voice toggles, Premium
+    // screen, etc.) rebuilds with the correct premium state loaded
+    // from prefs. Without this, the Settings screen keeps the stale
+    // isPremium=false from the first build (before init() completed).
     notifyListeners();
   }
 

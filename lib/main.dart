@@ -118,6 +118,13 @@ class NoteCounterProApp extends StatelessWidget {
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
             themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            // Smooth dark/light theme transition — 350ms curve.
+            // MaterialApp uses AnimatedTheme internally; this duration
+            // controls how long the cross-fade takes when the user
+            // toggles dark mode. Default is 200ms which can feel abrupt;
+            // 350ms with easeInOut feels more polished.
+            themeAnimationDuration: const Duration(milliseconds: 350),
+            themeAnimationCurve: Curves.easeInOut,
             // Home is ALWAYS MainScaffold. App Lock is handled inside
             // MainScaffold via Navigator.push on initial launch only —
             // toggling the App Lock switch no longer kicks the user out
