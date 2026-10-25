@@ -15,6 +15,10 @@ class StorageService extends ChangeNotifier {
   List<Bill> _bills = [];
   
   StorageService(this._prefs) {
+    // Initialize the theme notifier with the persisted value so the
+    // very first frame uses the correct theme without waiting for
+    // _loadData() to complete.
+    themeNotifier = ValueNotifier<bool>(isDarkMode);
     _loadData();
   }
   
@@ -75,11 +79,23 @@ class StorageService extends ChangeNotifier {
   }
   
   // === Theme ===
+  // We expose dark-mode via a dedicated ValueNotifier so that theme
+  // changes don't trigger a full StorageService.notifyListeners() call
+  // (which would rebuild every screen that uses context.watch<StorageService>
+  // and cause visible UI flashing). Only widgets that subscribe to
+  // themeNotifier rebuild on theme change.
+  late final ValueNotifier<bool> themeNotifier;
+
   bool get isDarkMode => _prefs?.getBool('isDarkMode') ?? false;
-  
+
   Future<void> setDarkMode(bool value) async {
     await _prefs?.setBool('isDarkMode', value);
-    notifyListeners();
+    // Only notify theme subscribers — do NOT call notifyListeners() here.
+    // This is the fix for the dark-mode flashing issue: the previous
+    // notifyListeners() call caused every screen using
+    // context.watch<StorageService> to rebuild, reloading BannerAdWidgets
+    // and producing a visible flash.
+    themeNotifier.value = value;
   }
   
   // === Currency ===

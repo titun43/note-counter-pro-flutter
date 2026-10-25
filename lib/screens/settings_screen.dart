@@ -456,12 +456,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _settingsCard(
             isDark: isDark,
             children: [
-              SwitchListTile(
-                secondary: const Icon(Icons.dark_mode_outlined, color: AppColors.primary),
-                title: Text(loc.t('darkMode')),
-                subtitle: Text(loc.t('toggleDarkTheme')),
-                value: storage.isDarkMode,
-                onChanged: (value) => storage.setDarkMode(value),
+              // Dark Mode toggle uses themeNotifier (a dedicated
+              // ValueNotifier) so that the toggle updates immediately
+              // WITHOUT triggering a full StorageService rebuild.
+              // This is critical for the flashing fix — the previous
+              // implementation called notifyListeners() which rebuilt
+              // every screen watching StorageService.
+              ValueListenableBuilder<bool>(
+                valueListenable: storage.themeNotifier,
+                builder: (context, isDarkMode, _) {
+                  return SwitchListTile(
+                    secondary: const Icon(Icons.dark_mode_outlined, color: AppColors.primary),
+                    title: Text(loc.t('darkMode')),
+                    subtitle: Text(loc.t('toggleDarkTheme')),
+                    value: isDarkMode,
+                    onChanged: (value) => storage.setDarkMode(value),
+                  );
+                },
               ),
               const _Divider(),
               SwitchListTile(

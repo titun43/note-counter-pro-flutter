@@ -84,22 +84,40 @@ class NoteCounterProApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Selector watches ONLY isDarkMode + languageCode. Other storage
-    // changes (appLockEnabled toggle, currency change, etc.) do NOT
-    // rebuild the MaterialApp — preventing the flashing caused by the
-    // previous Consumer<StorageService> rebuilding the entire widget
-    // tree (including all BannerAdWidgets) on every storage change.
-    return Selector<StorageService, ({bool isDarkMode, String languageCode})>(
-      selector: (_, s) => (isDarkMode: s.isDarkMode, languageCode: s.languageCode),
-      builder: (context, state, child) {
+    // CRITICAL FIX for dark-mode flashing:
+    // The previous implementation used Consumer<StorageService> (and
+    // later Selector) which subscribed to the WHOLE StorageService.
+    // When setDarkMode() was called, it triggered notifyListeners(),
+    // which rebuilt MaterialApp AND every screen that used
+    // context.watch<StorageService> (HomeScreen, KhataScreen,
+    // SettingsScreen) — visibly flashing the UI and reloading
+    // BannerAdWidgets.
+    //
+    // Now we use a dedicated themeNotifier (ValueNotifier<bool>) on
+    // StorageService. setDarkMode() only updates this notifier — it
+    // does NOT call notifyListeners() on the StorageService. So:
+    //   - MaterialApp rebuilds (theme change)
+    //   - But the screens that watch StorageService do NOT rebuild
+    //   - BannerAdWidgets stay alive → no flash
+    //
+    // The language code is read once at startup via context.select
+    // (language changes are rare and a rebuild is acceptable there).
+    final storage = context.read<StorageService>();
+    final languageCode = context.select<StorageService, String>(
+      (s) => s.languageCode,
+    );
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: storage.themeNotifier,
+      builder: (context, isDarkMode, _) {
         return LocalizationProvider(
-          languageCode: state.languageCode,
+          languageCode: languageCode,
           child: MaterialApp(
             title: 'Note Counter Pro',
             debugShowCheckedModeBanner: false,
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,
-            themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
             // Home is ALWAYS MainScaffold. App Lock is handled inside
             // MainScaffold via Navigator.push on initial launch only —
             // toggling the App Lock switch no longer kicks the user out
@@ -240,17 +258,33 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
   
   @override
   Widget build(BuildContext context) {
-    final storage = context.watch<StorageService>();
-    final currencyCode = storage.defaultCurrency;
+    // CRITICAL FIX for the dark-mode flashing issue:
+    // Previously this used context.watch<StorageService>() which caused
+    // MainScaffold to rebuild on EVERY storage change — including dark
+    // mode toggles. That rebuild recreated the _screens list, which in
+    // turn caused IndexedStack to rebuild every screen (HomeScreen,
+    // KhataScreen, SettingsScreen) — visibly flashing the UI and
+    // reloading BannerAdWidgets.
+    //
+    // Now we use context.read() inside a Selector that watches ONLY
+    // the currency code (the only thing the screens list depends on).
+    // Dark mode toggle no longer rebuilds MainScaffold — the theme
+    // change is handled by the Selector in NoteCounterProApp which
+    // just updates MaterialApp.themeMode without rebuilding screens.
+    final currencyCode = context.select<StorageService, String>(
+      (s) => s.defaultCurrency,
+    );
     final loc = context.loc;
-    
-    final List<Widget> _screens = [
+
+    // Cache the screens list so it doesn't get recreated on every build.
+    // We rebuild only when currencyCode changes.
+    final List<Widget> screens = [
       const HomeScreen(),
       CalculatorScreen(currencyCode: currencyCode),
       const KhataScreen(),
       const SettingsScreen(),
     ];
-    
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -267,7 +301,7 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
             Expanded(
               child: IndexedStack(
                 index: _currentIndex,
-                children: _screens,
+                children: screens,
               ),
             ),
           ],
