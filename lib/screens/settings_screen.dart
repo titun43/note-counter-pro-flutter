@@ -42,10 +42,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadPackageInfo();
     _loadVoiceSetting();
     _premiumNotifier.value = PremiumService().isPremium;
+    // CRITICAL: listen to PremiumService so that when a rewarded-ad trial
+    // is granted (PremiumService.grantRewardedTrialDays calls
+    // notifyListeners), this screen rebuilds and the App Lock / Voice
+    // Announcement / Cloud Backup / Printer toggles immediately become
+    // enabled. Without this listener, the toggles stay gated even after
+    // the trial becomes active.
+    PremiumService().addListener(_onPremiumChanged);
+  }
+
+  void _onPremiumChanged() {
+    if (!mounted) return;
+    _premiumNotifier.value = PremiumService().isPremium;
+    setState(() {}); // rebuild so the gated toggles update their state
   }
 
   @override
   void dispose() {
+    PremiumService().removeListener(_onPremiumChanged);
     _premiumNotifier.dispose();
     super.dispose();
   }

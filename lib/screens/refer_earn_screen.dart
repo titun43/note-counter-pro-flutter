@@ -26,7 +26,19 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Refresh when premium state changes (e.g. rewarded-ad trial granted).
+    PremiumService().addListener(_onPremiumChanged);
+  }
+
+  void _onPremiumChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    PremiumService().removeListener(_onPremiumChanged);
     _codeController.dispose();
     super.dispose();
   }

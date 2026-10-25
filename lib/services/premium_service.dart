@@ -20,10 +20,18 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class PremiumService {
+/// PremiumService is a ChangeNotifier so that any UI widget listening via
+/// `ListenableBuilder` / `AnimatedBuilder` / `context.watch` (when wrapped
+/// in a provider) rebuilds automatically when premium state changes.
+///
+/// Specifically: when a rewarded-ad trial is granted, the App Lock / Voice
+/// Announcement toggles in Settings must become enabled — they don't
+/// unless the PremiumService notifies listeners.
+class PremiumService extends ChangeNotifier {
   PremiumService._();
   static final PremiumService _instance = PremiumService._();
   factory PremiumService() => _instance;
@@ -147,6 +155,10 @@ class PremiumService {
   /// Grant the user a free premium trial by watching a rewarded ad.
   /// Adds [days] days to the current trial expiry (or starts a new trial).
   /// Stackable — multiple ad views extend the trial.
+  ///
+  /// Notifies listeners so that any UI widget bound to [isPremium]
+  /// (e.g. the App Lock and Voice Announcement toggles in Settings)
+  /// immediately reflects the new premium state.
   Future<void> grantRewardedTrialDays(int days) async {
     final now = DateTime.now();
     // If a trial is currently active, extend from its expiry; otherwise start fresh.
@@ -162,6 +174,9 @@ class PremiumService {
     }
     debugPrint('PremiumService: granted $days day(s) trial. Expires at '
         '${DateTime.fromMillisecondsSinceEpoch(_trialExpiryMs).toIso8601String()}');
+    // CRITICAL: notify listeners so the UI re-reads isPremium and unlocks
+    // the App Lock / Voice Announcement / Cloud Backup / Printer toggles.
+    notifyListeners();
   }
 
   Future<void> _restorePurchases() async {
@@ -248,14 +263,18 @@ class PremiumService {
       if (plan != null) await prefs.setString(_prefsPlanKey, plan);
     } catch (e) { debugPrint('PremiumService failed: $e'); }
     debugPrint('PremiumService: isPremium=$value, plan=${plan ?? _activePlan}');
+    // Notify listeners so any UI bound to isPremium refreshes immediately.
+    notifyListeners();
   }
 
   Future<void> debugTogglePremium() async {
     await _setPremium(!_isPremium);
   }
 
+  @override
   void dispose() {
     _subscription?.cancel();
     _subscription = null;
+    super.dispose();
   }
 }

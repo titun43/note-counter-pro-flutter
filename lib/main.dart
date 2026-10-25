@@ -38,12 +38,18 @@ void main() async {
     ),
   );
   
-  // Initialize AdMob 3 seconds after app starts (non-blocking, safe)
+  // Initialize AdMob 3 seconds after app starts (non-blocking, safe).
+  // IMPORTANT: AdMob init kicks off async ad loads (banner, interstitial,
+  // app open, rewarded). The ads take 2-5 seconds to actually load from
+  // the network, so we wait an EXTRA 4 seconds before trying to show the
+  // app-open ad on cold start. This gives the AppOpenAd.load() call
+  // enough time to complete and populate _appOpenAd.
   Future.delayed(const Duration(seconds: 3), () {
     AdMobService.initialize().then((_) {
-      // Show app-open ad on cold start (after AdMob is initialized and the
-      // first frame has rendered). Premium users skip this via shouldShowAds.
-      Future.delayed(const Duration(seconds: 2), () {
+      // Wait 4 seconds (was 2) for app-open ad to actually load.
+      // If still not loaded, showAppOpenAd will trigger a reload and
+      // the next lifecycle resume will show it.
+      Future.delayed(const Duration(seconds: 4), () {
         AdMobService.showAppOpenAd();
       });
     }).catchError((e) {

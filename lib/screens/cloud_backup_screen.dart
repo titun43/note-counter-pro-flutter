@@ -30,6 +30,18 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
   void initState() {
     super.initState();
     _loadBackups();
+    // Refresh when premium state changes (e.g. rewarded-ad trial granted).
+    PremiumService().addListener(_onPremiumChanged);
+  }
+
+  void _onPremiumChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    PremiumService().removeListener(_onPremiumChanged);
+    super.dispose();
   }
 
   Future<void> _loadBackups() async {

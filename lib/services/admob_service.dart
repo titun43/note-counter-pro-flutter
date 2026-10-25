@@ -190,15 +190,24 @@ class AdMobService {
   }
 
   /// Try to show the app open ad. Called on app open / resume.
-  /// Returns true if the ad was shown.
+  /// Returns true if the ad was shown immediately. If the ad is not yet
+  /// loaded, schedules a one-shot retry: polls every 1 second for up to
+  /// 6 seconds, and shows the ad as soon as it becomes available.
   static bool showAppOpenAd() {
     if (!shouldShowAds) return false;
     if (_isShowingAppOpen) return false;
     if (!_isAppOpenAdAvailable) {
+      // Ad not loaded yet — kick off a load and poll until it's ready.
       _loadAppOpenAd();
+      _scheduleAppOpenAdRetry(attempt: 0);
       return false;
     }
 
+    return _doShowAppOpenAd();
+  }
+
+  /// Internal: actually call .show() on the cached app-open ad.
+  static bool _doShowAppOpenAd() {
     try {
       _isShowingAppOpen = true;
       _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
@@ -224,6 +233,27 @@ class AdMobService {
       _isShowingAppOpen = false;
       return false;
     }
+  }
+
+  /// One-shot retry loop for showing the app-open ad when it's not yet
+  /// loaded at the time showAppOpenAd() was called.
+  /// Polls every 1 second, gives up after 6 attempts.
+  static Timer? _appOpenRetryTimer;
+  static void _scheduleAppOpenAdRetry({required int attempt}) {
+    _appOpenRetryTimer?.cancel();
+    if (attempt >= 6) {
+      debugPrint('App open ad: gave up after 6 retry attempts');
+      return;
+    }
+    _appOpenRetryTimer = Timer(const Duration(seconds: 1), () {
+      if (_isShowingAppOpen) return; // already showing
+      if (_isAppOpenAdAvailable) {
+        debugPrint('App open ad: ready after $attempt retry attempt(s), showing');
+        _doShowAppOpenAd();
+      } else {
+        _scheduleAppOpenAdRetry(attempt: attempt + 1);
+      }
+    });
   }
 
   // =========================================================================
