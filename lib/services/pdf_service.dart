@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
@@ -10,7 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'storage_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
-import '../utils/constants.dart';
+import '../models/bill.dart';
 
 /// PdfService — generates professional PDF for Khata summary and Customer statement
 /// Includes business details + actual QR code image
@@ -578,5 +577,272 @@ class PdfService {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Generate professional invoice PDF for a single bill.
+  /// Returns the saved file path (also opens share sheet).
+  static Future<String?> generateBillPdf(Bill bill, StorageService storage) async {
+    try {
+      final pdf = pw.Document();
+      final symbol = _pdfCurrencySymbol(bill.currency);
+
+      // Business details
+      final bizName = storage.businessName.isNotEmpty
+          ? storage.businessName
+          : 'My Business';
+      final bizOwner = storage.businessOwner;
+      final bizPhone = storage.businessPhone;
+      final bizAddress = storage.businessAddress;
+      final bizUpiId = storage.businessUpiId;
+
+      // Build customer block
+      final customerName = bill.customerName ?? 'Walk-in Customer';
+      final customerPhone = bill.customerPhone ?? '';
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          header: (context) => pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Business name + invoice header
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(bizName,
+                            style: pw.TextStyle(
+                                fontSize: 22,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColor.fromHex('8B0000'))),
+                        if (bizOwner.isNotEmpty)
+                          pw.Text(bizOwner,
+                              style: pw.TextStyle(
+                                  fontSize: 11,
+                                  color: PdfColors.grey700)),
+                        if (bizPhone.isNotEmpty)
+                          pw.Text('Phone: $bizPhone',
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  color: PdfColors.grey700)),
+                        if (bizAddress.isNotEmpty)
+                          pw.Text(bizAddress,
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  color: PdfColors.grey700)),
+                        if (bizUpiId.isNotEmpty)
+                          pw.Text('UPI: $bizUpiId',
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  color: PdfColors.grey700)),
+                      ],
+                    ),
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text('INVOICE',
+                          style: pw.TextStyle(
+                              fontSize: 26,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColor.fromHex('8B0000'))),
+                      pw.SizedBox(height: 4),
+                      pw.Text(bill.billNumber,
+                          style: pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                          'Date: ${bill.date.day}/${bill.date.month}/${bill.date.year}',
+                          style: pw.TextStyle(fontSize: 10)),
+                      if (bill.dueDate != null)
+                        pw.Text(
+                            'Due: ${bill.dueDate!.day}/${bill.dueDate!.month}/${bill.dueDate!.year}',
+                            style: pw.TextStyle(
+                                fontSize: 10,
+                                color: PdfColor.fromHex('C62828'),
+                                fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 4),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: pw.BoxDecoration(
+                          color: bill.isPaid
+                              ? PdfColor.fromHex('2E7D32')
+                              : (bill.status == 'overdue'
+                                  ? PdfColor.fromHex('C62828')
+                                  : PdfColor.fromHex('F59E0B')),
+                          borderRadius: pw.BorderRadius.circular(4),
+                        ),
+                        child: pw.Text(
+                          bill.isPaid
+                              ? 'PAID'
+                              : (bill.status == 'overdue'
+                                  ? 'OVERDUE'
+                                  : 'UNPAID'),
+                          style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.Divider(),
+            ],
+          ),
+          build: (context) => [
+            // Bill To section
+            pw.Text('BILL TO',
+                style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.grey700)),
+            pw.SizedBox(height: 4),
+            pw.Text(customerName,
+                style: pw.TextStyle(
+                    fontSize: 13, fontWeight: pw.FontWeight.bold)),
+            if (customerPhone.isNotEmpty)
+              pw.Text('Phone: $customerPhone',
+                  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+            pw.SizedBox(height: 16),
+
+            // Items table
+            pw.Table.fromTextArray(
+              headers: ['#', 'Item', 'Qty', 'Price', 'GST%', 'Amount'],
+              data: bill.items.asMap().entries.map((entry) {
+                final i = entry.key + 1;
+                final item = entry.value;
+                return [
+                  '$i',
+                  item.name,
+                  '${item.quantity}',
+                  '$symbol${item.price.toStringAsFixed(2)}',
+                  item.gstPercent != null
+                      ? '${item.gstPercent!.toStringAsFixed(0)}%'
+                      : '-',
+                  '$symbol${item.total.toStringAsFixed(2)}',
+                ];
+              }).toList(),
+              headerStyle: pw.TextStyle(
+                  color: PdfColors.white, fontWeight: pw.FontWeight.bold),
+              headerDecoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('8B0000')),
+              cellAlignment: pw.Alignment.centerLeft,
+              cellAlignments: {
+                0: pw.Alignment.center,
+                2: pw.Alignment.center,
+                3: pw.Alignment.centerRight,
+                4: pw.Alignment.center,
+                5: pw.Alignment.centerRight,
+              },
+              border: pw.TableBorder.all(color: PdfColors.grey400),
+              headerPadding:
+                  const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              cellPadding:
+                  const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+            ),
+            pw.SizedBox(height: 12),
+
+            // Totals
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Container(
+                width: 250,
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    _totalRow('Subtotal', '$symbol${bill.subtotal.toStringAsFixed(2)}'),
+                    if (bill.totalGst > 0)
+                      _totalRow('Total GST',
+                          '$symbol${bill.totalGst.toStringAsFixed(2)}'),
+                    if (bill.discountPercent > 0)
+                      _totalRow(
+                          'Discount (${bill.discountPercent.toStringAsFixed(0)}%)',
+                          '-$symbol${bill.discountAmount.toStringAsFixed(2)}'),
+                    pw.Divider(),
+                    _totalRow('TOTAL',
+                        '$symbol${bill.total.toStringAsFixed(2)}',
+                        bold: true,
+                        fontSize: 14),
+                    if (bill.isPaid && bill.paidAt != null) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                          'Paid on: ${bill.paidAt!.day}/${bill.paidAt!.month}/${bill.paidAt!.year}',
+                          style: pw.TextStyle(
+                              fontSize: 10,
+                              color: PdfColor.fromHex('2E7D32'),
+                              fontWeight: pw.FontWeight.bold)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            // Notes
+            if (bill.notes != null && bill.notes!.isNotEmpty) ...[
+              pw.SizedBox(height: 16),
+              pw.Text('Notes',
+                  style: pw.TextStyle(
+                      fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.Text(bill.notes!,
+                  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+            ],
+
+            pw.SizedBox(height: 24),
+            pw.Divider(),
+            pw.SizedBox(height: 4),
+            pw.Center(
+              child: pw.Text(
+                'Thank you for your business!',
+                style: pw.TextStyle(
+                    fontSize: 10,
+                    color: PdfColors.grey600,
+                    fontStyle: pw.FontStyle.italic),
+              ),
+            ),
+            pw.Center(
+              child: pw.Text(
+                'Generated by Note Counter Pro',
+                style: pw.TextStyle(fontSize: 8, color: PdfColors.grey400),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      return await _saveAndSharePdf(pdf, 'bill-${bill.billNumber}');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Helper for totals row in bill PDF
+  static pw.Widget _totalRow(String label, String value,
+      {bool bold = false, double fontSize = 11}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label,
+              style: pw.TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+                  color: PdfColors.grey700)),
+          pw.Text(value,
+              style: pw.TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+                  color: bold ? PdfColor.fromHex('8B0000') : PdfColors.black)),
+        ],
+      ),
+    );
   }
 }

@@ -330,6 +330,26 @@ class StorageService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mark a bill as paid (sets isPaid=true, paidAt=now by default).
+  Future<void> markBillPaid(String id, [DateTime? when]) async {
+    final index = _bills.indexWhere((b) => b.id == id);
+    if (index != -1) {
+      _bills[index].markPaid(when);
+      await _saveBills();
+      notifyListeners();
+    }
+  }
+
+  /// Revert a bill to unpaid status.
+  Future<void> markBillUnpaid(String id) async {
+    final index = _bills.indexWhere((b) => b.id == id);
+    if (index != -1) {
+      _bills[index].markUnpaid();
+      await _saveBills();
+      notifyListeners();
+    }
+  }
+
   // === QR History ===
   List<Map<String, String>> get qrHistory {
     final json = _prefs?.getString('qrHistory');
