@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/backup_service.dart';
 import '../services/tts_service.dart';
-import '../services/notification_service.dart';
 import '../services/premium_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -390,456 +389,489 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final loc = context.loc;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final storage = context.watch<StorageService>();
-    
+    final isPremium = PremiumService().isPremium;
+
     return Scaffold(
-      appBar: AppBar(title: Text(loc.t('settings'))),
+      appBar: AppBar(
+        title: Text(
+          loc.t('settings'),
+          style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
+        ),
+      ),
       body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         children: [
-          // === APPEARANCE ===
-          _sectionHeader(loc.t('appearance')),
-          SwitchListTile(
-            secondary: const Icon(Icons.dark_mode),
-            title: Text(loc.t('darkMode')),
-            subtitle: const Text('Toggle dark theme'),
-            value: storage.isDarkMode,
-            onChanged: (value) => storage.setDarkMode(value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.vibration),
-            title: Text(loc.t('hapticFeedback')),
-            trailing: Switch(
-              value: storage.hapticFeedback,
-              onChanged: (value) => storage.setHapticFeedback(value),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.fingerprint),
-            title: Row(
-              children: [
-                const Text('App Lock'),
-                if (!PremiumService().isPremium)
-                  Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('PRO',
-                        style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-              ],
-            ),
-            subtitle: const Text('Fingerprint / PIN to open app'),
-            trailing: Switch(
-              value: PremiumService().isPremium ? storage.appLockEnabled : false,
-              onChanged: (value) {
-                if (!PremiumService().isPremium) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const PremiumScreen()));
-                  return;
-                }
-                storage.setAppLockEnabled(value);
-              },
-            ),
-          ),
-          // === PREMIUM UPGRADE ===
-          // Visible only when user is NOT premium yet. Once premium,
-          // the tile changes to a "Premium Active" status badge.
-          ValueListenableBuilder(
+          // ===== PROFILE / PREMIUM HEADER CARD =====
+          ValueListenableBuilder<bool>(
             valueListenable: _premiumNotifier,
-            builder: (context, isPremium, _) {
-              if (isPremium) {
-                return ListTile(
-                  leading: const Icon(Icons.workspace_premium,
-                      color: Color(0xFFD4AF37)),
-                  title: Text(loc.t('premiumActive'),
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(loc.t('premiumActiveSub')),
-                  trailing: const Icon(Icons.check_circle,
-                      color: AppColors.success),
-                );
-              }
-              return Card(
-                margin: const EdgeInsets.symmetric(
-                    horizontal: 0, vertical: 6),
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            builder: (context, premium, _) {
+              return _buildPremiumHeader(premium, isDark);
+            },
+          ),
+
+          // ===== 1. APPEARANCE =====
+          _sectionHeader(
+            icon: Icons.palette_outlined,
+            title: loc.t('appearance'),
+            color: AppColors.primary,
+          ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.dark_mode_outlined, color: AppColors.primary),
+                title: Text(loc.t('darkMode')),
+                subtitle: Text(loc.t('toggleDarkTheme')),
+                value: storage.isDarkMode,
+                onChanged: (value) => storage.setDarkMode(value),
+              ),
+              const _Divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.vibration_outlined, color: AppColors.primary),
+                title: Text(loc.t('hapticFeedback')),
+                value: storage.hapticFeedback,
+                onChanged: (value) => storage.setHapticFeedback(value),
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.language_outlined, color: AppColors.primary),
+                title: Text(loc.t('appLanguage')),
+                subtitle: Text(
+                  AppConstants.languages.firstWhere(
+                    (l) => l['code'] == storage.languageCode,
+                    orElse: () => {'name': 'English'},
+                  )['name']!,
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD4AF37), Color(0xFFB8941F)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: const Icon(Icons.workspace_premium,
-                        color: Colors.white, size: 28),
-                    title: Text(
-                      loc.t('premiumUpgradeTitle'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      loc.t('premiumUpgradeSub'),
-                      style: TextStyle(color: Colors.white.withOpacity(0.9)),
-                    ),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: Colors.white),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _showLanguagePicker,
+              ),
+            ],
+          ),
+
+          // ===== 2. SECURITY =====
+          _sectionHeader(
+            icon: Icons.shield_outlined,
+            title: loc.t('security'),
+            color: AppColors.info,
+          ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              SwitchListTile(
+                secondary: Icon(Icons.fingerprint, color: AppColors.info),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('appLock'))),
+                    if (!isPremium) ...[
+                      const SizedBox(width: 8),
+                      _proBadge(),
+                    ],
+                  ],
+                ),
+                subtitle: Text(loc.t('appLockDesc')),
+                value: isPremium ? storage.appLockEnabled : false,
+                onChanged: (value) {
+                  if (!isPremium) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  storage.setAppLockEnabled(value);
+                },
+              ),
+            ],
+          ),
+
+          // ===== 3. PREMIUM =====
+          _sectionHeader(
+            icon: Icons.workspace_premium_outlined,
+            title: loc.t('goPremium'),
+            color: const Color(0xFFD4AF37),
+          ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              ValueListenableBuilder<bool>(
+                valueListenable: _premiumNotifier,
+                builder: (context, premium, _) {
+                  if (premium) {
+                    return ListTile(
+                      leading: const Icon(Icons.verified, color: Color(0xFFD4AF37)),
+                      title: Text(loc.t('premiumStatus'),
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(loc.t('premiumActiveSub')),
+                      trailing: const Icon(Icons.check_circle, color: AppColors.success),
+                    );
+                  }
+                  return ListTile(
+                    leading: const Icon(Icons.workspace_premium, color: Color(0xFFD4AF37)),
+                    title: Text(loc.t('premiumUpgradeTitle'),
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(loc.t('removeAdsForever')),
+                    trailing: const Icon(Icons.chevron_right, color: Color(0xFFD4AF37)),
                     onTap: () async {
                       await Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (_) => const PremiumScreen()),
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
                       );
-                      // Refresh premium state when returning
                       _premiumNotifier.value = PremiumService().isPremium;
                     },
-                  ),
+                  );
+                },
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.card_giftcard_outlined, color: Color(0xFFD4AF37)),
+                title: Text(loc.t('referEarn')),
+                subtitle: Text(loc.t('referEarnSettingsDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReferEarnScreen()),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-          // === PREMIUM FEATURES (Cloud Backup, Printer, Refer & Earn) ===
-          ListTile(
-            leading: const Icon(Icons.cloud_upload, color: AppColors.info),
-            title: Text(loc.t('cloudBackup')),
-            subtitle: Text(loc.t('cloudBackupSettingsDesc')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CloudBackupScreen()),
-            ),
+
+          // ===== 4. PRO TOOLS =====
+          _sectionHeader(
+            icon: Icons.build_outlined,
+            title: loc.t('proTools'),
+            color: AppColors.info,
           ),
-          ListTile(
-            leading: const Icon(Icons.print, color: AppColors.primary),
-            title: Text(loc.t('printer')),
-            subtitle: Text(loc.t('printerSettingsDesc')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PrinterScreen()),
-            ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.cloud_upload_outlined, color: AppColors.info),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('cloudBackup'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
+                subtitle: Text(loc.t('cloudBackupSettingsDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CloudBackupScreen()),
+                ),
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.print_outlined, color: AppColors.info),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('printer'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
+                subtitle: Text(loc.t('printerSettingsDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PrinterScreen()),
+                ),
+              ),
+              const _Divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.record_voice_over_outlined, color: AppColors.info),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('voiceAnnouncement'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
+                subtitle: Text(loc.t('voiceAnnouncementDesc')),
+                value: isPremium ? _voiceEnabled : false,
+                onChanged: (value) {
+                  if (!isPremium) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  _setVoiceEnabled(value);
+                },
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.notifications_active_outlined, color: AppColors.info),
+                title: Text(loc.t('reminderSettings')),
+                subtitle: Text(loc.t('reminderSettingsDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()),
+                ),
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.history_outlined, color: AppColors.info),
+                title: Text(loc.t('reminderHistory')),
+                subtitle: Text(loc.t('reminderHistoryDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
+                ),
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.card_giftcard, color: AppColors.success),
-            title: Text(loc.t('referEarn')),
-            subtitle: Text(loc.t('referEarnSettingsDesc')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ReferEarnScreen()),
-            ),
+
+          // ===== 5. BUSINESS =====
+          _sectionHeader(
+            icon: Icons.business_center_outlined,
+            title: loc.t('business'),
+            color: AppColors.primary,
           ),
-          ListTile(
-            leading: const Icon(Icons.record_voice_over),
-            title: Row(
-              children: [
-                Text(loc.t('voiceAnnouncement')),
-                if (!PremiumService().isPremium)
-                  Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('PRO',
-                        style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-              ],
-            ),
-            subtitle: Text(loc.t('voiceAnnouncementDesc')),
-            trailing: Switch(
-              value: PremiumService().isPremium ? _voiceEnabled : false,
-              onChanged: (value) {
-                if (!PremiumService().isPremium) {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const PremiumScreen()));
-                  return;
-                }
-                _setVoiceEnabled(value);
-              },
-            ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.store_outlined, color: AppColors.primary),
+                title: Text(loc.t('businessDetails')),
+                subtitle: Text(
+                  storage.businessName.isEmpty
+                      ? loc.t('setUpBusiness')
+                      : storage.businessName,
+                  style: storage.businessName.isEmpty
+                      ? TextStyle(fontStyle: FontStyle.italic, color: AppColors.warning)
+                      : null,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _showBusinessDetails,
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.qr_code_2, color: AppColors.primary),
+                title: Text(loc.t('upiQrCode')),
+                subtitle: Text(loc.t('generatePaymentQr')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                ),
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
+                title: Text(loc.t('billsInvoices')),
+                subtitle: Text(loc.t('billsInvoicesDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BillsScreen()),
+                ),
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
+                title: Text(loc.t('reportsAnalytics')),
+                subtitle: Text(loc.t('reportsDesc')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                ),
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.notifications_active, color: AppColors.warning),
-            title: Text(loc.t('reminderSettings')),
-            subtitle: Text(loc.t('reminderSettingsDesc')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ReminderSettingsScreen()),
-              );
-            },
+
+          // ===== 6. DATA & BACKUP =====
+          _sectionHeader(
+            icon: Icons.cloud_done_outlined,
+            title: loc.t('backupRestore'),
+            color: AppColors.success,
           ),
-          ListTile(
-            leading: const Icon(Icons.history, color: AppColors.info),
-            title: Text(loc.t('reminderHistory')),
-            subtitle: Text(loc.t('reminderHistoryDesc')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ReminderHistoryScreen()),
-              );
-            },
-          ),
-          
-          // === LANGUAGE ===
-          _sectionHeader(loc.t('language')),
-          ListTile(
-            leading: const Icon(Icons.language),
-            title: Text(loc.t('appLanguage')),
-            subtitle: Text(
-              AppConstants.languages.firstWhere(
-                (l) => l['code'] == storage.languageCode,
-                orElse: () => {'name': 'English'},
-              )['name']!,
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showLanguagePicker(),
-          ),
-          
-          // === QUICK ACTIONS ===
-          _sectionHeader(loc.t('quickActions')),
-          ListTile(
-            leading: const Icon(Icons.qr_code, color: AppColors.info),
-            title: Text(loc.t('upiQrCode')),
-            subtitle: const Text('Generate payment QR'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const UpiQrScreen()),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.business, color: AppColors.primary),
-            title: Text(loc.t('businessDetails')),
-            subtitle: Text(loc.t('businessDetailsSubtitle')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _showBusinessDetails,
-          ),
-          ListTile(
-            leading: const Icon(Icons.bar_chart, color: AppColors.primary),
-            title: Text(loc.t('reports')),
-            subtitle: const Text('View weekly, monthly, all-time stats'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ReportsScreen()),
-              );
-            },
-          ),
-          // === BACKUP & RESTORE ===
-          _sectionHeader(loc.t('backupRestore')),
 
           // Last backup info card
           Consumer<StorageService>(
             builder: (context, storage, child) {
               final lastBackup = BackupService.getLastBackupString(storage);
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.cloud_done, color: AppColors.primary, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            loc.t('lastBackup'),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            lastBackup ?? loc.t('neverBackedUp'),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: lastBackup != null ? AppColors.success : AppColors.danger,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      loc.t('autoBackupInfo'),
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: Colors.grey,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.end,
-                    ),
-                  ],
-                ),
+              return _infoCard(
+                isDark: isDark,
+                icon: Icons.cloud_done,
+                iconColor: lastBackup != null ? AppColors.success : AppColors.danger,
+                title: loc.t('lastBackup'),
+                value: lastBackup ?? loc.t('neverBackedUp'),
+                valueColor: lastBackup != null ? AppColors.success : AppColors.danger,
+                trailing: loc.t('autoBackupInfo'),
               );
             },
           ),
 
-          // Backup button
-          ListTile(
-            leading: const Icon(Icons.backup, color: AppColors.info),
-            title: Text(loc.t('backupData')),
-            subtitle: Text(loc.t('backupSubtitle')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _backupData,
-          ),
-
-          // Restore button
-          ListTile(
-            leading: const Icon(Icons.restore, color: AppColors.warning),
-            title: Text(loc.t('restoreData')),
-            subtitle: Text(loc.t('restoreSubtitle')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _restoreData,
-          ),
-
-          // Local backups (auto)
-          ListTile(
-            leading: const Icon(Icons.history, color: AppColors.success),
-            title: Text(loc.t('localBackups')),
-            subtitle: Text(loc.t('restoreFromLocal')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _showLocalBackups,
-          ),
-
-          // === CSV EXPORT ===
-          _sectionHeader(loc.t('exportToExcel')),
-          ListTile(
-            leading: const Icon(Icons.file_download, color: AppColors.success),
-            title: const Text('Export Entries (CSV)'),
-            subtitle: const Text('Export to Excel/Sheets'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _exportCsv('entries'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.people_alt, color: AppColors.success),
-            title: const Text('Export Customers (CSV)'),
-            subtitle: const Text('Export to Excel/Sheets'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _exportCsv('customers'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.download, color: AppColors.primary),
-            title: const Text('Export All Data'),
-            subtitle: const Text('Both entries and customers'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _exportCsv('both'),
-          ),
-          
-          // === RATE & SHARE ===
-          _sectionHeader(loc.t('rateShare')),
-          ListTile(
-            leading: const Icon(Icons.star, color: AppColors.primary),
-            title: Text(loc.t('rateUs')),
-            subtitle: const Text('Rate on Play Store'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _rateApp,
-          ),
-          ListTile(
-            leading: const Icon(Icons.share, color: AppColors.success),
-            title: Text(loc.t('shareApp')),
-            subtitle: const Text('Share with friends'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _shareApp,
-          ),
-          ListTile(
-            leading: const Icon(Icons.feedback, color: AppColors.info),
-            title: Text(loc.t('sendFeedback')),
-            subtitle: const Text('Email us your suggestions'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _sendFeedback,
-          ),
-          
-          // === DATA ===
-          _sectionHeader(loc.t('data')),
-          ListTile(
-            leading: const Icon(Icons.delete_forever, color: AppColors.danger),
-            title: Text(loc.t('clearAllData')),
-            subtitle: const Text('Delete all entries, customers, bills'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _showClearDataDialog,
-          ),
-          
-          // === ABOUT ===
-          _sectionHeader(loc.t('about')),
-          ListTile(
-            leading: const Icon(Icons.info, color: AppColors.info),
-            title: Text(loc.t('appInfo')),
-            subtitle: Text(
-              _packageInfo != null
-                  ? '${_packageInfo!.appName} v${_packageInfo!.version} (build ${_packageInfo!.buildNumber})'
-                  : 'Note Counter Pro v${AppConstants.appVersion} (vc${AppConstants.appVersionCode})',
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.code, color: AppColors.primary),
-            title: const Text('Version Code'),
-            subtitle: Text('NCP v${AppConstants.appVersion} (vc${AppConstants.appVersionCode})'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.privacy_tip, color: AppColors.textSecondary),
-            title: Text(loc.t('privacyPolicy')),
-            trailing: const Icon(Icons.open_in_new),
-            onTap: _openPrivacyPolicy,
-          ),
-          ListTile(
-            leading: Icon(Icons.email,
-                color: PremiumService().isPremium
-                    ? AppColors.primary
-                    : AppColors.textSecondary),
-            title: Row(
-              children: [
-                const Text('Support Email'),
-                if (PremiumService().isPremium)
-                  Container(
-                    margin: const EdgeInsets.only(left: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('PRIORITY',
-                        style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-              ],
-            ),
-            subtitle: Text(PremiumService().isPremium
-                ? '${AppConstants.supportEmail}\n(Priority support — faster response)'
-                : 'Upgrade to Premium for priority support'),
-            isThreeLine: PremiumService().isPremium,
-            onTap: _sendFeedback,
-          ),
-          
-          const SizedBox(height: 32),
-          Center(
-            child: Text(
-              'Made with ❤️ in India',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.backup_outlined, color: AppColors.success),
+                title: Text(loc.t('backupData')),
+                subtitle: Text(loc.t('backupSubtitle')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _backupData,
               ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.restore, color: AppColors.success),
+                title: Text(loc.t('restoreData')),
+                subtitle: Text(loc.t('restoreSubtitle')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _restoreData,
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.history, color: AppColors.success),
+                title: Text(loc.t('localBackups')),
+                subtitle: Text(loc.t('restoreFromLocal')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _showLocalBackups,
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.file_download_outlined, color: AppColors.success),
+                title: Text(loc.t('exportToExcel')),
+                subtitle: Text(loc.t('exportSubtitle')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showExportMenu(),
+              ),
+            ],
+          ),
+
+          // ===== 7. RATE & FEEDBACK =====
+          _sectionHeader(
+            icon: Icons.star_outline,
+            title: loc.t('rateFeedbackSection'),
+            color: AppColors.warning,
+          ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.star, color: AppColors.warning),
+                title: Text(loc.t('rateUs')),
+                subtitle: Text(loc.t('rateOnPlayStore')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _rateApp,
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.share_outlined, color: AppColors.warning),
+                title: Text(loc.t('shareApp')),
+                subtitle: Text(loc.t('shareWithFriends')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _shareApp,
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.feedback_outlined, color: AppColors.warning),
+                title: Text(loc.t('sendFeedback')),
+                subtitle: Text(loc.t('emailSuggestions')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _sendFeedback,
+              ),
+            ],
+          ),
+
+          // ===== 8. ABOUT =====
+          _sectionHeader(
+            icon: Icons.info_outline,
+            title: loc.t('about'),
+            color: AppColors.textSecondary,
+          ),
+          _settingsCard(
+            isDark: isDark,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.info_outline, color: AppColors.textSecondary),
+                title: Text(loc.t('appInfo')),
+                subtitle: Text(
+                  _packageInfo != null
+                      ? '${_packageInfo!.appName} v${_packageInfo!.version} (build ${_packageInfo!.buildNumber})'
+                      : 'Note Counter Pro v${AppConstants.appVersion} (vc${AppConstants.appVersionCode})',
+                ),
+              ),
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.textSecondary),
+                title: Text(loc.t('privacyPolicy')),
+                trailing: const Icon(Icons.open_in_new),
+                onTap: _openPrivacyPolicy,
+              ),
+              const _Divider(),
+              ListTile(
+                leading: Icon(
+                  Icons.email_outlined,
+                  color: isPremium ? AppColors.success : AppColors.textSecondary,
+                ),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('supportEmail'))),
+                    if (isPremium) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('PRIORITY',
+                            style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ],
+                ),
+                subtitle: Text(isPremium
+                    ? '${AppConstants.supportEmail}\n(Priority support — faster response)'
+                    : AppConstants.supportEmail),
+                isThreeLine: isPremium,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _sendFeedback,
+              ),
+            ],
+          ),
+
+          // ===== 9. DANGER ZONE =====
+          _sectionHeader(
+            icon: Icons.warning_amber_outlined,
+            title: loc.t('dangerZone'),
+            color: AppColors.danger,
+          ),
+          _settingsCard(
+            isDark: isDark,
+            danger: true,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: AppColors.danger),
+                title: Text(loc.t('clearAllData'),
+                    style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),
+                subtitle: Text(loc.t('deleteAllEntries')),
+                trailing: const Icon(Icons.chevron_right, color: AppColors.danger),
+                onTap: _showClearDataDialog,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  loc.t('madeInIndia'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '© 2026 Lokhnath Technical',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -847,22 +879,327 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-  
-  Widget _sectionHeader(String title) {
+
+  /// Premium status header card at the top of settings
+  Widget _buildPremiumHeader(bool isPremium, bool isDark) {
+    final loc = context.loc;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: isPremium
+            ? const LinearGradient(
+                colors: [Color(0xFFD4AF37), Color(0xFFB8941F)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF16213E), const Color(0xFF1A1A2E)]
+                    : [Colors.white, const Color(0xFFF9FAFB)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isPremium
+              ? const Color(0xFFD4AF37)
+              : const Color(0xFFD4AF37).withOpacity(0.3),
+          width: isPremium ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isPremium
+                  ? Colors.white.withOpacity(0.2)
+                  : const Color(0xFFD4AF37).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isPremium ? Icons.workspace_premium : Icons.person,
+              color: isPremium ? Colors.white : const Color(0xFFD4AF37),
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isPremium ? loc.t('premiumStatus') : loc.t('freeUser'),
+                  style: TextStyle(
+                    fontFamily: 'KhataHandwriting',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isPremium ? Colors.white : null,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isPremium
+                      ? loc.t('premiumActiveSub')
+                      : loc.t('removeAdsForever'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isPremium
+                        ? Colors.white.withOpacity(0.9)
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isPremium)
+            TextButton.icon(
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                );
+                _premiumNotifier.value = PremiumService().isPremium;
+              },
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              label: Text(loc.t('goPremium')),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFD4AF37),
+                backgroundColor: const Color(0xFFD4AF37).withOpacity(0.1),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Section header with icon + handwritten title (matches khata screen style)
+  Widget _sectionHeader({
+    required IconData icon,
+    required String title,
+    required Color color,
+  }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        title.toUpperCase(),
+      padding: const EdgeInsets.fromLTRB(4, 22, 4, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              letterSpacing: 0.8,
+              fontFamily: 'KhataHandwriting',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Card wrapper for grouped settings items — matches khata card style
+  Widget _settingsCard({
+    required bool isDark,
+    required List<Widget> children,
+    bool danger = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: danger
+            ? (isDark
+                ? AppColors.danger.withOpacity(0.08)
+                : AppColors.danger.withOpacity(0.04))
+            : (isDark
+                ? const Color(0xFF16213E)
+                : Colors.white),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: danger
+              ? AppColors.danger.withOpacity(0.3)
+              : const Color(0xFFD4AF37).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.25) : Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+
+  /// Info card for last backup status (no chevron, just info)
+  Widget _infoCard({
+    required bool isDark,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    required Color valueColor,
+    String? trailing,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF16213E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: iconColor.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.2) : Colors.black.withOpacity(0.04),
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: valueColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null)
+            Flexible(
+              child: Text(
+                trailing,
+                style: const TextStyle(
+                  fontSize: 9,
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.end,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Small "PRO" badge for premium-gated features
+  Widget _proBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD4AF37),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: const Text(
+        'PRO',
         style: TextStyle(
-          color: AppColors.primary,
+          fontSize: 9,
+          color: Colors.white,
           fontWeight: FontWeight.bold,
-          fontSize: 12,
-          letterSpacing: 1,
+          letterSpacing: 0.5,
         ),
       ),
     );
   }
-  
+
+  /// Show export menu (entries / customers / both) — replaces 3 separate tiles
+  void _showExportMenu() {
+    final loc = context.loc;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF16213E)
+          : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                loc.t('exportToExcel'),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'KhataHandwriting',
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.file_download, color: AppColors.success),
+              title: Text(loc.t('exportEntries')),
+              subtitle: Text(loc.t('exportToExcelSheets')),
+              onTap: () {
+                Navigator.pop(context);
+                _exportCsv('entries');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_alt, color: AppColors.success),
+              title: Text(loc.t('exportCustomers')),
+              subtitle: Text(loc.t('exportToExcelSheets')),
+              onTap: () {
+                Navigator.pop(context);
+                _exportCsv('customers');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download, color: AppColors.primary),
+              title: Text(loc.t('exportAllData')),
+              subtitle: Text(loc.t('exportBothEntriesCustomers')),
+              onTap: () {
+                Navigator.pop(context);
+                _exportCsv('both');
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showBusinessDetails() {
     final storage = context.read<StorageService>();
     final nameController = TextEditingController(text: storage.businessName);
@@ -988,6 +1325,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         }).toList(),
       ),
+    );
+  }
+}
+
+/// Lightweight divider widget for inside settings cards
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Divider(
+      height: 1,
+      thickness: 0.5,
+      indent: 56,
+      color: isDark
+          ? Colors.white.withOpacity(0.08)
+          : Colors.black.withOpacity(0.06),
     );
   }
 }
