@@ -80,6 +80,9 @@ dependencies:
   esc_pos_printer_plus: ^0.1.1
   esc_pos_utils_plus: ^2.0.2
 
+  # QR Scanner (gallery image → decode QR → extract UPI ID)
+  mobile_scanner: ^5.2.3
+
   # Refer & Earn — unique code generation
   crypto: ^3.0.3
 

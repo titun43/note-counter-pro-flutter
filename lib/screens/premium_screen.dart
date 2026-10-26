@@ -234,7 +234,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
             const SizedBox(height: 24),
 
-            // Benefits
+            // Benefits — 10 items
             _BenefitTile(icon: Icons.block, color: AppColors.danger,
                 title: loc.t('premiumBenefit1Title'), subtitle: loc.t('premiumBenefit1Sub')),
             _BenefitTile(icon: Icons.fingerprint, color: AppColors.success,
@@ -245,6 +245,16 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 title: loc.t('prioritySupport'), subtitle: loc.t('prioritySupportDesc')),
             _BenefitTile(icon: Icons.update, color: AppColors.primary,
                 title: loc.t('premiumBenefit3Title'), subtitle: loc.t('premiumBenefit3Sub')),
+            _BenefitTile(icon: Icons.store, color: AppColors.success,
+                title: loc.t('businessDetails'), subtitle: loc.t('businessDetailsSubtitle')),
+            _BenefitTile(icon: Icons.qr_code_2, color: AppColors.info,
+                title: loc.t('upiQrCode'), subtitle: loc.t('generatePaymentQr')),
+            _BenefitTile(icon: Icons.receipt_long, color: AppColors.warning,
+                title: loc.t('billsInvoices'), subtitle: loc.t('billsInvoicesDesc')),
+            _BenefitTile(icon: Icons.bar_chart, color: AppColors.info,
+                title: loc.t('reportsAnalytics'), subtitle: loc.t('reportsDesc')),
+            _BenefitTile(icon: Icons.image_search, color: AppColors.success,
+                title: loc.t('qrScannerTitle'), subtitle: loc.t('qrScannerDesc')),
 
             const SizedBox(height: 24),
 

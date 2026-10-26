@@ -13,7 +13,7 @@ import '../services/premium_service.dart';
 import '../services/admob_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
-import 'upi_qr_screen.dart';
+import 'upi_tools_screen.dart';
 import 'reports_screen.dart';
 import 'bills_screen.dart';
 import 'reminder_settings_screen.dart';
@@ -805,7 +805,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                    MaterialPageRoute(builder: (_) => const UpiToolsScreen()),
                   );
                 },
               ),

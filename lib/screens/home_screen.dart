@@ -16,7 +16,7 @@ import '../utils/app_localizations.dart';
 import '../models/entry.dart';
 import '../widgets/note_widget.dart';
 import 'calculator_screen.dart';
-import 'upi_qr_screen.dart';
+import 'upi_tools_screen.dart';
 import 'premium_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -1105,7 +1105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                          MaterialPageRoute(builder: (_) => const UpiToolsScreen()),
                         );
                       },
                       icon: const Icon(Icons.add, size: 18),
@@ -2068,7 +2068,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                      MaterialPageRoute(builder: (_) => const UpiToolsScreen()),
                     );
                   },
                   icon: const Icon(Icons.qr_code),
