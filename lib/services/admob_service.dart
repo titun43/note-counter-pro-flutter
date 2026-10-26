@@ -35,13 +35,10 @@ class AdMobService {
   ///             safe for development).
   /// When false: uses real AdMob ad unit IDs from AppConstants.
   ///
-  /// Currently: TEST MODE ON — developer is testing before Play Store release.
-  /// Workflow:
-  ///   1. Developer asks agent to "test mode on" → useTestAds = true
-  ///   2. Developer tests the build (sees test ads with "Test Ad" label)
-  ///   3. Developer says "ready for Play Store, real ads on"
-  ///   4. Agent sets useTestAds = false, commits, pushes
-  static const bool useTestAds = true;
+  /// Currently: REAL ADS ON — production build for Play Store release.
+  /// All 4 ad formats (Banner, Interstitial, App Open, Rewarded) use
+  /// real AdMob ad unit IDs.
+  static const bool useTestAds = false;
 
   /// Google's official test ad unit IDs (always serve, safe for testing)
   static const String _testBannerAdUnitId =
