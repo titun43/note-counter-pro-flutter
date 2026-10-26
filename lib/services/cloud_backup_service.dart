@@ -22,8 +22,8 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:http/http.dart' as http;
-import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'storage_service.dart';
 import 'backup_service.dart';
 import 'premium_service.dart';
@@ -83,15 +83,31 @@ class CloudBackupService {
   }
 
   /// Get an authenticated http.Client from the GoogleSignInAccount.
-  /// Uses extension_google_sign_in_as_googleapis_auth which properly
-  /// handles token refresh — the old custom _AuthHeadersClient did not.
-  /// The extension is on GoogleSignIn (not GoogleSignInAccount), so we
-  /// call _googleSignIn.authenticatedClient().
-  Future<http.Client?> _getAuthClient() async {
+  /// Manually creates AccessCredentials from the GoogleSignInAuthentication
+  /// access token, then wraps it in an auth.AuthClient via googleapis_auth.
+  /// This properly refreshes the token on each call —
+  /// _currentUser.authentication returns a fresh token every time.
+  Future<auth.AuthClient?> _getAuthClient() async {
     if (_currentUser == null) return null;
     try {
-      final client = await _googleSignIn.authenticatedClient();
-      return client;
+      // .authentication is a getter that returns a Future — it
+      // refreshes the access token if it has expired.
+      final googleAuth = await _currentUser!.authentication;
+      final token = googleAuth.accessToken;
+      if (token == null) {
+        debugPrint('CloudBackupService: access token is null');
+        return null;
+      }
+      final credentials = auth.AccessCredentials(
+        auth.AccessToken(
+          'Bearer',
+          token,
+          DateTime.now().toUtc().add(const Duration(hours: 1)),
+        ),
+        null,
+        _scopes,
+      );
+      return auth.authenticatedClient(http.Client(), credentials);
     } catch (e) {
       debugPrint('CloudBackupService: _getAuthClient failed: $e');
       return null;

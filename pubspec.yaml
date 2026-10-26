@@ -69,11 +69,10 @@ dependencies:
   # Cloud Backup (Google Drive) — premium feature
   google_sign_in: ^6.2.1
   googleapis: ^13.0.0
+  googleapis_auth: ^1.6.0
   http: ^1.2.0
   # Bridge package: converts GoogleSignInAccount into an authenticated
-  # http.Client that googleapis can use directly. Without this, the
-  # custom _AuthHeadersClient doesn't properly handle token refresh
-  # and the Drive API call fails with 401 Unauthorized.
+  # http.Client that googleapis can use directly.
   extension_google_sign_in_as_googleapis_auth: ^2.0.13
 
   # Bluetooth Receipt Printer — premium feature
