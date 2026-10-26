@@ -760,7 +760,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.store_outlined, color: AppColors.primary),
-                title: Text(loc.t('businessDetails')),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('businessDetails'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
                 subtitle: Text(
                   storage.businessName.isEmpty
                       ? loc.t('setUpBusiness')
@@ -770,7 +775,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : null,
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: _showBusinessDetails,
+                onTap: () {
+                  if (!isPremium) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  _showBusinessDetails();
+                },
               ),
               const _Divider(),
               ListTile(
