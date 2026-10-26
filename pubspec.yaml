@@ -70,6 +70,11 @@ dependencies:
   google_sign_in: ^6.2.1
   googleapis: ^13.0.0
   http: ^1.2.0
+  # Bridge package: converts GoogleSignInAccount into an authenticated
+  # http.Client that googleapis can use directly. Without this, the
+  # custom _AuthHeadersClient doesn't properly handle token refresh
+  # and the Drive API call fails with 401 Unauthorized.
+  extension_google_sign_in_as_googleapis_auth: ^2.0.13
 
   # Bluetooth Receipt Printer — premium feature
   # Using _plus variants which are compatible with image 4.x

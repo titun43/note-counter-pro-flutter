@@ -11,9 +11,10 @@
 //   3. restore() — download latest backup from Drive
 //   4. signOut() — disconnect Google account
 //
-// NOTE: google_sign_in 6.x no longer provides authenticatedClient() extension.
-// We build a custom http.BaseClient that injects the auth headers into
-// every request — this works with googleapis DriveApi.
+// Uses extension_google_sign_in_as_googleapis_auth to convert the
+// GoogleSignInAccount into an authenticated http.Client that the
+// googleapis DriveApi can use directly. This properly handles token
+// refresh — the previous custom _AuthHeadersClient did not.
 // =============================================================================
 
 import 'dart:convert';
@@ -22,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
+import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'storage_service.dart';
 import 'backup_service.dart';
 import 'premium_service.dart';
@@ -80,14 +82,16 @@ class CloudBackupService {
     } catch (e) { debugPrint('CloudBackupService failed: $e'); }
   }
 
-  /// Build an authenticated http.Client from GoogleSignInAccount.
-  /// google_sign_in 6.x no longer provides authenticatedClient() extension,
-  /// so we wrap the auth headers in a custom http.BaseClient.
+  /// Get an authenticated http.Client from the GoogleSignInAccount.
+  /// Uses extension_google_sign_in_as_googleapis_auth which properly
+  /// handles token refresh — the old custom _AuthHeadersClient did not.
+  /// The extension is on GoogleSignIn (not GoogleSignInAccount), so we
+  /// call _googleSignIn.authenticatedClient().
   Future<http.Client?> _getAuthClient() async {
     if (_currentUser == null) return null;
     try {
-      final headers = await _currentUser!.authHeaders;
-      return _AuthHeadersClient(headers);
+      final client = await _googleSignIn.authenticatedClient();
+      return client;
     } catch (e) {
       debugPrint('CloudBackupService: _getAuthClient failed: $e');
       return null;
@@ -259,24 +263,6 @@ class CloudBackupService {
   }
 }
 
-/// Custom http.BaseClient that injects Google auth headers into every request.
-/// Required because google_sign_in 6.x removed the authenticatedClient()
-/// extension — we have to construct a client ourselves.
-class _AuthHeadersClient extends http.BaseClient {
-  final Map<String, String> _authHeaders;
-  final http.Client _inner = http.Client();
-
-  _AuthHeadersClient(this._authHeaders);
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    request.headers.addAll(_authHeaders);
-    return _inner.send(request);
-  }
-
-  @override
-  void close() {
-    _inner.close();
-    super.close();
-  }
-}
+// _AuthHeadersClient removed — replaced by
+// extension_google_sign_in_as_googleapis_auth which properly
+// handles token refresh via authenticatedClient() extension.
