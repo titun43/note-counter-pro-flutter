@@ -10,12 +10,14 @@ import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../services/tts_service.dart';
+import '../services/premium_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/entry.dart';
 import '../widgets/note_widget.dart';
 import 'calculator_screen.dart';
 import 'upi_qr_screen.dart';
+import 'premium_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1094,6 +1096,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
+                        if (!PremiumService().isPremium) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                          );
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const UpiQrScreen()),
@@ -1455,6 +1464,7 @@ class _HomeScreenState extends State<HomeScreen> {
         
     return Scaffold(
       body: SafeArea(
+        top: false, // MainScaffold already handles top padding for banner ad
         child: Column(
         children: [
           // === TOP: Currency + Notes + Clear + Total (compact, one row) ===
@@ -2049,6 +2059,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 IconButton(
                   onPressed: () {
+                    if (!PremiumService().isPremium) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                      );
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const UpiQrScreen()),

@@ -624,6 +624,7 @@ class _KhataScreenState extends State<KhataScreen> {
     return Scaffold(
       backgroundColor: paperColor,
       body: SafeArea(
+        top: false, // MainScaffold already handles top padding for banner ad
         child: Column(
           children: [
             // === KHATA HARD COVER HEADER ===

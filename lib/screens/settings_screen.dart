@@ -448,8 +448,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // This gives us a single, smooth rebuild — no flash.
     return Scaffold(
       // No AppBar — saves ~56px of empty space at the top.
-      // SafeArea in body provides the status-bar padding.
+      // top: false because MainScaffold already handles top padding
+      // for the banner ad. Only bottom/left/right SafeArea needed.
       body: SafeArea(
+        top: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
           children: [
