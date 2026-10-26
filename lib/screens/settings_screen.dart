@@ -787,35 +787,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const _Divider(),
               ListTile(
                 leading: const Icon(Icons.qr_code_2, color: AppColors.primary),
-                title: Text(loc.t('upiQrCode')),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('upiQrCode'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
                 subtitle: Text(loc.t('generatePaymentQr')),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UpiQrScreen()),
-                ),
+                onTap: () {
+                  if (!isPremium) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const UpiQrScreen()),
+                  );
+                },
               ),
               const _Divider(),
               ListTile(
                 leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
-                title: Text(loc.t('billsInvoices')),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('billsInvoices'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
                 subtitle: Text(loc.t('billsInvoicesDesc')),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const BillsScreen()),
-                ),
+                onTap: () {
+                  if (!isPremium) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BillsScreen()),
+                  );
+                },
               ),
               const _Divider(),
               ListTile(
                 leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
-                title: Text(loc.t('reportsAnalytics')),
+                title: Row(
+                  children: [
+                    Flexible(child: Text(loc.t('reportsAnalytics'))),
+                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
+                  ],
+                ),
                 subtitle: Text(loc.t('reportsDesc')),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
-                ),
+                onTap: () {
+                  if (!isPremium) {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                  );
+                },
               ),
             ],
           ),
