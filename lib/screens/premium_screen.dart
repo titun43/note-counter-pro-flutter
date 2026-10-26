@@ -22,6 +22,25 @@ class _PremiumScreenState extends State<PremiumScreen> {
   bool _isLoading = false;
   String? _selectedPlan;
 
+  @override
+  void initState() {
+    super.initState();
+    // Listen to PremiumService so that when trial is granted (via
+    // rewarded ad from THIS screen or from Settings), this screen
+    // rebuilds to show the correct 3-state UI.
+    PremiumService().addListener(_onPremiumChanged);
+  }
+
+  @override
+  void dispose() {
+    PremiumService().removeListener(_onPremiumChanged);
+    super.dispose();
+  }
+
+  void _onPremiumChanged() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _purchase(String productId) async {
     setState(() {
       _isLoading = true;
