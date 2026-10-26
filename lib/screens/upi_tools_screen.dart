@@ -3,12 +3,12 @@
 // =============================================================================
 // Two-in-one UPI tool:
 //   Tab 1: Generate QR — enter UPI ID/name/amount → generate QR code
-//   Tab 2: Scan QR — pick image from gallery → decode QR → extract UPI ID
+//   Tab 2: Scan QR — live camera OR gallery image → decode QR → extract UPI ID
 //
-// The Scan feature solves a real problem: UPI QR scan limit is ₹5000,
-// but UPI ID send limit is ₹1 lakh. By scanning a QR from gallery,
-// the user can extract the UPI ID and send larger amounts directly
-// from their UPI app.
+// The Scan feature solves a real problem: UPI QR scan limit is ₹2000
+// (same mobile), but UPI ID send limit is ₹1 lakh. By scanning a QR
+// via camera or gallery, the user can extract the UPI ID and send
+// larger amounts directly from their UPI app.
 // =============================================================================
 
 import 'dart:io';
@@ -20,6 +20,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' as mscanner;
+import 'package:url_launcher/url_launcher.dart';
 import '../services/premium_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -34,6 +35,7 @@ class UpiToolsScreen extends StatefulWidget {
 
 class _UpiToolsScreenState extends State<UpiToolsScreen> {
   int _currentTab = 0; // 0 = Generate, 1 = Scan
+  int _scanMode = 0; // 0 = Camera, 1 = Gallery
 
   // === Generate tab state ===
   final _upiIdController = TextEditingController();
@@ -48,11 +50,12 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
   Map<String, String>? _scanResult;
   String? _scanError;
   final List<Map<String, String>> _scanHistory = [];
+  mscanner.MobileScannerController? _cameraController;
+  bool _cameraActive = false;
 
   @override
   void initState() {
     super.initState();
-    // Check premium
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!PremiumService().isPremium && mounted) {
         Navigator.pushReplacement(
@@ -69,6 +72,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     _nameController.dispose();
     _amountController.dispose();
     _noteController.dispose();
+    _cameraController?.dispose();
     super.dispose();
   }
 
@@ -76,10 +80,11 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
 
   void _generateQr() {
     final upiId = _upiIdController.text.trim();
+    final loc = context.loc;
     if (upiId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a UPI ID'),
+        SnackBar(
+          content: Text(loc.t('enterUpiId')),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -90,7 +95,6 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     final amount = _amountController.text.trim();
     final note = _noteController.text.trim();
 
-    // Build UPI deep link: upi://pay?pa=UPI_ID&pn=NAME&am=AMOUNT&tn=NOTE
     final params = <String>[];
     params.add('pa=$upiId');
     if (name.isNotEmpty) params.add('pn=${Uri.encodeComponent(name)}');
@@ -120,17 +124,48 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     final upiId = _upiIdController.text.trim();
     if (upiId.isEmpty) return;
     Clipboard.setData(ClipboardData(text: upiId));
+    final loc = context.loc;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('📋 UPI ID copied!'),
+      SnackBar(
+        content: Text(loc.t('upiIdCopied')),
         backgroundColor: AppColors.success,
       ),
     );
   }
 
-  // === SCAN TAB METHODS ===
+  // === SCAN TAB — CAMERA METHODS ===
+
+  void _startCamera() {
+    _cameraController?.dispose();
+    _cameraController = mscanner.MobileScannerController(
+      detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
+      facing: mscanner.CameraFacing.back,
+    );
+    setState(() {
+      _cameraActive = true;
+      _scanResult = null;
+      _scanError = null;
+    });
+  }
+
+  void _stopCamera() {
+    _cameraController?.dispose();
+    _cameraController = null;
+    setState(() => _cameraActive = false);
+  }
+
+  void _onCameraDetect(mscanner.BarcodeCapture capture) {
+    if (capture.barcodes.isEmpty) return;
+    final rawValue = capture.barcodes.first.rawValue;
+    if (rawValue == null || rawValue.isEmpty) return;
+    _stopCamera();
+    _parseUpiString(rawValue);
+  }
+
+  // === SCAN TAB — GALLERY METHODS ===
 
   Future<void> _pickImageAndScan() async {
+    final loc = context.loc;
     setState(() {
       _isScanning = true;
       _scanResult = null;
@@ -152,22 +187,21 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       if (filePath == null) {
         setState(() {
           _isScanning = false;
-          _scanError = 'Could not access image file';
+          _scanError = loc.t('scanImageError');
         });
         return;
       }
 
-      // Use MobileScanner to decode QR from gallery image
       final controller = mscanner.MobileScannerController(
         detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
       );
-
       final barcode = await controller.analyzeImage(filePath);
+      controller.dispose();
 
       if (barcode == null || barcode.barcodes.isEmpty) {
         setState(() {
           _isScanning = false;
-          _scanError = 'No QR code found in this image. Try another image.';
+          _scanError = loc.t('noQrFound');
         });
         return;
       }
@@ -176,29 +210,25 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       if (rawValue == null) {
         setState(() {
           _isScanning = false;
-          _scanError = 'QR code could not be read. Try another image.';
+          _scanError = loc.t('qrReadError');
         });
         return;
       }
 
-      // Parse UPI deep link: upi://pay?pa=xxx&pn=xxx&am=xxx&tn=xxx
       _parseUpiString(rawValue);
-      controller.dispose();
     } catch (e) {
       setState(() {
         _isScanning = false;
-        _scanError = 'Scan failed: $e';
+        _scanError = '${loc.t('scanFailed')}: $e';
       });
     }
   }
 
   /// Parse a UPI deep link string and extract fields.
   void _parseUpiString(String upiString) {
-    // upi://pay?pa=name@oksbi&pn=Raj+Kumar&am=500&tn=Payment
     final result = <String, String>{};
 
     if (upiString.startsWith('upi://')) {
-      // It's a UPI deep link — parse query params
       final uri = Uri.tryParse(upiString);
       if (uri != null) {
         final params = uri.queryParameters;
@@ -213,14 +243,12 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
         result['rawUrl'] = upiString;
       }
     } else if (upiString.contains('@') && !upiString.contains(' ')) {
-      // It's just a UPI ID (e.g. name@oksbi)
       result['upiId'] = upiString;
       result['name'] = '';
       result['amount'] = '';
       result['note'] = '';
       result['rawUrl'] = upiString;
     } else {
-      // Unknown format — show raw value
       result['rawUrl'] = upiString;
       result['upiId'] = '';
     }
@@ -229,7 +257,6 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       _scanResult = result;
       _isScanning = false;
       _scanError = null;
-      // Add to history if UPI ID found
       if (result['upiId']!.isNotEmpty) {
         _scanHistory.insert(0, {
           'upiId': result['upiId']!,
@@ -244,9 +271,10 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     final upiId = _scanResult?['upiId'];
     if (upiId == null || upiId.isEmpty) return;
     Clipboard.setData(ClipboardData(text: upiId));
+    final loc = context.loc;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('📋 UPI ID copied: $upiId'),
+        content: Text('${loc.t('upiIdCopied')}: $upiId'),
         backgroundColor: AppColors.success,
       ),
     );
@@ -256,8 +284,6 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     final rawUrl = _scanResult?['rawUrl'];
     if (rawUrl == null) return;
 
-    // If it's a UPI deep link, open it directly
-    // If it's just a UPI ID, construct a pay link
     String upiLink;
     if (rawUrl.startsWith('upi://')) {
       upiLink = rawUrl;
@@ -265,32 +291,46 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       upiLink = 'upi://pay?pa=$rawUrl';
     }
 
-    // Launch the UPI link — Android will show app chooser
-    // (PhonePe, GPay, Paytm, BHIM, etc.)
     try {
-      await Clipboard.setData(ClipboardData(text: upiLink));
-      // Try to launch via platform channel
-      // Since url_launcher doesn't always work with upi:// scheme,
-      // we copy the link AND show a snackbar telling user to open UPI app
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('UPI link copied! Open your UPI app (PhonePe/GPay/Paytm) and paste.'),
-            backgroundColor: AppColors.info,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+      final uri = Uri.parse(upiLink);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback: copy to clipboard and show snackbar
+        await Clipboard.setData(ClipboardData(text: upiLink));
+        if (mounted) {
+          final loc = context.loc;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('upiLinkCopied')),
+              backgroundColor: AppColors.info,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Open UPI app failed: $e');
+      // Fallback: copy to clipboard
+      await Clipboard.setData(ClipboardData(text: upiLink));
+      if (mounted) {
+        final loc = context.loc;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('upiLinkCopied')),
+            backgroundColor: AppColors.info,
+          ),
+        );
+      }
     }
   }
 
   void _saveToHistory() {
     if (_scanResult == null) return;
+    final loc = context.loc;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('💾 Saved to scan history!'),
+      SnackBar(
+        content: Text(loc.t('savedToHistory')),
         backgroundColor: AppColors.success,
       ),
     );
@@ -305,13 +345,13 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'UPI Tools',
+          loc.t('upiTools'),
           style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
         ),
       ),
       body: Column(
         children: [
-          // === TAB SELECTOR (2 big cards) ===
+          // === TAB SELECTOR ===
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -319,7 +359,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                 Expanded(
                   child: _buildTabCard(
                     icon: Icons.qr_code_2,
-                    label: 'Generate QR',
+                    label: loc.t('generateQr'),
                     subtitle: loc.t('generatePaymentQr'),
                     isActive: _currentTab == 0,
                     color: AppColors.primary,
@@ -330,8 +370,8 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                 Expanded(
                   child: _buildTabCard(
                     icon: Icons.image_search,
-                    label: 'Scan QR',
-                    subtitle: 'Extract UPI ID from image',
+                    label: loc.t('scanQr'),
+                    subtitle: loc.t('scanQrDesc'),
                     isActive: _currentTab == 1,
                     color: AppColors.info,
                     onTap: () => setState(() => _currentTab = 1),
@@ -340,22 +380,18 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
               ],
             ),
           ),
-
-          // === CONTENT AREA ===
+          // === CONTENT ===
           Expanded(
             child: _currentTab == 0
                 ? _buildGenerateTab(isDark, loc)
                 : _buildScanTab(isDark, loc),
           ),
-
-          // === BANNER AD ===
-          const BannerAdWidgetSafe(),
         ],
       ),
     );
   }
 
-  // === TAB CARD WIDGET ===
+  // === TAB CARD ===
   Widget _buildTabCard({
     required IconData icon,
     required String label,
@@ -364,6 +400,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -372,9 +409,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
         decoration: BoxDecoration(
           color: isActive
               ? color.withOpacity(0.15)
-              : (Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF16213E)
-                  : Colors.white),
+              : (isDark ? const Color(0xFF16213E) : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isActive ? color : const Color(0xFFD4AF37).withOpacity(0.2),
@@ -423,24 +458,23 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         children: [
-          // Input fields
           _buildInputField(
             controller: _upiIdController,
-            label: 'UPI ID *',
+            label: '${loc.t('upiId')} *',
             hint: 'yourname@upi',
             icon: Icons.payment,
           ),
           const SizedBox(height: 8),
           _buildInputField(
             controller: _nameController,
-            label: 'Name (optional)',
-            hint: 'Payee Name',
+            label: loc.t('nameLabel'),
+            hint: loc.t('nameLabel'),
             icon: Icons.person,
           ),
           const SizedBox(height: 8),
           _buildInputField(
             controller: _amountController,
-            label: 'Amount (optional)',
+            label: loc.t('amount'),
             hint: '₹ 0',
             icon: Icons.currency_rupee,
             keyboardType: TextInputType.number,
@@ -448,19 +482,17 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
           const SizedBox(height: 8),
           _buildInputField(
             controller: _noteController,
-            label: 'Note (optional)',
-            hint: 'Payment note',
+            label: loc.t('noteLabel'),
+            hint: loc.t('noteLabel'),
             icon: Icons.note,
           ),
           const SizedBox(height: 12),
-
-          // Generate button
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: _generateQr,
               icon: const Icon(Icons.qr_code),
-              label: const Text('Generate QR Code'),
+              label: Text(loc.t('generateQrCode')),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.bgDark,
@@ -469,8 +501,6 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // QR Code display
           if (_generatedUpiUrl != null) ...[
             Screenshot(
               controller: _screenshotController,
@@ -526,15 +556,13 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Action buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _shareQrImage,
                     icon: const Icon(Icons.share, size: 18),
-                    label: const Text('Share'),
+                    label: Text(loc.t('share')),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -542,7 +570,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                   child: OutlinedButton.icon(
                     onPressed: _copyUpiId,
                     icon: const Icon(Icons.copy, size: 18),
-                    label: const Text('Copy UPI'),
+                    label: Text(loc.t('copyUpi')),
                   ),
                 ),
               ],
@@ -560,52 +588,186 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         children: [
-          // Select image button
-          GestureDetector(
-            onTap: _isScanning ? null : _pickImageAndScan,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF16213E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.info.withOpacity(0.3),
-                  width: 2,
-                  style: BorderStyle.solid,
+          // Scan mode selector: Camera vs Gallery
+          Row(
+            children: [
+              Expanded(
+                child: _buildScanModeCard(
+                  icon: Icons.camera_alt,
+                  label: loc.t('camera'),
+                  isActive: _scanMode == 0,
+                  onTap: () {
+                    setState(() => _scanMode = 0);
+                    _stopCamera();
+                  },
                 ),
               ),
-              child: Column(
-                children: [
-                  _isScanning
-                      ? const CircularProgressIndicator()
-                      : Icon(
-                          Icons.image_search,
-                          size: 56,
-                          color: AppColors.info,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildScanModeCard(
+                  icon: Icons.image,
+                  label: loc.t('gallery'),
+                  isActive: _scanMode == 1,
+                  onTap: () {
+                    setState(() => _scanMode = 1);
+                    _stopCamera();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Camera mode
+          if (_scanMode == 0) ...[
+            if (!_cameraActive) ...[
+              // Start camera button
+              GestureDetector(
+                onTap: _startCamera,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF16213E) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.info.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.camera_alt, size: 56, color: AppColors.info),
+                      const SizedBox(height: 12),
+                      Text(
+                        loc.t('openCamera'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _isScanning ? 'Scanning...' : 'Select QR Image from Gallery',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
-                    ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        loc.t('openCameraDesc'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Pick a screenshot or photo containing a UPI QR code',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white54 : Colors.black54,
-                    ),
-                    textAlign: TextAlign.center,
+                ),
+              ),
+            ] else ...[
+              // Live camera preview
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 300,
+                  width: double.infinity,
+                  child: Stack(
+                    children: [
+                      mscanner.MobileScanner(
+                        controller: _cameraController!,
+                        onDetect: _onCameraDetect,
+                      ),
+                      // Overlay frame
+                      Center(
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.info, width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      // Stop button
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: _stopCamera,
+                          ),
+                        ),
+                      ),
+                      // Scanning text
+                      Positioned(
+                        bottom: 8,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              loc.t('scanning'),
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ],
+          ],
+
+          // Gallery mode
+          if (_scanMode == 1) ...[
+            GestureDetector(
+              onTap: _isScanning ? null : _pickImageAndScan,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF16213E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.info.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _isScanning
+                        ? const CircularProgressIndicator()
+                        : Icon(Icons.image_search, size: 56, color: AppColors.info),
+                    const SizedBox(height: 12),
+                    Text(
+                      _isScanning ? loc.t('scanning') : loc.t('selectImage'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      loc.t('selectImageDesc'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white54 : Colors.black54,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 16),
 
           // Scan error
@@ -650,8 +812,8 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                       const Icon(Icons.check_circle, color: AppColors.success, size: 24),
                       const SizedBox(width: 8),
                       Text(
-                        'UPI ID Found!',
-                        style: TextStyle(
+                        loc.t('upiIdFound'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.success,
@@ -662,20 +824,19 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                   const SizedBox(height: 12),
                   _scanResultRow('UPI ID', _scanResult!['upiId']!),
                   if (_scanResult!['name']!.isNotEmpty)
-                    _scanResultRow('Name', _scanResult!['name']!),
+                    _scanResultRow(loc.t('nameLabel'), _scanResult!['name']!),
                   if (_scanResult!['amount']!.isNotEmpty)
-                    _scanResultRow('Amount', '₹ ${_scanResult!['amount']}'),
+                    _scanResultRow(loc.t('amount'), '₹ ${_scanResult!['amount']}'),
                   if (_scanResult!['note']!.isNotEmpty)
-                    _scanResultRow('Note', _scanResult!['note']!),
+                    _scanResultRow(loc.t('noteLabel'), _scanResult!['note']!),
                   const SizedBox(height: 12),
-                  // Action buttons
                   Row(
                     children: [
                       Expanded(
                         child: FilledButton.icon(
                           onPressed: _copyScannedUpiId,
                           icon: const Icon(Icons.copy, size: 16),
-                          label: const Text('Copy UPI', style: TextStyle(fontSize: 12)),
+                          label: Text(loc.t('copyUpi'), style: const TextStyle(fontSize: 12)),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.info,
                             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -687,7 +848,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                         child: FilledButton.icon(
                           onPressed: _openUpiApp,
                           icon: const Icon(Icons.payment, size: 16),
-                          label: const Text('Open UPI', style: TextStyle(fontSize: 12)),
+                          label: Text(loc.t('openUpi'), style: const TextStyle(fontSize: 12)),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.success,
                             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -699,7 +860,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                         child: FilledButton.icon(
                           onPressed: _saveToHistory,
                           icon: const Icon(Icons.save, size: 16),
-                          label: const Text('Save', style: TextStyle(fontSize: 12)),
+                          label: Text(loc.t('save'), style: const TextStyle(fontSize: 12)),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.bgDark,
@@ -735,7 +896,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                       const Icon(Icons.history, size: 16, color: AppColors.info),
                       const SizedBox(width: 6),
                       Text(
-                        'Recent Scans',
+                        loc.t('recentScans'),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -745,7 +906,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                       const Spacer(),
                       TextButton(
                         onPressed: () => setState(() => _scanHistory.clear()),
-                        child: const Text('Clear', style: TextStyle(fontSize: 11)),
+                        child: Text(loc.t('clear'), style: const TextStyle(fontSize: 11)),
                       ),
                     ],
                   ),
@@ -772,7 +933,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                       Clipboard.setData(ClipboardData(text: item['upiId']!));
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('📋 Copied: ${item['upiId']}'),
+                          content: Text('${loc.t('upiIdCopied')}: ${item['upiId']}'),
                           backgroundColor: AppColors.success,
                         ),
                       );
@@ -781,10 +942,10 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
           ],
 
-          // Info note
+          // Info note — ₹2000 limit
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -798,8 +959,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '💡 UPI QR scan limit is ₹5000, but UPI ID send limit is ₹1 lakh. '
-                    'Scan QR from gallery → extract UPI ID → send larger amounts!',
+                    loc.t('upiLimitInfo'),
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark ? Colors.white70 : Colors.black54,
@@ -811,6 +971,47 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
           ),
           const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  // === SCAN MODE CARD ===
+  Widget _buildScanModeCard({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.info.withOpacity(0.15)
+              : (isDark ? const Color(0xFF16213E) : Colors.white),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? AppColors.info : const Color(0xFFD4AF37).withOpacity(0.2),
+            width: isActive ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: isActive ? AppColors.info : AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isActive ? AppColors.info : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -857,27 +1058,11 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
           Expanded(
             child: SelectableText(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-/// BannerAdWidget wrapper that doesn't import the full widget
-/// to avoid circular dependencies.
-class BannerAdWidgetSafe extends StatelessWidget {
-  const BannerAdWidgetSafe({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Return the actual BannerAdWidget from the widgets directory
-    // This wrapper exists to keep imports clean in this file.
-    return const SizedBox(height: 50);
   }
 }
