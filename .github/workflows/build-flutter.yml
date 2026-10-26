@@ -55,6 +55,20 @@ jobs:
         echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
         echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
 
+    - name: Print SHA-1 fingerprint (for Firebase Console)
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      if: env.KEYSTORE_BASE64 != ''
+      run: |
+        echo "========================================="
+        echo "  SHA-1 FINGERPRINT FOR FIREBASE CONSOLE"
+        echo "========================================="
+        keytool -list -v -keystore android/app/note-counter-pro.keystore -alias ${{ secrets.KEY_ALIAS }} -storepass ${{ secrets.KEYSTORE_PASSWORD }} -keypass ${{ secrets.KEY_PASSWORD }} 2>/dev/null | grep -E "SHA1|SHA-256|Valid until|Owner"
+        echo "========================================="
+        echo "  Copy the SHA1 line above and add it to:"
+        echo "  Firebase Console > Project Settings > Your apps > Add fingerprint"
+        echo "========================================="
+
     - name: Build APK
       run: flutter build apk --release --no-tree-shake-icons --target-platform android-arm,android-arm64,android-x64
 
