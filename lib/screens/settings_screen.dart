@@ -432,18 +432,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final loc = context.loc;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final storage = context.watch<StorageService>();
+    final isPremium = PremiumService().isPremium;
 
-    // Wrap the entire body in a ValueListenableBuilder on themeNotifier
-    // so that ALL settings cards (which use isDark for card background,
-    // borders, shadows) rebuild when dark mode is toggled — even though
-    // setDarkMode() no longer calls notifyListeners() on StorageService.
-    return ValueListenableBuilder<bool>(
-      valueListenable: storage.themeNotifier,
-      builder: (context, isDarkMode, _) {
-        final isDark = isDarkMode;
-        final isPremium = PremiumService().isPremium;
-
+    // NOTE: We do NOT wrap the body in ValueListenableBuilder on
+    // themeNotifier anymore. That caused a DOUBLE rebuild when dark
+    // mode was toggled — once from the VLB, once from Theme.of(context)
+    // changing (because MaterialApp.themeMode changed). The double
+    // rebuild caused visible flashing.
+    //
+    // Instead, we rely on Theme.of(context) which is ALREADY reactive:
+    // when MaterialApp.themeMode changes, every widget using
+    // Theme.of(context) automatically rebuilds with the new theme.
+    // This gives us a single, smooth rebuild — no flash.
     return Scaffold(
       // No AppBar — saves ~56px of empty space at the top.
       // SafeArea in body provides the status-bar padding.
@@ -1005,8 +1007,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-    );
-      },
     );
   }
 
