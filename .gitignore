@@ -20,7 +20,6 @@ android/local.properties
 android/**/.settings/
 android/**/.DS_Store
 android/key.properties
-android/app/google-services.json
 **/android/**/gradle-wrapper.jar
 
 # iOS

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "501718040651",
+    "project_id": "note-counter-pro",
+    "storage_bucket": "note-counter-pro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:501718040651:android:11391ecbff20a5ea1f8dce",
+        "android_client_info": {
+          "package_name": "com.lokhnathtechnical.notecounterpro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLe29gsQTsZ7DLlJBWSQw-vzVwJTle9gI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

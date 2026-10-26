@@ -99,3 +99,6 @@ dependencies {
     // Core library desugaring — required by flutter_local_notifications for Java 8+ APIs on older Android
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
+
+// Google Services plugin — required for Google Sign-In (Cloud Backup)
+apply plugin: 'com.google.gms.google-services'
