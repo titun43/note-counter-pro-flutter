@@ -123,7 +123,7 @@ class NoteCounterProApp extends StatelessWidget {
             // controls how long the cross-fade takes when the user
             // toggles dark mode. Default is 200ms which can feel abrupt;
             // 350ms with easeInOut feels more polished.
-            themeAnimationDuration: const Duration(milliseconds: 350),
+            themeAnimationDuration: Duration.zero,
             themeAnimationCurve: Curves.easeInOut,
             // Home is ALWAYS MainScaffold. App Lock is handled inside
             // MainScaffold via Navigator.push on initial launch only —

@@ -1014,7 +1014,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildPremiumHeader(bool isPremium, bool isDark) {
     final loc = context.loc;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
+      duration: Duration.zero,
       curve: Curves.easeInOut,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -1152,7 +1152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // color, border, and shadow when dark mode is toggled — instead
     // of an instant color jump that looks like flashing.
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
+      duration: Duration.zero,
       curve: Curves.easeInOut,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
@@ -1195,7 +1195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String? trailing,
   }) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
+      duration: Duration.zero,
       curve: Curves.easeInOut,
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.all(14),
