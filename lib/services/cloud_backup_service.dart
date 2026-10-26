@@ -115,24 +115,21 @@ class CloudBackupService {
   }
 
   /// Backup app data to Google Drive (appData folder)
-  Future<bool> backup(StorageService storage) async {
-    if (!PremiumService().isPremium) return false;
+  /// Returns (success, errorMessage) — errorMessage is null on success.
+  Future<(bool, String?)> backupWithError(StorageService storage) async {
+    if (!PremiumService().isPremium) return (false, 'Premium required');
     if (_currentUser == null) {
       final signedIn = await signIn();
-      if (!signedIn) return false;
+      if (!signedIn) return (false, 'Sign-in failed');
     }
-    if (_isBackingUp) return false;
+    if (_isBackingUp) return (false, 'Backup already in progress');
     _isBackingUp = true;
 
-    http.Client? httpClient;
+    auth.AuthClient? httpClient;
     try {
-      // Refresh auth headers before each backup — the token may have
-      // expired since sign-in. GoogleSignInAccount.authHeaders is a
-      // getter that automatically refreshes the token if needed.
       httpClient = await _getAuthClient();
       if (httpClient == null) {
-        debugPrint('CloudBackupService: failed to get authenticated client');
-        return false;
+        return (false, 'Failed to get auth client (token null?)');
       }
       final driveApi = drive.DriveApi(httpClient);
 
@@ -156,46 +153,21 @@ class CloudBackupService {
 
       await storage.setLastCloudBackup(DateTime.now());
       debugPrint('CloudBackupService: backup uploaded successfully');
-      return true;
+      return (true, null);
     } catch (e) {
-      debugPrint('CloudBackupService: backup failed: $e');
-      // If the error is auth-related, try re-authenticating
-      if (e.toString().contains('401') || e.toString().contains('Unauthorized')) {
-        debugPrint('CloudBackupService: auth error, trying to re-authenticate...');
-        try {
-          await _googleSignIn.signOut();
-          final account = await _googleSignIn.signIn();
-          _currentUser = account;
-          if (account != null) {
-            // Retry backup with fresh auth
-            httpClient = await _getAuthClient();
-            if (httpClient != null) {
-              final driveApi = drive.DriveApi(httpClient);
-              final backupJson = await BackupService.createBackupJson(storage);
-              final bytes = Uint8List.fromList(utf8.encode(backupJson));
-              final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
-              final fileToUpload = drive.File()
-                ..name = 'note_counter_backup_$timestamp.json'
-                ..parents = ['appDataFolder'];
-              final media = drive.Media(
-                Stream.fromIterable([bytes]),
-                bytes.length,
-              );
-              await driveApi.files.create(fileToUpload, uploadMedia: media);
-              await storage.setLastCloudBackup(DateTime.now());
-              debugPrint('CloudBackupService: backup uploaded on retry');
-              return true;
-            }
-          }
-        } catch (e2) {
-          debugPrint('CloudBackupService: retry also failed: $e2');
-        }
-      }
-      return false;
+      final errMsg = e.toString();
+      debugPrint('CloudBackupService: backup failed: $errMsg');
+      return (false, errMsg);
     } finally {
       httpClient?.close();
       _isBackingUp = false;
     }
+  }
+
+  /// Backup wrapper for backward compatibility (returns bool only)
+  Future<bool> backup(StorageService storage) async {
+    final (success, _) = await backupWithError(storage);
+    return success;
   }
 
   /// Restore latest backup from Google Drive

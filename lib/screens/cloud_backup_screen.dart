@@ -69,7 +69,7 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
   Future<void> _backup() async {
     setState(() => _isLoading = true);
     final storage = context.read<StorageService>();
-    final success = await CloudBackupService().backup(storage);
+    final (success, error) = await CloudBackupService().backupWithError(storage);
     setState(() => _isLoading = false);
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,10 +80,12 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
       );
       await _loadBackups();
     } else if (mounted) {
+      // Show the ACTUAL error message so we can debug the issue
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Backup failed. Please try again.'),
+        SnackBar(
+          content: Text('Backup failed: $error'),
           backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 10),
         ),
       );
     }
