@@ -229,8 +229,13 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
             const SizedBox(height: 24),
 
-            if (isPremium) ...[
-              // Active state
+            // === 3 states ===
+            // 1. PAID premium (IAP) → show "Premium Active" only
+            // 2. TRIAL active (rewarded ad) → show trial status + extend + paid plans
+            // 3. FREE user → show rewarded ad + paid plans
+
+            if (isPremium && !PremiumService().isTrialActive) ...[
+              // === PAID PREMIUM ===
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -252,11 +257,76 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ),
               ),
             ] else ...[
+              // === TRIAL ACTIVE or FREE USER ===
+
+              // If trial active, show trial status banner at the top
+              if (PremiumService().isTrialActive) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.success, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.timer, color: AppColors.success, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${loc.t('trialActive')}: ${PremiumService().trialRemainingLabel}',
+                              style: const TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              loc.t('trialActiveDesc'),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600])),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               // === FREE: Watch Ad → 1 Day Premium ===
-              // Highlighted card placed BEFORE paid plans so the user
-              // sees there is a free path before being asked to pay.
               _RewardedAdCard(onWatch: _watchRewardedAd),
               const SizedBox(height: 16),
+
+              // === "Want permanent premium?" separator ===
+              if (PremiumService().isTrialActive) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(child: Divider(color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[700] : Colors.grey[300]))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          loc.t('wantPermanentPremium'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[400] : Colors.grey[600]),
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: (Theme.of(context).brightness == Brightness.dark ? Colors.grey[700] : Colors.grey[300]))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
 
               // === Paid Plan Cards ===
               ...PremiumService.plans.map((plan) => _PlanCard(
