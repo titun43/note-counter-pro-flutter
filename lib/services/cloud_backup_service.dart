@@ -104,8 +104,12 @@ class CloudBackupService {
     if (_isBackingUp) return false;
     _isBackingUp = true;
 
+    http.Client? httpClient;
     try {
-      final httpClient = await _getAuthClient();
+      // Refresh auth headers before each backup — the token may have
+      // expired since sign-in. GoogleSignInAccount.authHeaders is a
+      // getter that automatically refreshes the token if needed.
+      httpClient = await _getAuthClient();
       if (httpClient == null) {
         debugPrint('CloudBackupService: failed to get authenticated client');
         return false;
@@ -135,8 +139,41 @@ class CloudBackupService {
       return true;
     } catch (e) {
       debugPrint('CloudBackupService: backup failed: $e');
+      // If the error is auth-related, try re-authenticating
+      if (e.toString().contains('401') || e.toString().contains('Unauthorized')) {
+        debugPrint('CloudBackupService: auth error, trying to re-authenticate...');
+        try {
+          await _googleSignIn.signOut();
+          final account = await _googleSignIn.signIn();
+          _currentUser = account;
+          if (account != null) {
+            // Retry backup with fresh auth
+            httpClient = await _getAuthClient();
+            if (httpClient != null) {
+              final driveApi = drive.DriveApi(httpClient);
+              final backupJson = await BackupService.createBackupJson(storage);
+              final bytes = Uint8List.fromList(utf8.encode(backupJson));
+              final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+              final fileToUpload = drive.File()
+                ..name = 'note_counter_backup_$timestamp.json'
+                ..parents = ['appDataFolder'];
+              final media = drive.Media(
+                Stream.fromIterable([bytes]),
+                bytes.length,
+              );
+              await driveApi.files.create(fileToUpload, uploadMedia: media);
+              await storage.setLastCloudBackup(DateTime.now());
+              debugPrint('CloudBackupService: backup uploaded on retry');
+              return true;
+            }
+          }
+        } catch (e2) {
+          debugPrint('CloudBackupService: retry also failed: $e2');
+        }
+      }
       return false;
     } finally {
+      httpClient?.close();
       _isBackingUp = false;
     }
   }
