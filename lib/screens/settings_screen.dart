@@ -1013,7 +1013,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Premium status header card at the top of settings
   Widget _buildPremiumHeader(bool isPremium, bool isDark) {
     final loc = context.loc;
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1146,7 +1148,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required List<Widget> children,
     bool danger = false,
   }) {
-    return Container(
+    // AnimatedContainer smoothly transitions the card's background
+    // color, border, and shadow when dark mode is toggled — instead
+    // of an instant color jump that looks like flashing.
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: danger
@@ -1187,7 +1194,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color valueColor,
     String? trailing,
   }) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
