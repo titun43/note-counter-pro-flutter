@@ -47,17 +47,33 @@ class _PremiumScreenState extends State<PremiumScreen> {
       _selectedPlan = productId;
     });
     debugPrint('PremiumScreen: _purchase called for $productId');
-    final started = await PremiumService().purchasePlan(productId);
-    debugPrint('PremiumScreen: purchasePlan returned $started');
+    final (started, error) = await PremiumService().purchasePlanDebug(productId);
+    debugPrint('PremiumScreen: purchasePlan returned started=$started, error=$error');
     if (!started && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not start purchase. Please try again or check your Google Play connection.',
-          ),
-          backgroundColor: AppColors.danger,
+      // Show a debug dialog with the exact error so we can diagnose
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Purchase Debug'),
+          content: Text(error ?? 'Unknown error'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not start purchase. Please try again or check your Google Play connection.',
+            ),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
     }
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _isLoading = false);

@@ -212,7 +212,10 @@ class PremiumService extends ChangeNotifier {
   /// For subscriptions (Monthly/Yearly) AND non-consumables (Lifetime),
   /// we use buyNonConsumable — this is the correct Play Billing flow.
   /// Subscriptions are simply non-consumable recurring purchases.
-  Future<bool> purchasePlan(String productId) async {
+  ///
+  /// Returns a (success, errorMessage) tuple so the UI can show a
+  /// meaningful message to the user when something fails.
+  Future<(bool, String?)> purchasePlanDebug(String productId) async {
     try {
       debugPrint('PremiumService: === purchasePlan START for $productId ===');
 
@@ -220,8 +223,7 @@ class PremiumService extends ChangeNotifier {
       final available = await _iap.isAvailable();
       debugPrint('PremiumService: IAP available = $available');
       if (!available) {
-        debugPrint('PremiumService: ❌ IAP NOT AVAILABLE — billing client cannot connect');
-        return false;
+        return (false, 'Google Play Billing is not available on this device.');
       }
 
       // 2. Query product details
@@ -229,39 +231,43 @@ class PremiumService extends ChangeNotifier {
       final response = await _iap.queryProductDetails({productId});
       if (response.error != null) {
         debugPrint('PremiumService: ❌ queryProductDetails error: ${response.error}');
-        return false;
+        return (false, 'Product query error: ${response.error}');
       }
       if (response.productDetails.isEmpty) {
         debugPrint('PremiumService: ❌ product NOT FOUND: $productId');
-        debugPrint('PremiumService:   → Check that product is ACTIVE in Play Console');
-        debugPrint('PremiumService:   → Check that product ID matches exactly');
-        debugPrint('PremiumService:   → Check that app is signed with same key as Play Console');
-        return false;
+        return (false,
+          'Product "$productId" not found in Google Play.\n\n'
+          'Possible causes:\n'
+          '• Product is not ACTIVE in Play Console\n'
+          '• App is not signed with the same key as Play Console\n'
+          '• App is installed from wrong source\n'
+          '• Gmail not in License Testing list');
       }
 
       final product = response.productDetails.first;
       debugPrint('PremiumService: ✅ product found: ${product.id} — ${product.title} — ${product.price}');
 
-      // 3. Determine if subscription (for logging only — both use buyNonConsumable)
-      final isSubscription = productId != productIdLifetime;
-      debugPrint('PremiumService: isSubscription = $isSubscription');
-
-      // 4. Launch billing flow
+      // 3. Launch billing flow
       final purchaseParam = PurchaseParam(productDetails: product);
       debugPrint('PremiumService: launching billing flow (buyNonConsumable)...');
       final ok = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
       debugPrint('PremiumService: buyNonConsumable returned = $ok');
       if (!ok) {
-        debugPrint('PremiumService: ❌ billing flow did NOT start');
-      } else {
-        debugPrint('PremiumService: ✅ billing flow started — waiting for purchaseStream event');
+        return (false, 'Billing flow did not start (buyNonConsumable returned false).');
       }
-      return ok;
+      // Billing flow started — wait for purchaseStream event
+      return (true, null);
     } catch (e, st) {
       debugPrint('PremiumService: ❌ purchasePlan EXCEPTION: $e');
       debugPrint('PremiumService: stacktrace: $st');
-      return false;
+      return (false, 'Exception: $e');
     }
+  }
+
+  /// Purchase a specific plan by product ID.
+  Future<bool> purchasePlan(String productId) async {
+    final (ok, _) = await purchasePlanDebug(productId);
+    return ok;
   }
 
   /// Legacy method — purchases lifetime plan
