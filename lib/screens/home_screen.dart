@@ -2057,72 +2057,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                   iconSize: 24,
                 ),
-                // Unique UPI Tools button — gold gradient pill with ₹1L badge
-                GestureDetector(
-                  onTap: () {
-                    if (!PremiumService().isPremium) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                      );
-                      return;
-                    }
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const UpiToolsScreen()),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFFFD700), width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFD4AF37).withOpacity(0.4),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.qr_code, size: 16, color: Color(0xFF1A1A2E)),
-                        const SizedBox(width: 4),
-                        Text(
-                          loc.t('upiTools'),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A1A2E),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A2E),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            '₹1L',
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFFFD700),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // NOTE: UPI Tools button REMOVED in v3.26.0 — UPI now has its own tab.
+                // Calculator icon remains — it's the "send amount to calculator" cross-tab flow.
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () => _saveEntry(false),

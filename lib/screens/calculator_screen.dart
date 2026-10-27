@@ -24,11 +24,17 @@ import 'converter_screen.dart';
 class CalculatorScreen extends StatefulWidget {
   final double? initialValue;
   final String currencyCode;
+  /// When true, open Currency converter immediately (from Tools tab).
+  final bool initialConverter;
+  /// When true, open Date Calc mode immediately (from Tools tab).
+  final bool initialDateCalc;
 
   const CalculatorScreen({
     super.key,
     this.initialValue,
     this.currencyCode = 'INR',
+    this.initialConverter = false,
+    this.initialDateCalc = false,
   });
 
   @override
@@ -60,6 +66,29 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     {'icon': Icons.compress, 'name': 'Pressure'},
     {'icon': Icons.architecture, 'name': 'Angle'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Handle initial mode from Tools tab
+    if (widget.initialDateCalc) {
+      _currentMode = 3; // Date Calc mode
+    }
+    // For initialConverter, we need to wait for the first frame
+    // because we need a BuildContext to call Navigator.push
+    if (widget.initialConverter) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ConverterScreen(initialType: 0),
+            ),
+          );
+        }
+      });
+    }
+  }
 
   void _showMenu() {
     showModalBottomSheet(

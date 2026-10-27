@@ -599,6 +599,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           // ===== 4. PRO TOOLS =====
+          // NOTE: Printer was moved to Tools tab in v3.26.0.
+          // Cloud Backup, Voice Announcement, Reminders remain in Settings
+          // because they are app-level settings (not daily-use tools).
           _sectionHeader(
             icon: Icons.build_outlined,
             title: loc.t('proTools'),
@@ -620,22 +623,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const CloudBackupScreen()),
-                ),
-              ),
-              const _Divider(),
-              ListTile(
-                leading: const Icon(Icons.print_outlined, color: AppColors.info),
-                title: Row(
-                  children: [
-                    Flexible(child: Text(loc.t('printer'))),
-                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
-                  ],
-                ),
-                subtitle: Text(loc.t('printerSettingsDesc')),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PrinterScreen()),
                 ),
               ),
               const _Divider(),
@@ -786,75 +773,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _showBusinessDetails();
                 },
               ),
-              const _Divider(),
-              ListTile(
-                leading: const Icon(Icons.qr_code_2, color: AppColors.primary),
-                title: Row(
-                  children: [
-                    Flexible(child: Text(loc.t('upiQrCode'))),
-                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
-                  ],
-                ),
-                subtitle: Text(loc.t('generatePaymentQr')),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  if (!isPremium) {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const UpiToolsScreen()),
-                  );
-                },
-              ),
-              const _Divider(),
-              ListTile(
-                leading: const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
-                title: Row(
-                  children: [
-                    Flexible(child: Text(loc.t('billsInvoices'))),
-                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
-                  ],
-                ),
-                subtitle: Text(loc.t('billsInvoicesDesc')),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  if (!isPremium) {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BillsScreen()),
-                  );
-                },
-              ),
-              const _Divider(),
-              ListTile(
-                leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
-                title: Row(
-                  children: [
-                    Flexible(child: Text(loc.t('reportsAnalytics'))),
-                    if (!isPremium) ...[const SizedBox(width: 8), _proBadge()],
-                  ],
-                ),
-                subtitle: Text(loc.t('reportsDesc')),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  if (!isPremium) {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const PremiumScreen()));
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ReportsScreen()),
-                  );
-                },
-              ),
+              // NOTE: UPI QR Code moved to UPI tab (v3.26.0).
+              // NOTE: Bills & Invoices moved to Khata tab overflow menu (v3.26.0).
+              // NOTE: Reports & Analytics moved to Khata tab overflow menu (v3.26.0).
+              // Business Details stays in Settings because it's setup-once data
+              // (business name, GST number, address) used by Bills.
             ],
           ),
 

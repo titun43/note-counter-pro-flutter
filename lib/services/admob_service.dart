@@ -35,10 +35,12 @@ class AdMobService {
   ///             safe for development).
   /// When false: uses real AdMob ad unit IDs from AppConstants.
   ///
-  /// Currently: REAL ADS ON — production build for Play Store release.
+  /// Currently: TEST ADS ON — for user testing on mobile before Play Store update.
   /// All 4 ad formats (Banner, Interstitial, App Open, Rewarded) use
-  /// real AdMob ad unit IDs.
-  static const bool useTestAds = false;
+  /// Google's official test ad unit IDs.
+  ///
+  /// TODO: Set to `false` before Play Store production release.
+  static const bool useTestAds = true;
 
   /// Google's official test ad unit IDs (always serve, safe for testing)
   static const String _testBannerAdUnitId =

@@ -14,6 +14,8 @@ import 'widgets/banner_ad_widget.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/khata_screen.dart';
+import 'screens/upi_tab_screen.dart';
+import 'screens/tools_tab_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
 import 'package:flutter/services.dart';
@@ -285,10 +287,18 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
 
     // Cache the screens list so it doesn't get recreated on every build.
     // We rebuild only when currencyCode changes.
+    //
+    // 5-tab navigation (v3.26.0):
+    //   0. Counter  — note counting (main)
+    //   1. Khata    — customer ledger (with quick access to Bills & Reports)
+    //   2. UPI      — UPI Tools (premium-locked for free users)
+    //   3. Tools    — Calculator, Converter, Date Calc, Printer
+    //   4. Settings — app settings (cleaned up)
     final List<Widget> screens = [
       const HomeScreen(),
-      CalculatorScreen(currencyCode: currencyCode),
       const KhataScreen(),
+      const UpiTabScreen(),
+      ToolsTabScreen(currencyCode: currencyCode),
       const SettingsScreen(),
     ];
 
@@ -329,14 +339,41 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
             label: loc.t('counter'),
           ),
           NavigationDestination(
-            icon: const Icon(Icons.functions_outlined),
-            selectedIcon: const Icon(Icons.functions),
-            label: loc.t('calculator'),
-          ),
-          NavigationDestination(
             icon: const Icon(Icons.account_balance_wallet_outlined),
             selectedIcon: const Icon(Icons.account_balance_wallet),
             label: loc.t('khata'),
+          ),
+          NavigationDestination(
+            icon: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.bolt_outlined),
+                if (!PremiumService().isPremium)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(1),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock,
+                        size: 8,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            selectedIcon: const Icon(Icons.bolt),
+            label: loc.t('upiTools'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.construction_outlined),
+            selectedIcon: const Icon(Icons.construction),
+            label: loc.t('proTools'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings_outlined),
