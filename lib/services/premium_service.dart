@@ -213,25 +213,43 @@ class PremiumService extends ChangeNotifier {
   /// we use buyNonConsumable — this is the correct Play Billing flow.
   /// Subscriptions are simply non-consumable recurring purchases.
   ///
-  /// Returns a (success, errorMessage) tuple so the UI can show a
+  /// Returns a (success, errorMessage, step) tuple so the UI can show a
   /// meaningful message to the user when something fails.
-  Future<(bool, String?)> purchasePlanDebug(String productId) async {
+  /// [step] indicates which step was reached: 'check_available',
+  /// 'query_product', 'launch_billing', 'done'.
+  Future<(bool, String?, String)> purchasePlanDebug(String productId) async {
+    String currentStep = 'start';
     try {
       debugPrint('PremiumService: === purchasePlan START for $productId ===');
+      currentStep = 'check_available';
 
-      // 1. Check billing availability
-      final available = await _iap.isAvailable();
+      // 1. Check billing availability — with timeout
+      debugPrint('PremiumService: [step=$currentStep] checking IAP available...');
+      final available = await _iap.isAvailable().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('PremiumService: ❌ isAvailable() TIMED OUT after 10s');
+          return false;
+        },
+      );
       debugPrint('PremiumService: IAP available = $available');
       if (!available) {
-        return (false, 'Google Play Billing is not available on this device.');
+        return (false, 'Google Play Billing is not available on this device (or timed out).', currentStep);
       }
 
-      // 2. Query product details
-      debugPrint('PremiumService: querying product details for: $productId');
-      final response = await _iap.queryProductDetails({productId});
+      // 2. Query product details — with timeout
+      currentStep = 'query_product';
+      debugPrint('PremiumService: [step=$currentStep] querying product details for: $productId');
+      final response = await _iap.queryProductDetails({productId}).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint('PremiumService: ❌ queryProductDetails() TIMED OUT after 15s');
+          throw TimeoutException('queryProductDetails timed out after 15s');
+        },
+      );
       if (response.error != null) {
         debugPrint('PremiumService: ❌ queryProductDetails error: ${response.error}');
-        return (false, 'Product query error: ${response.error}');
+        return (false, 'Product query error: ${response.error}', currentStep);
       }
       if (response.productDetails.isEmpty) {
         debugPrint('PremiumService: ❌ product NOT FOUND: $productId');
@@ -241,32 +259,41 @@ class PremiumService extends ChangeNotifier {
           '• Product is not ACTIVE in Play Console\n'
           '• App is not signed with the same key as Play Console\n'
           '• App is installed from wrong source\n'
-          '• Gmail not in License Testing list');
+          '• Gmail not in License Testing list',
+          currentStep);
       }
 
       final product = response.productDetails.first;
       debugPrint('PremiumService: ✅ product found: ${product.id} — ${product.title} — ${product.price}');
 
-      // 3. Launch billing flow
+      // 3. Launch billing flow — with timeout (in case dialog hangs)
+      currentStep = 'launch_billing';
       final purchaseParam = PurchaseParam(productDetails: product);
-      debugPrint('PremiumService: launching billing flow (buyNonConsumable)...');
-      final ok = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      debugPrint('PremiumService: [step=$currentStep] launching billing flow (buyNonConsumable)...');
+      final ok = await _iap.buyNonConsumable(purchaseParam: purchaseParam).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('PremiumService: ❌ buyNonConsumable() TIMED OUT after 10s');
+          return false;
+        },
+      );
       debugPrint('PremiumService: buyNonConsumable returned = $ok');
       if (!ok) {
-        return (false, 'Billing flow did not start (buyNonConsumable returned false).');
+        return (false, 'Billing flow did not start (buyNonConsumable returned false).', currentStep);
       }
       // Billing flow started — wait for purchaseStream event
-      return (true, null);
+      currentStep = 'done';
+      return (true, null, currentStep);
     } catch (e, st) {
-      debugPrint('PremiumService: ❌ purchasePlan EXCEPTION: $e');
+      debugPrint('PremiumService: ❌ purchasePlan EXCEPTION at step=$currentStep: $e');
       debugPrint('PremiumService: stacktrace: $st');
-      return (false, 'Exception: $e');
+      return (false, 'Exception at step "$currentStep": $e', currentStep);
     }
   }
 
   /// Purchase a specific plan by product ID.
   Future<bool> purchasePlan(String productId) async {
-    final (ok, _) = await purchasePlanDebug(productId);
+    final (ok, _, _) = await purchasePlanDebug(productId);
     return ok;
   }
 

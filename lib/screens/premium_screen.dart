@@ -47,15 +47,26 @@ class _PremiumScreenState extends State<PremiumScreen> {
       _selectedPlan = productId;
     });
     debugPrint('PremiumScreen: _purchase called for $productId');
-    final (started, error) = await PremiumService().purchasePlanDebug(productId);
-    debugPrint('PremiumScreen: purchasePlan returned started=$started, error=$error');
-    if (!started && mounted) {
-      // Show a debug dialog with the exact error so we can diagnose
+    final (started, error, step) = await PremiumService().purchasePlanDebug(productId);
+    debugPrint('PremiumScreen: purchasePlan returned started=$started, step=$step, error=$error');
+
+    if (mounted) {
+      // Always show a debug dialog with status — whether success or failure
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Purchase Debug'),
-          content: Text(error ?? 'Unknown error'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Step reached: $step', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(started
+                ? '✅ Billing flow started successfully.\n\nNow waiting for purchaseStream event from Google Play.\n\nIf nothing happens in 10 seconds, the Play Billing dialog may not be opening (likely a signature mismatch issue).'
+                : '❌ Failed: ${error ?? "Unknown error"}'),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
@@ -64,16 +75,17 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ],
         ),
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Could not start purchase. Please try again or check your Google Play connection.',
-            ),
-            backgroundColor: AppColors.danger,
+    }
+
+    if (!started && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not start purchase. Please try again or check your Google Play connection.',
           ),
-        );
-      }
+          backgroundColor: AppColors.danger,
+        ),
+      );
     }
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) setState(() => _isLoading = false);
