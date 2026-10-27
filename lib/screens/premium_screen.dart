@@ -46,7 +46,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
       _isLoading = true;
       _selectedPlan = productId;
     });
+    debugPrint('PremiumScreen: _purchase called for $productId');
     final started = await PremiumService().purchasePlan(productId);
+    debugPrint('PremiumScreen: purchasePlan returned $started');
     if (!started && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

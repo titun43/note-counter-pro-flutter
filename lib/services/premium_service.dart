@@ -143,18 +143,21 @@ class PremiumService extends ChangeNotifier {
   /// The IAP purchase stream subscription is only created once (guarded
   /// by _subscription != null) to avoid duplicate listeners.
   Future<void> init() async {
+    debugPrint('PremiumService: === init() START ===');
     try {
       final prefs = await SharedPreferences.getInstance();
       _isPremium = prefs.getBool(_prefsKey) ?? false;
       _activePlan = prefs.getString(_prefsPlanKey) ?? '';
       _trialExpiryMs = prefs.getInt(_prefsTrialExpiryKey) ?? 0;
+      debugPrint('PremiumService: loaded from prefs — isPremium=$_isPremium, plan=$_activePlan, trialExpiry=$_trialExpiryMs');
     } catch (e) { debugPrint('PremiumService failed: $e'); }
 
     // Only subscribe to the IAP purchase stream once.
     _subscription ??= _iap.purchaseStream.listen(
       _onPurchaseUpdated,
-      onError: (e) => debugPrint('PremiumService: purchase stream error: $e'),
+      onError: (e) => debugPrint('PremiumService: ❌ purchase stream error: $e'),
     );
+    debugPrint('PremiumService: purchase stream listener attached');
 
     await _restorePurchases();
 
@@ -164,6 +167,7 @@ class PremiumService extends ChangeNotifier {
     // from prefs. Without this, the Settings screen keeps the stale
     // isPremium=false from the first build (before init() completed).
     notifyListeners();
+    debugPrint('PremiumService: === init() END ===');
   }
 
   /// Grant the user a free premium trial by watching a rewarded ad.
@@ -204,28 +208,58 @@ class PremiumService extends ChangeNotifier {
   }
 
   /// Purchase a specific plan by product ID.
+  ///
+  /// For subscriptions (Monthly/Yearly) AND non-consumables (Lifetime),
+  /// we use buyNonConsumable — this is the correct Play Billing flow.
+  /// Subscriptions are simply non-consumable recurring purchases.
   Future<bool> purchasePlan(String productId) async {
     try {
-      final available = await _iap.isAvailable();
-      if (!available) return false;
+      debugPrint('PremiumService: === purchasePlan START for $productId ===');
 
+      // 1. Check billing availability
+      final available = await _iap.isAvailable();
+      debugPrint('PremiumService: IAP available = $available');
+      if (!available) {
+        debugPrint('PremiumService: ❌ IAP NOT AVAILABLE — billing client cannot connect');
+        return false;
+      }
+
+      // 2. Query product details
+      debugPrint('PremiumService: querying product details for: $productId');
       final response = await _iap.queryProductDetails({productId});
-      if (response.error != null || response.productDetails.isEmpty) {
-        debugPrint('PremiumService: product not found: $productId');
+      if (response.error != null) {
+        debugPrint('PremiumService: ❌ queryProductDetails error: ${response.error}');
+        return false;
+      }
+      if (response.productDetails.isEmpty) {
+        debugPrint('PremiumService: ❌ product NOT FOUND: $productId');
+        debugPrint('PremiumService:   → Check that product is ACTIVE in Play Console');
+        debugPrint('PremiumService:   → Check that product ID matches exactly');
+        debugPrint('PremiumService:   → Check that app is signed with same key as Play Console');
         return false;
       }
 
       final product = response.productDetails.first;
-      final purchaseParam = PurchaseParam(productDetails: product);
+      debugPrint('PremiumService: ✅ product found: ${product.id} — ${product.title} — ${product.price}');
 
-      // Determine if it's a subscription or non-consumable
-      if (productId == productIdLifetime) {
-        return await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      // 3. Determine if subscription (for logging only — both use buyNonConsumable)
+      final isSubscription = productId != productIdLifetime;
+      debugPrint('PremiumService: isSubscription = $isSubscription');
+
+      // 4. Launch billing flow
+      final purchaseParam = PurchaseParam(productDetails: product);
+      debugPrint('PremiumService: launching billing flow (buyNonConsumable)...');
+      final ok = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      debugPrint('PremiumService: buyNonConsumable returned = $ok');
+      if (!ok) {
+        debugPrint('PremiumService: ❌ billing flow did NOT start');
       } else {
-        return await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+        debugPrint('PremiumService: ✅ billing flow started — waiting for purchaseStream event');
       }
-    } catch (e) {
-      debugPrint('PremiumService: purchasePlan failed: $e');
+      return ok;
+    } catch (e, st) {
+      debugPrint('PremiumService: ❌ purchasePlan EXCEPTION: $e');
+      debugPrint('PremiumService: stacktrace: $st');
       return false;
     }
   }
@@ -240,7 +274,11 @@ class PremiumService extends ChangeNotifier {
   }
 
   void _onPurchaseUpdated(List<PurchaseDetails> purchases) {
+    debugPrint('PremiumService: === purchaseStream EVENT === ${purchases.length} purchase(s)');
     for (final purchase in purchases) {
+      debugPrint('PremiumService:   purchase: id=${purchase.purchaseID}, '
+          'product=${purchase.productID}, status=${purchase.status}, '
+          'pendingComplete=${purchase.pendingCompletePurchase}');
       _handlePurchase(purchase);
     }
   }
@@ -248,7 +286,16 @@ class PremiumService extends ChangeNotifier {
   void _handlePurchase(PurchaseDetails purchase) {
     switch (purchase.status) {
       case PurchaseStatus.purchased:
+        debugPrint('PremiumService: ✅ PURCHASED — ${purchase.productID}');
+        if (_allProductIds.contains(purchase.productID)) {
+          _setPremium(true, plan: purchase.productID);
+          if (purchase.pendingCompletePurchase) {
+            _iap.completePurchase(purchase);
+          }
+        }
+        break;
       case PurchaseStatus.restored:
+        debugPrint('PremiumService: ✅ RESTORED — ${purchase.productID}');
         if (_allProductIds.contains(purchase.productID)) {
           _setPremium(true, plan: purchase.productID);
           if (purchase.pendingCompletePurchase) {
@@ -257,12 +304,13 @@ class PremiumService extends ChangeNotifier {
         }
         break;
       case PurchaseStatus.error:
-        debugPrint('PremiumService: purchase error: ${purchase.error}');
+        debugPrint('PremiumService: ❌ purchase ERROR: ${purchase.error}');
         break;
       case PurchaseStatus.canceled:
-        debugPrint('PremiumService: purchase canceled');
+        debugPrint('PremiumService: ⚠️ purchase CANCELED by user');
         break;
       default:
+        debugPrint('PremiumService: unknown purchase status: ${purchase.status}');
         break;
     }
   }
