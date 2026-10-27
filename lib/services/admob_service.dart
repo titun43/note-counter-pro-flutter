@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show ValueNotifier;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
 import 'premium_service.dart';
 
@@ -24,6 +26,15 @@ class AdMobService {
   /// When user watches a rewarded ad, we set this timestamp to now + 1 hour.
   /// During this window, shouldShowAds returns false.
   static DateTime? _adRemovalExpiry;
+
+  /// Notifier that fires whenever the ad-removal state changes.
+  /// UI widgets (BannerAdWidget) listen to this so they can rebuild
+  /// immediately when the user earns a 1-hour ad-removal reward.
+  /// The value is `true` if ad removal is currently active, else `false`.
+  static final ValueNotifier<bool> adRemovalNotifier = ValueNotifier<bool>(false);
+
+  /// SharedPreferences key for persisting ad-removal expiry across app restarts.
+  static const String _prefsAdRemovalKey = 'ad_removal_expiry_ms';
 
   // App Open ad state
   static AppOpenAd? _appOpenAd;
@@ -116,9 +127,43 @@ class AdMobService {
   }
 
   /// Grant 1 hour of ad-free experience (called after watching a rewarded ad).
-  static void grantAdRemovalFor1Hour() {
+  /// Persists to SharedPreferences so it survives app restarts.
+  /// Notifies all listeners (BannerAdWidget) so they rebuild immediately.
+  static Future<void> grantAdRemovalFor1Hour() async {
     _adRemovalExpiry = DateTime.now().add(const Duration(hours: 1));
     debugPrint('AdMob: 1-hour ad removal granted. Expires at $_adRemovalExpiry');
+    // Persist to SharedPreferences so it survives app restarts
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_prefsAdRemovalKey, _adRemovalExpiry!.millisecondsSinceEpoch);
+    } catch (e) {
+      debugPrint('AdMob: failed to persist ad-removal expiry: $e');
+    }
+    // Notify listeners so UI updates immediately
+    adRemovalNotifier.value = true;
+  }
+
+  /// Load ad-removal expiry from SharedPreferences on app start.
+  /// If the saved expiry is in the past, clears it.
+  static Future<void> loadAdRemovalFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ms = prefs.getInt(_prefsAdRemovalKey);
+      if (ms != null) {
+        final expiry = DateTime.fromMillisecondsSinceEpoch(ms);
+        if (expiry.isAfter(DateTime.now())) {
+          _adRemovalExpiry = expiry;
+          adRemovalNotifier.value = true;
+          debugPrint('AdMob: restored active ad-removal window, expires at $expiry');
+        } else {
+          // Expired — clear from prefs
+          await prefs.remove(_prefsAdRemovalKey);
+          debugPrint('AdMob: cleared expired ad-removal from prefs');
+        }
+      }
+    } catch (e) {
+      debugPrint('AdMob: failed to load ad-removal from prefs: $e');
+    }
   }
 
   /// Initialize AdMob - safe, won't crash app

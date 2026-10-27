@@ -40,7 +40,7 @@ void main() async {
       child: const NoteCounterProApp(),
     ),
   );
-  
+
   // Initialize AdMob 3 seconds after app starts (non-blocking, safe).
   // IMPORTANT: We do NOT show the app-open ad on cold start anymore.
   // The lifecycle observer in MainScaffold shows it when the user
@@ -51,6 +51,10 @@ void main() async {
   Future.delayed(const Duration(seconds: 3), () {
     AdMobService.initialize().catchError((e) {
       debugPrint('AdMob init failed: $e');
+    });
+    // Restore any active 1-hour ad-removal window from prefs (survives restart)
+    AdMobService.loadAdRemovalFromPrefs().catchError((e) {
+      debugPrint('AdMob loadAdRemoval failed: $e');
     });
   });
 

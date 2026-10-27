@@ -25,6 +25,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     // Without this listener, the banner stays visible on the current
     // screen until the user navigates away and back.
     PremiumService().addListener(_onPremiumChanged);
+    // ALSO listen to AdMobService.adRemovalNotifier so that when the user
+    // earns a 1-hour ad-removal reward (via rewarded ad), this widget
+    // immediately hides the banner. Without this, the banner stays
+    // visible even after the user has earned ad-free time.
+    AdMobService.adRemovalNotifier.addListener(_onAdRemovalChanged);
   }
 
   void _onPremiumChanged() {
@@ -41,6 +46,21 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
   }
 
+  void _onAdRemovalChanged() {
+    if (!mounted) return;
+    if (AdMobService.isAdRemovalActive) {
+      // Ad-removal just activated — dispose banner, hide widget
+      debugPrint('BannerAdWidget: ad-removal activated, hiding banner');
+      _bannerAd?.dispose();
+      _bannerAd = null;
+      setState(() => _isLoaded = false);
+    } else {
+      // Ad-removal just expired — reload banner
+      debugPrint('BannerAdWidget: ad-removal expired, reloading banner');
+      if (_bannerAd == null) _loadAd();
+    }
+  }
+
   void _loadAd() {
     if (!AdMobService.isInitialized) {
       // Try again in 2 seconds if AdMob not ready yet
@@ -48,7 +68,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       return;
     }
 
-    // Don't load ad if user is premium — saves a network request
+    // Don't load ad if user is premium OR ad-removal is active
     if (!AdMobService.shouldShowAds) return;
 
     _bannerAd = BannerAd(
@@ -76,24 +96,32 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void dispose() {
     PremiumService().removeListener(_onPremiumChanged);
+    AdMobService.adRemovalNotifier.removeListener(_onAdRemovalChanged);
     _bannerAd?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Premium users never see banner ads — this check now triggers an
-    // immediate rebuild because we listen to PremiumService changes.
-    if (!AdMobService.shouldShowAds) {
-      return const SizedBox.shrink();
-    }
-    if (!_isLoaded || _bannerAd == null) {
-      return const SizedBox(height: 50);
-    }
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: AdWidget(ad: _bannerAd!),
+    // Use ValueListenableBuilder so this widget rebuilds immediately
+    // whenever the ad-removal state changes — even if no parent rebuilds.
+    return ValueListenableBuilder<bool>(
+      valueListenable: AdMobService.adRemovalNotifier,
+      builder: (context, adRemovalActive, _) {
+        // Premium users never see banner ads
+        // Also hide if 1-hour ad removal is active
+        if (PremiumService().isPremium || adRemovalActive) {
+          return const SizedBox.shrink();
+        }
+        if (!_isLoaded || _bannerAd == null) {
+          return const SizedBox(height: 50);
+        }
+        return SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: AdWidget(ad: _bannerAd!),
+        );
+      },
     );
   }
 }

@@ -206,6 +206,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
     final started = AdMobService.showRewardedAd(
       onRewardEarned: () {
         debugPrint('PremiumScreen: 1-hour ad removal reward earned');
+        // grantAdRemovalFor1Hour is async — call it without await
+        // because onRewardEarned is a VoidCallback (sync).
+        // The reward is granted ASAP and notifier fires to update UI.
         AdMobService.grantAdRemovalFor1Hour();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -857,6 +860,23 @@ class _OneHourAdRemovalCardState extends State<_OneHourAdRemovalCard> {
     if (AdMobService.isAdRemovalActive) {
       _startCountdown();
     }
+    // Listen to ad-removal state changes so the card immediately
+    // updates to the "active" state when the user earns the reward.
+    AdMobService.adRemovalNotifier.addListener(_onAdRemovalChanged);
+  }
+
+  void _onAdRemovalChanged() {
+    if (!mounted) return;
+    setState(() {});
+    if (AdMobService.isAdRemovalActive) {
+      _startCountdown();
+    }
+  }
+
+  @override
+  void dispose() {
+    AdMobService.adRemovalNotifier.removeListener(_onAdRemovalChanged);
+    super.dispose();
   }
 
   void _startCountdown() {
