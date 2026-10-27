@@ -8,6 +8,7 @@ import 'services/notification_service.dart';
 import 'services/premium_service.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/referral_service.dart';
+import 'services/saved_upi_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -77,6 +78,13 @@ void main() async {
   Future.delayed(const Duration(seconds: 6), () {
     ReferralService().init().catchError((e) {
       debugPrint('ReferralService init failed: $e');
+    });
+  });
+
+  // Initialize Saved UPI service — load saved UPI IDs from prefs
+  Future.delayed(const Duration(seconds: 7), () {
+    SavedUpiService().init().catchError((e) {
+      debugPrint('SavedUpiService init failed: $e');
     });
   });
 }

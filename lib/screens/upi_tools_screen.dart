@@ -1,9 +1,11 @@
 // =============================================================================
 // Note Counter Pro - UPI Tools Screen (Premium)
 // =============================================================================
-// Two-in-one UPI tool:
+// Four-in-one UPI tool (v3.27.0):
 //   Tab 1: Generate QR — enter UPI ID/name/amount → generate QR code
 //   Tab 2: Scan QR — live camera OR gallery image → decode QR → extract UPI ID
+//   Tab 3: Send Money — enter UPI ID + amount → launch UPI deep link
+//   Tab 4: Saved UPI — manage saved UPI IDs (Contacts-style)
 //
 // The Scan feature solves a real problem: UPI QR scan limit is ₹2000
 // (same mobile), but UPI ID send limit is ₹1 lakh. By scanning a QR
@@ -25,6 +27,8 @@ import '../services/premium_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'premium_screen.dart';
+import 'send_money_screen.dart';
+import 'saved_upi_screen.dart';
 
 class UpiToolsScreen extends StatefulWidget {
   const UpiToolsScreen({super.key});
@@ -34,7 +38,7 @@ class UpiToolsScreen extends StatefulWidget {
 }
 
 class _UpiToolsScreenState extends State<UpiToolsScreen> {
-  int _currentTab = 0; // 0 = Generate, 1 = Scan
+  int _currentTab = 0; // 0 = Generate, 1 = Scan, 2 = Send, 3 = Saved
   int _scanMode = 0; // 0 = Camera, 1 = Gallery
 
   // === Generate tab state ===
@@ -351,9 +355,9 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       ),
       body: Column(
         children: [
-          // === TAB SELECTOR ===
+          // === TAB SELECTOR (4 tabs in a row) ===
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             child: Row(
               children: [
                 Expanded(
@@ -366,7 +370,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                     onTap: () => setState(() => _currentTab = 0),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: _buildTabCard(
                     icon: Icons.image_search,
@@ -377,6 +381,28 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                     onTap: () => setState(() => _currentTab = 1),
                   ),
                 ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _buildTabCard(
+                    icon: Icons.send,
+                    label: loc.t('sendMoney'),
+                    subtitle: loc.t('sendMoneyDesc'),
+                    isActive: _currentTab == 2,
+                    color: AppColors.success,
+                    onTap: () => setState(() => _currentTab = 2),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _buildTabCard(
+                    icon: Icons.people,
+                    label: loc.t('saved'),
+                    subtitle: loc.t('savedUpiIds'),
+                    isActive: _currentTab == 3,
+                    color: const Color(0xFFEC4899),
+                    onTap: () => setState(() => _currentTab = 3),
+                  ),
+                ),
               ],
             ),
           ),
@@ -384,11 +410,25 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
           Expanded(
             child: _currentTab == 0
                 ? _buildGenerateTab(isDark, loc)
-                : _buildScanTab(isDark, loc),
+                : _currentTab == 1
+                    ? _buildScanTab(isDark, loc)
+                    : _currentTab == 2
+                        ? _buildSendTab(loc)
+                        : _buildSavedTab(loc),
           ),
         ],
       ),
     );
+  }
+
+  // === SEND TAB — launches SendMoneyScreen full screen ===
+  Widget _buildSendTab(AppLocalizations loc) {
+    return const SendMoneyScreen();
+  }
+
+  // === SAVED TAB — launches SavedUpiScreen full screen ===
+  Widget _buildSavedTab(AppLocalizations loc) {
+    return const SavedUpiScreen();
   }
 
   // === TAB CARD ===

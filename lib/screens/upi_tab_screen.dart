@@ -144,6 +144,7 @@ class _UpiTabScreenState extends State<UpiTabScreen> {
                 _buildFeatureRow(Icons.qr_code, loc.t('generateQr')),
                 _buildFeatureRow(Icons.camera_alt, loc.t('scanQr')),
                 _buildFeatureRow(Icons.send, loc.t('sendMoney')),
+                _buildFeatureRow(Icons.people, loc.t('savedUpiIds')),
                 _buildFeatureRow(Icons.history, loc.t('scanHistory')),
                 const SizedBox(height: 32),
 
