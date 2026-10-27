@@ -9,6 +9,7 @@ import '../widgets/banner_ad_widget.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../services/cloud_backup_service.dart';
+import '../services/admob_service.dart';
 import '../services/premium_service.dart';
 import '../services/storage_service.dart';
 import '../utils/constants.dart';
@@ -67,6 +68,8 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
   }
 
   Future<void> _backup() async {
+    // Show interstitial BEFORE the backup starts — natural break point.
+    AdMobService.showInterstitial();
     setState(() => _isLoading = true);
     final storage = context.read<StorageService>();
     final (success, error) = await CloudBackupService().backupWithError(storage);

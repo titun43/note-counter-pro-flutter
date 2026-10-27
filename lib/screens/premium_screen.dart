@@ -172,6 +172,54 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
+  /// Watch a rewarded ad → grant 1 hour of ad-free experience.
+  /// This is a lighter alternative to a 1-day premium trial.
+  /// Useful for users who just want a quick ad-free session without
+  /// committing to a full trial.
+  Future<void> _watchAdFor1HourAdRemoval() async {
+    final loc = context.loc;
+
+    // If ad already loaded, show immediately.
+    if (AdMobService.isRewardedAdReady) {
+      _doShow1HourAdRemoval(loc);
+      return;
+    }
+
+    // Otherwise show a loading dialog and poll until ad is ready.
+    AdMobService.preloadRewardedAd();
+    final ready = await _showRewardedAdLoadingDialog();
+    if (!ready || !mounted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('adNotReadyMsg')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+      return;
+    }
+    _doShow1HourAdRemoval(loc);
+  }
+
+  void _doShow1HourAdRemoval(AppLocalizations loc) {
+    AdMobService.showRewardedAd(
+      onRewardEarned: () {
+        AdMobService.grantAdRemovalFor1Hour();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('adRemovalGrantedMsg')),
+              backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          setState(() {});
+        }
+      },
+    );
+  }
+
   /// Show a loading dialog while waiting for the rewarded ad to preload.
   /// Returns true if the ad became ready within 10 seconds, false otherwise.
   Future<bool> _showRewardedAdLoadingDialog() async {
@@ -360,6 +408,11 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
               // === FREE: Watch Ad → 1 Day Premium ===
               _RewardedAdCard(onWatch: _watchRewardedAd),
+              const SizedBox(height: 12),
+
+              // === FREE: Watch Ad → 1 Hour Ad Removal ===
+              // Lighter alternative for users who just want a quick ad-free session.
+              _OneHourAdRemovalCard(onWatch: _watchAdFor1HourAdRemoval),
               const SizedBox(height: 16),
 
               // === "Want permanent premium?" separator ===
@@ -753,6 +806,135 @@ class _RewardedAdCardState extends State<_RewardedAdCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// _OneHourAdRemovalCard — "Watch Ad → 1 Hour Ad Removal" card.
+// Lighter alternative to the 1-day premium trial.
+// =============================================================================
+class _OneHourAdRemovalCard extends StatefulWidget {
+  final VoidCallback onWatch;
+  const _OneHourAdRemovalCard({required this.onWatch});
+
+  @override
+  State<_OneHourAdRemovalCard> createState() => _OneHourAdRemovalCardState();
+}
+
+class _OneHourAdRemovalCardState extends State<_OneHourAdRemovalCard> {
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild every second so the countdown timer stays fresh.
+    if (AdMobService.isAdRemovalActive) {
+      _startCountdown();
+    }
+  }
+
+  void _startCountdown() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {});
+        if (AdMobService.isAdRemovalActive) {
+          _startCountdown();
+        }
+      }
+    });
+  }
+
+  String _formatRemaining(int seconds) {
+    final m = (seconds / 60).floor();
+    final s = seconds % 60;
+    return '${m}m ${s}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = context.loc;
+    final theme = Theme.of(context);
+    final isActive = AdMobService.isAdRemovalActive;
+    final remaining = AdMobService.adRemovalRemainingSeconds;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isActive
+              ? [const Color(0xFF10B981), const Color(0xFF059669)]
+              : [const Color(0xFF3B82F6), const Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: (isActive ? const Color(0xFF10B981) : const Color(0xFF3B82F6))
+                .withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isActive ? Icons.check_circle : Icons.timer,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isActive
+                        ? loc.t('adRemovalActive')
+                        : loc.t('removeAds1Hour'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isActive
+                  ? '${loc.t('adRemovalRemaining')}: ${_formatRemaining(remaining)}'
+                  : loc.t('removeAds1HourDesc'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: isActive ? null : widget.onWatch,
+                icon: Icon(isActive ? Icons.check : Icons.play_arrow, size: 18),
+                label: Text(
+                  isActive ? loc.t('activeNow') : loc.t('watchAdNow'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: isActive
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFF1D4ED8),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

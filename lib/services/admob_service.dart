@@ -9,6 +9,22 @@ class AdMobService {
   static InterstitialAd? _interstitialAd;
   static int _interstitialLoadAttempts = 0;
 
+  /// Interstitial frequency control (AdMob policy compliance + UX).
+  /// AdMob policy: minimum 60 seconds between consecutive interstitials.
+  /// We also enforce a per-session cap (5) and a per-day cap (20).
+  static DateTime? _lastInterstitialShownTime;
+  static const Duration _interstitialCooldown = Duration(seconds: 60);
+  static int _interstitialShownThisSession = 0;
+  static int _interstitialShownToday = 0;
+  static DateTime _interstitialDay = DateTime.now();
+  static const int _maxInterstitialsPerSession = 5;
+  static const int _maxInterstitialsPerDay = 20;
+
+  /// Rewarded ad — 1-hour ad removal option.
+  /// When user watches a rewarded ad, we set this timestamp to now + 1 hour.
+  /// During this window, shouldShowAds returns false.
+  static DateTime? _adRemovalExpiry;
+
   // App Open ad state
   static AppOpenAd? _appOpenAd;
   static int _appOpenLoadAttempts = 0;
@@ -77,7 +93,33 @@ class AdMobService {
   }
 
   /// Premium users never see ads. Check this before showing any ad.
-  static bool get shouldShowAds => !PremiumService().isPremium;
+  /// Also returns false during the 1-hour ad-removal rewarded-ad window.
+  static bool get shouldShowAds {
+    if (PremiumService().isPremium) return false;
+    // If a 1-hour ad-removal window is active, hide ads
+    if (_adRemovalExpiry != null && DateTime.now().isBefore(_adRemovalExpiry!)) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Whether the 1-hour ad-removal window is currently active.
+  static bool get isAdRemovalActive {
+    return _adRemovalExpiry != null && DateTime.now().isBefore(_adRemovalExpiry!);
+  }
+
+  /// Remaining time (seconds) in the current ad-removal window, or 0.
+  static int get adRemovalRemainingSeconds {
+    if (_adRemovalExpiry == null) return 0;
+    final diff = _adRemovalExpiry!.difference(DateTime.now());
+    return diff.isNegative ? 0 : diff.inSeconds;
+  }
+
+  /// Grant 1 hour of ad-free experience (called after watching a rewarded ad).
+  static void grantAdRemovalFor1Hour() {
+    _adRemovalExpiry = DateTime.now().add(const Duration(hours: 1));
+    debugPrint('AdMob: 1-hour ad removal granted. Expires at $_adRemovalExpiry');
+  }
 
   /// Initialize AdMob - safe, won't crash app
   static Future<void> initialize() async {
@@ -132,6 +174,38 @@ class AdMobService {
     // Premium users never see ads
     if (!shouldShowAds) return;
 
+    // AdMob policy: minimum 60 seconds between consecutive interstitials
+    final now = DateTime.now();
+    if (_lastInterstitialShownTime != null) {
+      final elapsed = now.difference(_lastInterstitialShownTime!);
+      if (elapsed < _interstitialCooldown) {
+        debugPrint('AdMob: interstitial skipped — cooldown '
+            '(${elapsed.inSeconds}s < ${_interstitialCooldown.inSeconds}s)');
+        return;
+      }
+    }
+
+    // Per-day reset (if day rolled over, reset counters)
+    if (now.day != _interstitialDay.day ||
+        now.month != _interstitialDay.month ||
+        now.year != _interstitialDay.year) {
+      _interstitialDay = now;
+      _interstitialShownToday = 0;
+    }
+
+    // Session cap (max 5 interstitials per session)
+    if (_interstitialShownThisSession >= _maxInterstitialsPerSession) {
+      debugPrint('AdMob: interstitial skipped — session cap reached '
+          '($_interstitialShownThisSession/$_maxInterstitialsPerSession)');
+      return;
+    }
+    // Daily cap (max 20 interstitials per day)
+    if (_interstitialShownToday >= _maxInterstitialsPerDay) {
+      debugPrint('AdMob: interstitial skipped — daily cap reached '
+          '($_interstitialShownToday/$_maxInterstitialsPerDay)');
+      return;
+    }
+
     if (_interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
@@ -145,6 +219,13 @@ class AdMobService {
       );
       _interstitialAd!.show();
       _interstitialAd = null;
+      // Update cooldown + caps
+      _lastInterstitialShownTime = now;
+      _interstitialShownThisSession++;
+      _interstitialShownToday++;
+      debugPrint('AdMob: interstitial shown '
+          '(session: $_interstitialShownThisSession/$_maxInterstitialsPerSession, '
+          'day: $_interstitialShownToday/$_maxInterstitialsPerDay)');
     } else {
       // Try to load if not loaded
       _loadInterstitialAd();

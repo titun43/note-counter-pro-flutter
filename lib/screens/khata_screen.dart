@@ -185,6 +185,9 @@ class _KhataScreenState extends State<KhataScreen> {
       );
       await storage.addCustomer(customer);
 
+      // Show interstitial after a new customer is saved (natural break point).
+      AdMobService.showInterstitial();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -9,6 +9,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/pdf_service.dart';
+import '../services/admob_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
 import '../utils/constants.dart';
@@ -165,6 +166,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         createdAt: entry.createdAt,
       );
       await storage.addEntry(entryWithDate);
+
+      // Show interstitial after a new entry is saved (natural break point).
+      // The 60-second cooldown + per-session/per-day caps in AdMobService
+      // ensure we don't violate AdMob policy.
+      AdMobService.showInterstitial();
 
       setState(() {
         _customer = storage.getCustomer(widget.customerId);

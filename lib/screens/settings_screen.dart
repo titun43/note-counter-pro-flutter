@@ -541,6 +541,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         MaterialPageRoute(builder: (_) => const PremiumScreen()));
                     return;
                   }
+                  // Show interstitial when App Lock is enabled (natural break point).
+                  if (value) {
+                    AdMobService.showInterstitial();
+                  }
                   storage.setAppLockEnabled(value);
                 },
               ),

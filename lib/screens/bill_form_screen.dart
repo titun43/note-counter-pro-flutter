@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
+import '../services/admob_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -134,6 +135,8 @@ class _BillFormScreenState extends State<BillFormScreen> {
           backgroundColor: AppColors.success,
         ),
       );
+      // Show interstitial after a bill is saved (natural break point).
+      AdMobService.showInterstitial();
       Navigator.pop(context, true);
     }
   }
