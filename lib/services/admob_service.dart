@@ -412,37 +412,65 @@ class AdMobService {
   ///
   /// Returns false if no ad is currently available (caller can show a
   /// "please try again later" message).
+  ///
+  /// NOTE: Rewarded ads are EXEMPT from the 1-hour ad-removal window
+  /// because they are the mechanism that GRANTS the 1-hour removal.
+  /// If we respected shouldShowAds here, the user could never extend
+  /// their ad-removal window by watching another rewarded ad.
   static bool showRewardedAd({
     required VoidCallback onRewardEarned,
     VoidCallback? onAdDismissed,
   }) {
-    if (!shouldShowAds) return false;
+    // Rewarded ads bypass the ad-removal window (see NOTE above).
+    // We only check true Premium status for rewarded ads.
+    if (PremiumService().isPremium) return false;
 
     if (_rewardedAd == null) {
       _loadRewardedAd();
       return false;
     }
 
+    // Capture the ad reference locally because we null it out in
+    // the fullScreenContentCallback before the reward callback may fire.
+    final ad = _rewardedAd!;
+    bool rewardEarned = false;
+
     try {
-      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
+      ad.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (dismissedAd) {
+          debugPrint('AdMob: rewarded ad dismissed');
+          try {
+            dismissedAd.dispose();
+          } catch (_) {}
           _rewardedAd = null;
           _notifyRewardedReadinessChanged();
           _loadRewardedAd();
+          // If reward was earned before dismiss, onRewardEarned already fired.
+          // If not, this is a dismiss-without-reward (user closed early).
           onAdDismissed?.call();
         },
-        onAdFailedToShowFullScreenContent: (ad, err) {
-          ad.dispose();
+        onAdFailedToShowFullScreenContent: (failedAd, err) {
+          debugPrint('AdMob: rewarded ad failed to show: ${err.message}');
+          try {
+            failedAd.dispose();
+          } catch (_) {}
           _rewardedAd = null;
           _notifyRewardedReadinessChanged();
           _loadRewardedAd();
         },
       );
-      _rewardedAd!.show(
-        onUserEarnedReward: (ad, reward) {
+      ad.show(
+        onUserEarnedReward: (earnedAd, reward) {
           debugPrint('AdMob: user earned reward: ${reward.amount} ${reward.type}');
-          onRewardEarned();
+          rewardEarned = true;
+          // Grant the reward immediately — this fires BEFORE
+          // onAdDismissedFullScreenContent, which is fine because
+          // we already captured the local `ad` reference above.
+          try {
+            onRewardEarned();
+          } catch (e) {
+            debugPrint('AdMob: onRewardEarned callback threw: $e');
+          }
         },
       );
       return true;

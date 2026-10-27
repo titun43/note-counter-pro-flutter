@@ -203,8 +203,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   void _doShow1HourAdRemoval(AppLocalizations loc) {
-    AdMobService.showRewardedAd(
+    final started = AdMobService.showRewardedAd(
       onRewardEarned: () {
+        debugPrint('PremiumScreen: 1-hour ad removal reward earned');
         AdMobService.grantAdRemovalFor1Hour();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -217,7 +218,32 @@ class _PremiumScreenState extends State<PremiumScreen> {
           setState(() {});
         }
       },
+      onAdDismissed: () {
+        // Ad was dismissed. If reward was earned, onRewardEarned already
+        // fired. If not, user closed ad early without earning reward.
+        debugPrint('PremiumScreen: 1-hour ad removal ad dismissed');
+        if (mounted && !AdMobService.isAdRemovalActive) {
+          // Reward was NOT earned (ad closed early)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('adNotCompletedMsg')),
+              backgroundColor: AppColors.warning,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      },
     );
+
+    // If ad could not be started (not loaded), show feedback
+    if (!started && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('adNotReadyMsg')),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+    }
   }
 
   /// Show a loading dialog while waiting for the rewarded ad to preload.

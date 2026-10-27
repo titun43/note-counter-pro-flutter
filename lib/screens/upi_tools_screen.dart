@@ -38,7 +38,11 @@ class UpiToolsScreen extends StatefulWidget {
 }
 
 class _UpiToolsScreenState extends State<UpiToolsScreen> {
-  int _currentTab = 0; // 0 = Generate, 1 = Scan, 2 = Send, 3 = Saved
+  // Default to Scan QR tab (index 1) — user opens Smart Pay to scan a
+  // merchant QR and send money. The ₹2000-limit banner on the Scan tab
+  // explains why scanning here is better than scanning directly in
+  // their UPI app's gallery (which has a ₹2000 same-mobile limit).
+  int _currentTab = 1; // 0 = Generate, 1 = Scan, 2 = Send, 3 = Saved
   int _scanMode = 0; // 0 = Camera, 1 = Gallery
 
   // === Generate tab state ===
@@ -622,12 +626,129 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     );
   }
 
+  // === PROMINENT ₹2000 LIMIT BANNER ===
+  // Two clear messages:
+  //  🔴 Direct scan in UPI app gallery → ₹2,000 limit
+  //  🟢 Scan here → extract UPI ID → send up to ₹1,00,000
+  Widget _buildLimitBanner(bool isDark, AppLocalizations loc) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1F2937), const Color(0xFF111827)]
+              : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFD4AF37).withOpacity(0.5),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Row(
+            children: [
+              const Icon(Icons.lightbulb, color: Color(0xFFD4AF37), size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loc.t('limitBannerTitle'),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFD4AF37),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // RED message — direct gallery scan limit
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.danger.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.cancel, color: AppColors.danger, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    loc.t('limitBannerRed'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.danger,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // GREEN message — scan here for ₹1 lakh
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.success.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    loc.t('limitBannerGreen'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.success,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // === SCAN TAB ===
   Widget _buildScanTab(bool isDark, AppLocalizations loc) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         children: [
+          // === PROMINENT ₹2000 LIMIT BANNER ===
+          _buildLimitBanner(isDark, loc),
+          const SizedBox(height: 12),
           // Scan mode selector: Camera vs Gallery
           Row(
             children: [
@@ -985,30 +1106,8 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
             const SizedBox(height: 16),
           ],
 
-          // Info note — ₹2000 limit
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.warning.withOpacity(0.3), width: 1),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, color: AppColors.warning, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    loc.t('upiLimitInfo'),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Info note — ₹2000 limit (moved to top of Scan tab as prominent banner)
+          // See _buildLimitBanner() above.
           const SizedBox(height: 20),
         ],
       ),
