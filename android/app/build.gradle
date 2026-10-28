@@ -24,7 +24,10 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.lokhnathtechnical.notecounterpro"
     compileSdk 36
-    ndkVersion flutter.ndkVersion
+    // Explicit NDK r28 — required for 16 KB memory page size support
+    // (Google Play policy effective Nov 2025). flutter.ndkVersion defaults
+    // to an older NDK that does NOT support 16 KB page sizes.
+    ndkVersion "28.0.12674087"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

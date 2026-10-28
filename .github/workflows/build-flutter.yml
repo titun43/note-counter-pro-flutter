@@ -26,7 +26,9 @@ jobs:
         export ANDROID_HOME=/usr/local/lib/android/sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
         yes | sdkmanager --licenses
-        sdkmanager "ndk;27.0.12077973" "cmake;3.22.1" || true
+        # NDK r28 supports 16 KB memory page sizes (required by Google Play from Nov 2025).
+        # Older NDK r27.0.x does NOT support 16 KB page sizes — Play Console blocks the upload.
+        sdkmanager "ndk;28.0.12674087" "cmake;3.22.1" || true
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
