@@ -237,14 +237,14 @@ class PremiumService extends ChangeNotifier {
         return (false, 'Google Play Billing is not available on this device (or timed out).', currentStep);
       }
 
-      // 2. Query product details — with timeout
+      // 2. Query product details — with timeout (30s — some slow networks)
       currentStep = 'query_product';
       debugPrint('PremiumService: [step=$currentStep] querying product details for: $productId');
       final response = await _iap.queryProductDetails({productId}).timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 30),
         onTimeout: () {
-          debugPrint('PremiumService: ❌ queryProductDetails() TIMED OUT after 15s');
-          throw TimeoutException('queryProductDetails timed out after 15s');
+          debugPrint('PremiumService: ❌ queryProductDetails() TIMED OUT after 30s');
+          throw TimeoutException('queryProductDetails timed out after 30s');
         },
       );
       if (response.error != null) {

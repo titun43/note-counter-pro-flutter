@@ -50,40 +50,39 @@ class _PremiumScreenState extends State<PremiumScreen> {
     final (started, error, step) = await PremiumService().purchasePlanDebug(productId);
     debugPrint('PremiumScreen: purchasePlan returned started=$started, step=$step, error=$error');
 
-    if (mounted) {
-      // Always show a debug dialog with status — whether success or failure
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Purchase Debug'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Step reached: $step', style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(started
-                ? '✅ Billing flow started successfully.\n\nNow waiting for purchaseStream event from Google Play.\n\nIf nothing happens in 10 seconds, the Play Billing dialog may not be opening (likely a signature mismatch issue).'
-                : '❌ Failed: ${error ?? "Unknown error"}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-    }
+    final loc = context.loc;
 
     if (!started && mounted) {
+      // User-friendly error message based on which step failed
+      String userMessage;
+      if (step == 'check_available') {
+        userMessage = loc.t('purchaseErrorBilling');
+      } else if (step == 'query_product') {
+        userMessage = loc.t('purchaseErrorProduct');
+      } else if (step == 'launch_billing') {
+        userMessage = loc.t('purchaseErrorLaunch');
+      } else {
+        userMessage = loc.t('purchaseErrorGeneric');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Could not start purchase. Please try again or check your Google Play connection.',
-          ),
+          content: Text(userMessage),
           backgroundColor: AppColors.danger,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: loc.t('retry'),
+            textColor: Colors.white,
+            onPressed: () => _purchase(productId),
+          ),
+        ),
+      );
+    } else if (started && mounted) {
+      // Billing flow started — show info to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('purchaseInProgress')),
+          backgroundColor: AppColors.info,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -92,10 +91,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
     if (PremiumService().isPremium && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 Premium activated! Enjoy ad-free experience.'),
+        SnackBar(
+          content: Text(loc.t('premiumActivated')),
           backgroundColor: AppColors.success,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
       Navigator.pop(context);
