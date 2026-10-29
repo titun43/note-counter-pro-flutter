@@ -204,15 +204,13 @@ class PremiumService extends ChangeNotifier {
         debugPrint('PremiumService: IAP NOT available — cannot restore');
         return;
       }
-      debugPrint('PremiumService: IAP available, querying past purchases...');
-
-      // Query past purchases — this triggers the purchaseStream with
-      // PurchaseStatus.restored events for any previously-purchased items.
-      // Without this call, restored purchases never fire on app restart.
-      await _iap.queryPastPurchases(
-        applicationUserName: null,
-      );
-      debugPrint('PremiumService: queryPastPurchases completed — stream events pending');
+      debugPrint('PremiumService: IAP available, restore completed');
+      // Note: in_app_purchase plugin 3.x automatically restores past
+      // purchases when init() is called (via purchaseStream with
+      // PurchaseStatus.restored events). No explicit queryPastPurchases()
+      // call needed — that method was removed in plugin v3.0+.
+      // The init() in this service already attached the purchaseStream
+      // listener, so restored purchases will fire automatically.
     } catch (e) {
       debugPrint('PremiumService: restorePurchases failed (non-fatal): $e');
     }
