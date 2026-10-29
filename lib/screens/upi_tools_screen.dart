@@ -176,9 +176,14 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     _cameraController = mscanner.MobileScannerController(
       detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
       facing: mscanner.CameraFacing.back,
-      torch: _flashMode == 2,  // ON = torch true
       autoStart: true,
     );
+    // Apply torch if flash is ON
+    if (_flashMode == 2) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _cameraController?.toggleTorch();
+      });
+    }
     setState(() {
       _cameraActive = true;
       _scanResult = null;
@@ -193,9 +198,9 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     });
     // Apply flash to current camera if active
     if (_cameraActive && _cameraController != null) {
-      // For AUTO mode (1), we can't truly do auto-detection in mobile_scanner,
-      // so we treat AUTO same as OFF for the torch but show different icon.
+      // For AUTO mode (1), we treat it same as OFF for torch.
       // For ON mode (2), enable torch.
+      // For OFF mode (0), disable torch.
       _cameraController!.toggleTorch();
     }
     debugPrint('UpiTools: flash mode = $_flashMode (0=OFF, 1=AUTO, 2=ON)');
@@ -204,7 +209,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
   /// Switch camera between front and back
   void _switchCamera() {
     if (_cameraController == null) return;
-    _cameraController!.switchLens();
+    _cameraController!.switchCamera();
     debugPrint('UpiTools: camera switched');
   }
 
