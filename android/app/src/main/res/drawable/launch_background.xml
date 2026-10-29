@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Background color: #0A0A1A (pure dark) -->
+    <!-- Pure dark background only — no logo, no branding text -->
     <item android:drawable="@color/splash_bg"/>
-    <!-- App logo: centered (use gravity center, no inset needed) -->
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/splash_logo"/>
-    </item>
-    <!-- Branding: "100% Secure" + "Lokhnath Technical" at bottom -->
-    <item
-        android:bottom="80dp">
-        <bitmap
-            android:gravity="bottom|center_horizontal"
-            android:src="@drawable/splash_branding"/>
-    </item>
 </layer-list>
