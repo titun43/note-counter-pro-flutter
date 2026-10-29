@@ -299,14 +299,30 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       upiLink = 'upi://pay?pa=$rawUrl';
     }
 
+    debugPrint('UpiTools: _openUpiApp — launching UPI link: $upiLink');
+
     try {
       final uri = Uri.parse(upiLink);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        // Fallback: copy to clipboard and show snackbar
-        await Clipboard.setData(ClipboardData(text: upiLink));
-        if (mounted) {
+      // BUG FIX (v3.30.0): Removed canLaunchUrl() check.
+      // On Android 11+ package visibility restrictions cause canLaunchUrl()
+      // to return false even when UPI apps (PhonePe/GPay/Paytm/BHIM) are
+      // installed. This made the button silently fall back to clipboard
+      // copy instead of opening any UPI app.
+      //
+      // Now we directly call launchUrl() with externalApplication mode —
+      // the system shows the UPI app chooser if multiple apps are installed,
+      // or opens the single installed UPI app directly.
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+      debugPrint('UpiTools: launchUrl returned = $launched');
+
+      if (!launched && mounted) {
+        // Fallback: try platformDefault mode
+        final launched2 = await launchUrl(uri);
+        debugPrint('UpiTools: launchUrl fallback returned = $launched2');
+        if (!launched2 && mounted) {
+          // Last resort: copy to clipboard
+          await Clipboard.setData(ClipboardData(text: upiLink));
           final loc = context.loc;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -318,7 +334,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Open UPI app failed: $e');
+      debugPrint('UpiTools: _openUpiApp EXCEPTION: $e');
       // Fallback: copy to clipboard
       await Clipboard.setData(ClipboardData(text: upiLink));
       if (mounted) {

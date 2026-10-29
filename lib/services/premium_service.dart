@@ -200,8 +200,19 @@ class PremiumService extends ChangeNotifier {
   Future<void> _restorePurchases() async {
     try {
       final available = await _iap.isAvailable();
-      if (!available) return;
-      debugPrint('PremiumService: IAP available, waiting for stream events');
+      if (!available) {
+        debugPrint('PremiumService: IAP NOT available — cannot restore');
+        return;
+      }
+      debugPrint('PremiumService: IAP available, querying past purchases...');
+
+      // Query past purchases — this triggers the purchaseStream with
+      // PurchaseStatus.restored events for any previously-purchased items.
+      // Without this call, restored purchases never fire on app restart.
+      await _iap.queryPastPurchases(
+        applicationUserName: null,
+      );
+      debugPrint('PremiumService: queryPastPurchases completed — stream events pending');
     } catch (e) {
       debugPrint('PremiumService: restorePurchases failed (non-fatal): $e');
     }
@@ -240,6 +251,7 @@ class PremiumService extends ChangeNotifier {
       // 2. Query product details — with timeout (30s — some slow networks)
       currentStep = 'query_product';
       debugPrint('PremiumService: [step=$currentStep] querying product details for: $productId');
+      debugPrint('PremiumService:   all product IDs known to app: $_allProductIds');
       final response = await _iap.queryProductDetails({productId}).timeout(
         const Duration(seconds: 30),
         onTimeout: () {
@@ -247,12 +259,21 @@ class PremiumService extends ChangeNotifier {
           throw TimeoutException('queryProductDetails timed out after 30s');
         },
       );
+      debugPrint('PremiumService: queryProductDetails response received');
+      debugPrint('PremiumService:   response.error = ${response.error}');
+      debugPrint('PremiumService:   response.productDetails.length = ${response.productDetails.length}');
+      debugPrint('PremiumService:   response.notFoundIDs = ${response.notFoundIDs}');
       if (response.error != null) {
         debugPrint('PremiumService: ❌ queryProductDetails error: ${response.error}');
         return (false, 'Product query error: ${response.error}', currentStep);
       }
       if (response.productDetails.isEmpty) {
         debugPrint('PremiumService: ❌ product NOT FOUND: $productId');
+        debugPrint('PremiumService:   notFoundIDs: ${response.notFoundIDs}');
+        debugPrint('PremiumService:   → Check Play Console: product must be ACTIVE');
+        debugPrint('PremiumService:   → Check App signing key matches Play Console');
+        debugPrint('PremiumService:   → Check app is installed from Play Store');
+        debugPrint('PremiumService:   → Check billing client version compatibility');
         return (false,
           'Product "$productId" not found in Google Play.\n\n'
           'Possible causes:\n'
