@@ -192,8 +192,9 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
     });
     _checkForUpdate();
 
-    // Splash overlay: show for 1 second, then fade away
-    Future.delayed(const Duration(seconds: 1), () {
+    // Splash overlay: show for 3 seconds (text needs time to read),
+    // then fade away. Was 1s — too fast, user couldn't read the text.
+    Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() => _showSplash = false);
       }
