@@ -449,7 +449,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     );
   }
 
-  // === GLASS PILL TABS (compact, 48px height, icon+label same line) ===
+  // === GLASS PILL TABS (clear, 64px height, icon+label same line) ===
   Widget _buildGlassPillTabs(bool isDark, AppLocalizations loc) {
     final tabs = [
       _GlassTab(Icons.qr_code_2, loc.t('generateQr'), AppColors.primary),
@@ -459,17 +459,17 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     ];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          height: 64,  // 48px → 64px (bigger, clear)
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           decoration: BoxDecoration(
             color: isDark
                 ? const Color(0xFF16213E).withOpacity(0.7)
                 : Colors.white.withOpacity(0.7),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
           ),
           child: Row(
             children: List.generate(tabs.length, (index) {
@@ -498,18 +498,25 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD4AF37).withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(tab.icon, size: 18, color: const Color(0xFF1A1A2E)),
-            const SizedBox(width: 4),
+            Icon(tab.icon, size: 24, color: const Color(0xFF1A1A2E)),  // 18 → 24
+            const SizedBox(width: 6),
             Flexible(
               child: Text(
                 tab.label,
                 style: const TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,  // 11 → 12
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF1A1A2E),
                 ),
@@ -525,14 +532,14 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(tab.icon, size: 18, color: tab.color.withOpacity(0.7)),
-        const SizedBox(width: 4),
+        Icon(tab.icon, size: 24, color: tab.color.withOpacity(0.7)),  // 18 → 24
+        const SizedBox(width: 6),  // 4 → 6
         Flexible(
           child: Text(
             tab.label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+              fontSize: 12,  // 11 → 12
+              fontWeight: FontWeight.w600,  // w500 → w600 (clearer)
               color: tab.color.withOpacity(0.7),
             ),
             maxLines: 1,

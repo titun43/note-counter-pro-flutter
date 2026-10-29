@@ -45,7 +45,7 @@ jobs:
       run: flutter pub get
 
     - name: Generate splash screen
-      run: dart run flutter_native_splash:create || true
+      run: dart run flutter_native_splash:create --force || true
 
     - name: Analyze code
       run: flutter analyze || true
