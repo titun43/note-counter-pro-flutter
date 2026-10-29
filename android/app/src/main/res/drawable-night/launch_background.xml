@@ -1,14 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Dark mode splash background -->
+    <!-- Dark mode splash background: #0A0A1A (pure dark) -->
     <item android:drawable="@color/splash_bg"/>
+    <!-- App logo: centered, slightly above center -->
     <item
-        android:left="100dp"
-        android:right="100dp"
-        android:top="120dp"
-        android:bottom="180dp">
+        android:left="120dp"
+        android:right="120dp"
+        android:top="180dp"
+        android:bottom="240dp">
         <bitmap
             android:gravity="center"
-            android:src="@drawable/app_logo"/>
+            android:src="@drawable/splash_logo"/>
+    </item>
+    <!-- Branding: "100% Secure" + "Lokhnath Technical" at bottom -->
+    <item
+        android:left="80dp"
+        android:right="80dp"
+        android:top="600dp"
+        android:bottom="60dp">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_branding"/>
     </item>
 </layer-list>
