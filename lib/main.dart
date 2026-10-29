@@ -446,7 +446,38 @@ class _SplashOverlayState extends State<_SplashOverlay>
           opacity: _fadeAnimation,
           child: Column(
             children: [
-              const Spacer(flex: 3),
+              const Spacer(flex: 2),
+              // Gold gradient circle with ₹ symbol (center visual)
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD4AF37).withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Text(
+                    '₹',
+                    style: TextStyle(
+                      fontSize: 52,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0A0A1A),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'Note Counter Pro',
                 style: TextStyle(
