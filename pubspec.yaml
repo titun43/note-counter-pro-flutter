@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.32.5+152
+version: 3.32.6+153
 
 environment:
   sdk: '>=3.10.0 <4.0.0'

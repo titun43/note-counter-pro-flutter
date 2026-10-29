@@ -447,7 +447,7 @@ class _SplashOverlayState extends State<_SplashOverlay>
           child: Column(
             children: [
               const Spacer(flex: 2),
-              // Gold gradient circle with ₹ symbol (center visual)
+              // App icon with gold glow (center visual)
               Container(
                 width: 100,
                 height: 100,
@@ -466,13 +466,12 @@ class _SplashOverlayState extends State<_SplashOverlay>
                     ),
                   ],
                 ),
-                child: const Center(
-                  child: Text(
-                    '₹',
-                    style: TextStyle(
-                      fontSize: 52,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0A0A1A),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/icons/app_logo.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
