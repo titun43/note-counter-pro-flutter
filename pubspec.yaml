@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.30.1+140
+version: 3.31.0+141
 
 environment:
   sdk: '>=3.10.0 <4.0.0'
@@ -121,12 +121,14 @@ flutter:
           weight: 700
 
 flutter_native_splash:
-  color: "#1A1A2E"
-  color_dark: "#1A1A2E"
+  color: "#0A0A1A"
+  color_dark: "#0A0A1A"
   image: assets/icons/app_logo.png
+  branding: assets/icons/branding.png
+  branding_dark: assets/icons/branding.png
   android_12:
     image: assets/icons/app_logo.png
-    color: "#1A1A2E"
+    color: "#0A0A1A"
   android: true
   ios: false
   fullscreen: false

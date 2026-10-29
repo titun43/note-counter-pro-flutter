@@ -381,7 +381,33 @@ class StorageService extends ChangeNotifier {
   Future<void> addQrHistory(Map<String, String> qr) async {
     final history = qrHistory;
     history.insert(0, qr);
-    if (history.length > 10) history.removeLast();
+    // Unlimited history — no 10-item limit (v3.31.0)
+    await _prefs?.setString('qrHistory', jsonEncode(history));
+    notifyListeners();
+  }
+
+  /// Smart save: if UPI ID already exists in history, update existing entry;
+  /// otherwise add new entry at top. Unlimited history.
+  /// Used by Smart Pay Generate QR screen.
+  Future<void> addQrHistorySmart(Map<String, String> qr) async {
+    final history = qrHistory;
+    final upiId = qr['upiId'] ?? '';
+
+    // Check if UPI ID already exists
+    final existingIndex = history.indexWhere(
+      (e) => (e['upiId'] ?? '') == upiId,
+    );
+
+    if (existingIndex != -1) {
+      // Update existing entry (move to top with new data)
+      history.removeAt(existingIndex);
+      history.insert(0, qr);
+    } else {
+      // Add new entry at top
+      history.insert(0, qr);
+    }
+
+    // Unlimited history — no limit
     await _prefs?.setString('qrHistory', jsonEncode(history));
     notifyListeners();
   }

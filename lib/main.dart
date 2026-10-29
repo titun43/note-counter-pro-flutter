@@ -12,6 +12,7 @@ import 'services/saved_upi_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
+import 'widgets/glass_nav_bar.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/khata_screen.dart';
@@ -341,58 +342,9 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: _currentIndex,
         onDestinationSelected: _onPageChanged,
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.calculate_outlined),
-            selectedIcon: const Icon(Icons.calculate),
-            label: loc.t('counter'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: const Icon(Icons.account_balance_wallet),
-            label: loc.t('khata'),
-          ),
-          NavigationDestination(
-            icon: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(Icons.bolt_outlined),
-                if (!PremiumService().isPremium)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.all(1),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.lock,
-                        size: 8,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            selectedIcon: const Icon(Icons.bolt),
-            label: loc.t('upiTools'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.construction_outlined),
-            selectedIcon: const Icon(Icons.construction),
-            label: loc.t('proTools'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: loc.t('settings'),
-          ),
-        ],
       ),
       ),
     );

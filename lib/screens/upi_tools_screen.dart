@@ -14,12 +14,15 @@
 // =============================================================================
 
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import '../services/storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' as mscanner;
 import 'package:url_launcher/url_launcher.dart';
@@ -44,6 +47,10 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
   // their UPI app's gallery (which has a ₹2000 same-mobile limit).
   int _currentTab = 1; // 0 = Generate, 1 = Scan, 2 = Send, 3 = Saved
   int _scanMode = 0; // 0 = Camera, 1 = Gallery
+
+  // === Flash state ===
+  // 0 = OFF, 1 = AUTO, 2 = ON (cycles: OFF → AUTO → ON → OFF)
+  int _flashMode = 0;
 
   // === Generate tab state ===
   final _upiIdController = TextEditingController();
@@ -109,9 +116,29 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     if (amount.isNotEmpty) params.add('am=$amount');
     if (note.isNotEmpty) params.add('tn=${Uri.encodeComponent(note)}');
 
+    final upiUrl = 'upi://pay?${params.join('&')}';
+
     setState(() {
-      _generatedUpiUrl = 'upi://pay?${params.join('&')}';
+      _generatedUpiUrl = upiUrl;
     });
+
+    // ✅ Smart save to QR history (Counter → History → QR Code History tab)
+    // If UPI ID already exists, update existing entry; else add new entry.
+    // Unlimited history.
+    try {
+      final storage = context.read<StorageService>();
+      storage.addQrHistorySmart({
+        'upiId': upiId,
+        'name': name,
+        'amount': amount,
+        'note': note,
+        'url': upiUrl,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      debugPrint('UpiTools: QR saved to history (smart save) for UPI ID: $upiId');
+    } catch (e) {
+      debugPrint('UpiTools: Failed to save QR to history: $e');
+    }
   }
 
   Future<void> _shareQrImage() async {
@@ -145,15 +172,40 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
 
   void _startCamera() {
     _cameraController?.dispose();
+    // Apply current flash mode setting
     _cameraController = mscanner.MobileScannerController(
       detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
       facing: mscanner.CameraFacing.back,
+      torch: _flashMode == 2,  // ON = torch true
+      autoStart: true,
     );
     setState(() {
       _cameraActive = true;
       _scanResult = null;
       _scanError = null;
     });
+  }
+
+  /// Cycle flash mode: OFF → AUTO → ON → OFF
+  void _toggleFlash() {
+    setState(() {
+      _flashMode = (_flashMode + 1) % 3;
+    });
+    // Apply flash to current camera if active
+    if (_cameraActive && _cameraController != null) {
+      // For AUTO mode (1), we can't truly do auto-detection in mobile_scanner,
+      // so we treat AUTO same as OFF for the torch but show different icon.
+      // For ON mode (2), enable torch.
+      _cameraController!.toggleTorch();
+    }
+    debugPrint('UpiTools: flash mode = $_flashMode (0=OFF, 1=AUTO, 2=ON)');
+  }
+
+  /// Switch camera between front and back
+  void _switchCamera() {
+    if (_cameraController == null) return;
+    _cameraController!.switchLens();
+    debugPrint('UpiTools: camera switched');
   }
 
   void _stopCamera() {
@@ -367,77 +419,122 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          loc.t('upiTools'),
-          style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
+      body: SafeArea(
+        top: false, // MainScaffold handles top padding for banner ad
+        child: Column(
+          children: [
+            // === COMPACT GLASS PILL TAB SELECTOR (48px height) ===
+            Container(
+              margin: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: _buildGlassPillTabs(isDark, loc),
+            ),
+            // === CONTENT ===
+            Expanded(
+              child: _currentTab == 0
+                  ? _buildGenerateTab(isDark, loc)
+                  : _currentTab == 1
+                      ? _buildScanTab(isDark, loc)
+                      : _currentTab == 2
+                          ? _buildSendTab(loc)
+                          : _buildSavedTab(loc),
+            ),
+          ],
         ),
       ),
-      body: Column(
-        children: [
-          // === TAB SELECTOR (4 tabs in a row) ===
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildTabCard(
-                    icon: Icons.qr_code_2,
-                    label: loc.t('generateQr'),
-                    subtitle: loc.t('generatePaymentQr'),
-                    isActive: _currentTab == 0,
-                    color: AppColors.primary,
-                    onTap: () => setState(() => _currentTab = 0),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _buildTabCard(
-                    icon: Icons.image_search,
-                    label: loc.t('scanQr'),
-                    subtitle: loc.t('scanQrDesc'),
-                    isActive: _currentTab == 1,
-                    color: AppColors.info,
-                    onTap: () => setState(() => _currentTab = 1),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _buildTabCard(
-                    icon: Icons.send,
-                    label: loc.t('sendMoney'),
-                    subtitle: loc.t('sendMoneyDesc'),
-                    isActive: _currentTab == 2,
-                    color: AppColors.success,
-                    onTap: () => setState(() => _currentTab = 2),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _buildTabCard(
-                    icon: Icons.people,
-                    label: loc.t('saved'),
-                    subtitle: loc.t('savedUpiIds'),
-                    isActive: _currentTab == 3,
-                    color: const Color(0xFFEC4899),
-                    onTap: () => setState(() => _currentTab = 3),
-                  ),
-                ),
-              ],
-            ),
+    );
+  }
+
+  // === GLASS PILL TABS (compact, 48px height, icon+label same line) ===
+  Widget _buildGlassPillTabs(bool isDark, AppLocalizations loc) {
+    final tabs = [
+      _GlassTab(Icons.qr_code_2, loc.t('generateQr'), AppColors.primary),
+      _GlassTab(Icons.image_search, loc.t('scanQr'), AppColors.info),
+      _GlassTab(Icons.send, loc.t('sendMoney'), AppColors.success),
+      _GlassTab(Icons.people, loc.t('saved'), const Color(0xFFEC4899)),
+    ];
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF16213E).withOpacity(0.7)
+                : Colors.white.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(20),
           ),
-          // === CONTENT ===
-          Expanded(
-            child: _currentTab == 0
-                ? _buildGenerateTab(isDark, loc)
-                : _currentTab == 1
-                    ? _buildScanTab(isDark, loc)
-                    : _currentTab == 2
-                        ? _buildSendTab(loc)
-                        : _buildSavedTab(loc),
+          child: Row(
+            children: List.generate(tabs.length, (index) {
+              final tab = tabs[index];
+              final isActive = _currentTab == index;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _currentTab = index),
+                  behavior: HitTestBehavior.opaque,
+                  child: _buildGlassTabItem(tab, isActive),
+                ),
+              );
+            }),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildGlassTabItem(_GlassTab tab, bool isActive) {
+    if (isActive) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(tab.icon, size: 18, color: const Color(0xFF1A1A2E)),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                tab.label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A2E),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(tab.icon, size: 18, color: tab.color.withOpacity(0.7)),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            tab.label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: tab.color.withOpacity(0.7),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -756,16 +853,250 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     );
   }
 
+  // === FULL SCREEN CAMERA (when camera is active) ===
+  Widget _buildFullScreenCamera(bool isDark, AppLocalizations loc) {
+    return Stack(
+      children: [
+        // Camera fills entire screen
+        mscanner.MobileScanner(
+          controller: _cameraController!,
+          onDetect: _onCameraDetect,
+        ),
+
+        // Gold gradient scan frame overlay
+        Center(
+          child: Container(
+            width: 240,
+            height: 240,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: const Color(0xFFD4AF37),
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Stack(
+              children: [
+                // Corner accents (gold, L-shaped)
+                ..._buildScanFrameCorners(),
+              ],
+            ),
+          ),
+        ),
+
+        // Hint text below frame
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const SizedBox(height: 80),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  loc.t('alignQrHere'),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+
+        // Close button (top-right)
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 24),
+              onPressed: _stopCamera,
+            ),
+          ),
+        ),
+
+        // Floating glass controls bar (bottom)
+        Positioned(
+          bottom: 32,
+          left: 16,
+          right: 16,
+          child: _buildGlassControlsBar(loc),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildScanFrameCorners() {
+    const corner = Color(0xFFFFD700);
+    const size = 24.0;
+    const width = 3.0;
+    return [
+      Positioned(top: -2, left: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(top: BorderSide(color: corner, width: width), left: BorderSide(color: corner, width: width))))),
+      Positioned(top: -2, right: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(top: BorderSide(color: corner, width: width), right: BorderSide(color: corner, width: width))))),
+      Positioned(bottom: -2, left: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: corner, width: width), left: BorderSide(color: corner, width: width))))),
+      Positioned(bottom: -2, right: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: corner, width: width), right: BorderSide(color: corner, width: width))))),
+    ];
+  }
+
+  // === GLASS CONTROLS BAR (Flash, Switch, Gallery) ===
+  Widget _buildGlassControlsBar(AppLocalizations loc) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Flash button (cycles OFF → AUTO → ON)
+              _buildControlButton(
+                icon: _flashMode == 0
+                    ? Icons.flash_off
+                    : _flashMode == 1
+                        ? Icons.flash_auto
+                        : Icons.flash_on,
+                label: _flashMode == 0
+                    ? 'Off'
+                    : _flashMode == 1
+                        ? 'Auto'
+                        : 'On',
+                color: _flashMode > 0 ? const Color(0xFFD4AF37) : Colors.white70,
+                onTap: _toggleFlash,
+              ),
+              // Switch camera button
+              _buildControlButton(
+                icon: Icons.cameraswitch_outlined,
+                label: loc.t('switchCamera'),
+                color: Colors.white70,
+                onTap: _switchCamera,
+              ),
+              // Gallery button
+              _buildControlButton(
+                icon: Icons.image_outlined,
+                label: loc.t('gallery'),
+                color: Colors.white70,
+                onTap: () {
+                  _stopCamera();
+                  setState(() => _scanMode = 1);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // === COMPACT ₹2000 LIMIT BANNER ===
+  Widget _buildCompactLimitBanner(bool isDark, AppLocalizations loc) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFFD4AF37).withOpacity(0.15), const Color(0xFFFFD700).withOpacity(0.05)],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.cancel, color: AppColors.danger, size: 14),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    loc.t('limitBannerRed'),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.danger),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(width: 1, height: 20, color: const Color(0xFFD4AF37).withOpacity(0.3)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: AppColors.success, size: 14),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    loc.t('limitBannerGreen'),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.success),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // === SCAN TAB ===
   Widget _buildScanTab(bool isDark, AppLocalizations loc) {
+    // If camera is active, show full-screen camera (no banner, no scroll)
+    if (_scanMode == 0 && _cameraActive) {
+      return _buildFullScreenCamera(isDark, loc);
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         children: [
-          // === PROMINENT ₹2000 LIMIT BANNER ===
-          _buildLimitBanner(isDark, loc),
-          const SizedBox(height: 12),
-          // Scan mode selector: Camera vs Gallery
+          // === COMPACT ₹2000 LIMIT BANNER ===
+          _buildCompactLimitBanner(isDark, loc),
+          const SizedBox(height: 8),
+          // Scan mode selector: Camera vs Gallery (compact)
           Row(
             children: [
               Expanded(
@@ -795,111 +1126,46 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Camera mode
+          // Camera mode — start button
           if (_scanMode == 0) ...[
-            if (!_cameraActive) ...[
-              // Start camera button
-              GestureDetector(
-                onTap: _startCamera,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF16213E) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.info.withOpacity(0.3),
-                      width: 2,
+            GestureDetector(
+              onTap: _startCamera,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF16213E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.info.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.camera_alt, size: 56, color: AppColors.info),
+                    const SizedBox(height: 12),
+                    Text(
+                      loc.t('openCamera'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.camera_alt, size: 56, color: AppColors.info),
-                      const SizedBox(height: 12),
-                      Text(
-                        loc.t('openCamera'),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      loc.t('openCameraDesc'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white54 : Colors.black54,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        loc.t('openCameraDesc'),
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark ? Colors.white54 : Colors.black54,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
-            ] else ...[
-              // Live camera preview
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  height: 300,
-                  width: double.infinity,
-                  child: Stack(
-                    children: [
-                      mscanner.MobileScanner(
-                        controller: _cameraController!,
-                        onDetect: _onCameraDetect,
-                      ),
-                      // Overlay frame
-                      Center(
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.info, width: 2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                      // Stop button
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: _stopCamera,
-                          ),
-                        ),
-                      ),
-                      // Scanning text
-                      Positioned(
-                        bottom: 8,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              loc.t('scanning'),
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ],
 
           // Gallery mode
@@ -1220,4 +1486,12 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
       ),
     );
   }
+}
+
+// Helper class for glass pill tabs
+class _GlassTab {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _GlassTab(this.icon, this.label, this.color);
 }
