@@ -20,6 +20,7 @@ import 'screens/upi_tab_screen.dart';
 import 'screens/tools_tab_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
+import 'screens/splash_screen.dart';
 import 'package:flutter/services.dart';
 
 void main() async {
@@ -144,7 +145,9 @@ class NoteCounterProApp extends StatelessWidget {
             // MainScaffold via Navigator.push on initial launch only —
             // toggling the App Lock switch no longer kicks the user out
             // of their current screen.
-            home: const MainScaffold(),
+            // Home is SplashScreen → then MainScaffold (after 2 sec)
+            // Flutter splash uses Text widgets = crystal clear on all devices
+            home: SplashScreen(nextScreen: const MainScaffold()),
           ),
         );
       },
