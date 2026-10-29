@@ -20,7 +20,6 @@ import 'screens/upi_tab_screen.dart';
 import 'screens/tools_tab_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
-import 'screens/splash_screen.dart';
 import 'package:flutter/services.dart';
 
 void main() async {
@@ -145,9 +144,10 @@ class NoteCounterProApp extends StatelessWidget {
             // MainScaffold via Navigator.push on initial launch only —
             // toggling the App Lock switch no longer kicks the user out
             // of their current screen.
-            // Home is SplashScreen → then MainScaffold (after 2 sec)
-            // Flutter splash uses Text widgets = crystal clear on all devices
-            home: SplashScreen(nextScreen: const MainScaffold()),
+            // Home is MainScaffold with SplashOverlay on top.
+            // MainScaffold loads immediately, splash shows as overlay
+            // for 1 second then fades away — no navigation issues.
+            home: const MainScaffold(),
           ),
         );
       },
@@ -174,6 +174,10 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
   /// the very first launch (cold-start app open ads are handled separately).
   bool _isFirstResume = true;
 
+  /// Whether the splash overlay is currently visible.
+  /// Splash shows on top of MainScaffold for 1 sec, then fades away.
+  bool _showSplash = true;
+
   @override
   void initState() {
     super.initState();
@@ -187,6 +191,13 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
       _showAppLockIfEnabled();
     });
     _checkForUpdate();
+
+    // Splash overlay: show for 1 second, then fade away
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() => _showSplash = false);
+      }
+    });
   }
 
   void _showAppLockIfEnabled() {
@@ -324,31 +335,36 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
         if (didPop) return;
         _showExitDialog(context);
       },
-      child: Scaffold(
-      body: Column(
+      child: Stack(
         children: [
-          // Banner ad at top — wrapped in SafeArea so it doesn't
-          // overlap the status bar. Each tab screen has its own
-          // SafeArea for its content, so we DON'T wrap the
-          // IndexedStack in SafeArea here (that would cause double
-          // padding).
-          SafeArea(
-            bottom: false,
-            child: const BannerAdWidget(),
-          ),
-          // Main content — each screen handles its own SafeArea
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: screens,
+          Scaffold(
+            body: Column(
+              children: [
+                // Banner ad at top
+                SafeArea(
+                  bottom: false,
+                  child: const BannerAdWidget(),
+                ),
+                // Main content
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentIndex,
+                    children: screens,
+                  ),
+                ),
+              ],
+            ),
+            bottomNavigationBar: GlassNavBar(
+              currentIndex: _currentIndex,
+              onDestinationSelected: _onPageChanged,
             ),
           ),
+          // Splash overlay — shows on top of everything for 1 sec, then gone
+          if (_showSplash)
+            const Positioned.fill(
+              child: _SplashOverlay(),
+            ),
         ],
-      ),
-      bottomNavigationBar: GlassNavBar(
-        currentIndex: _currentIndex,
-        onDestinationSelected: _onPageChanged,
-      ),
       ),
     );
   }
@@ -379,6 +395,119 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
             child: Text(loc.t('exitYes')),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// _SplashOverlay — shows on top of MainScaffold for 1 sec, then removed.
+// Uses Flutter Text widgets = crystal clear. No navigation issues.
+// =============================================================================
+class _SplashOverlay extends StatefulWidget {
+  const _SplashOverlay();
+
+  @override
+  State<_SplashOverlay> createState() => _SplashOverlayState();
+}
+
+class _SplashOverlayState extends State<_SplashOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF0A0A1A),
+      child: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            children: [
+              const Spacer(flex: 3),
+              const Text(
+                'Note Counter Pro',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontFamily: 'Inter',
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 200,
+                height: 2,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                  ),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Professional Cash Manager',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFFD4AF37),
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const Spacer(flex: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.lock, color: Color(0xFFD4AF37), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    '100% Secure',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFD4AF37),
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Lokhnath Technical',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white70,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const Spacer(flex: 1),
+            ],
+          ),
+        ),
       ),
     );
   }
