@@ -46,8 +46,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to next screen after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
+    // Navigate to next screen after 1 second (was 2s — user said too slow)
+    Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
