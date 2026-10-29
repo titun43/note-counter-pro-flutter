@@ -14,7 +14,6 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
 
 class SplashScreen extends StatefulWidget {
   final Widget nextScreen;
@@ -29,13 +28,14 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+  bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -46,22 +46,29 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to next screen after 1 second (was 2s — user said too slow)
+    // Navigate to next screen after 1 second
     Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                widget.nextScreen,
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 500),
-          ),
-        );
-      }
+      _navigateToNext();
     });
+  }
+
+  void _navigateToNext() {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+
+    // Use pushAndRemoveUntil to completely remove splash from stack
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            widget.nextScreen,
+        transitionsBuilder:
+            (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+      (route) => false, // Remove ALL previous routes (splash)
+    );
   }
 
   @override
