@@ -21,6 +21,9 @@ import 'premium_screen.dart';
 import 'qr_generator_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'barcode_generator_screen.dart';
+import 'upi_tools_screen.dart';
+import 'send_money_screen.dart';
+import 'saved_upi_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
   final String currencyCode;
@@ -117,6 +120,63 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(icon: Icons.qr_code_2, iconColor: AppColors.info, title: loc.t('qrGenerator'), subtitle: loc.t('qrGeneratorDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const QrGeneratorScreen())); }, theme: theme, isDark: isDark),
               _buildToolCard(icon: Icons.qr_code_scanner, iconColor: AppColors.success, title: loc.t('qrScanner'), subtitle: loc.t('qrScannerDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen())); }, theme: theme, isDark: isDark),
               _buildToolCard(icon: Icons.view_quilt, iconColor: AppColors.warning, title: loc.t('barcodeGenerator'), subtitle: loc.t('barcodeGeneratorDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const BarcodeGeneratorScreen())); }, theme: theme, isDark: isDark),
+
+              const SizedBox(height: 20),
+
+              // UPI Tools section (moved from Smart Pay)
+              _buildSectionHeader(loc.t('upiToolsSection'), Icons.bolt, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(
+                icon: Icons.qr_code_2,
+                iconColor: AppColors.primary,
+                title: loc.t('generateQr'),
+                subtitle: loc.t('generatePaymentQr'),
+                isPremium: true,
+                onTap: () {
+                  if (!PremiumService().isPremium) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  AdMobService.showInterstitial();
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const UpiToolsScreen()));
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              _buildToolCard(
+                icon: Icons.send,
+                iconColor: AppColors.success,
+                title: loc.t('sendMoney'),
+                subtitle: loc.t('sendMoneyDesc'),
+                isPremium: true,
+                onTap: () {
+                  if (!PremiumService().isPremium) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  AdMobService.showInterstitial();
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SendMoneyScreen()));
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              _buildToolCard(
+                icon: Icons.people,
+                iconColor: const Color(0xFFEC4899),
+                title: loc.t('savedUpiIds'),
+                subtitle: loc.t('saved'),
+                isPremium: true,
+                onTap: () {
+                  if (!PremiumService().isPremium) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumScreen()));
+                    return;
+                  }
+                  AdMobService.showInterstitial();
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedUpiScreen()));
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
 
               // Converters section
               _buildSectionHeader(loc.t('converters'), Icons.swap_horiz, theme),
