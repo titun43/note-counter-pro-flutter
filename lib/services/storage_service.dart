@@ -471,30 +471,6 @@ class StorageService extends ChangeNotifier {
   }
 
   Future<void> clearScanHistory() async {
-
-  // === UPI SCAN HISTORY (Smart Pay scan — separate from Generate QR history) ===
-  List<Map<String, String>> get upiScanHistory {
-    final json = _prefs?.getString("upiScanHistory");
-    if (json == null) return [];
-    try {
-      final list = jsonDecode(json) as List;
-      return list.map((e) => Map<String, String>.from(e as Map)).toList();
-    } catch (e) { return []; }
-  }
-  Future<void> addUpiScanHistory(Map<String, String> scan) async {
-    final history = upiScanHistory;
-    history.insert(0, scan);
-    await _prefs?.setString("upiScanHistory", jsonEncode(history));
-    notifyListeners();
-  }
-  Future<void> deleteUpiScanHistory(int index) async {
-    final history = upiScanHistory;
-    if (index >= 0 && index < history.length) {
-      history.removeAt(index);
-      await _prefs?.setString("upiScanHistory", jsonEncode(history));
-      notifyListeners();
-    }
-  }
     await _prefs?.remove("scanHistory");
     notifyListeners();
   }

@@ -21,7 +21,7 @@ import 'premium_screen.dart';
 import 'qr_generator_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'barcode_generator_screen.dart';
-import 'upi_tools_screen.dart';
+import 'upi_generate_screen.dart';
 import 'send_money_screen.dart';
 import 'saved_upi_screen.dart';
 
@@ -129,8 +129,8 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(
                 icon: Icons.qr_code_2,
                 iconColor: AppColors.primary,
-                title: loc.t('generateQr'),
-                subtitle: loc.t('generatePaymentQr'),
+                title: loc.t('upiGenerateQr'),
+                subtitle: loc.t('upiGenerateQrDesc'),
                 isPremium: true,
                 onTap: () {
                   if (!PremiumService().isPremium) {
@@ -138,7 +138,7 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                     return;
                   }
                   AdMobService.showInterstitial();
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const UpiToolsScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const UpiGenerateScreen()));
                 },
                 theme: theme,
                 isDark: isDark,
@@ -146,8 +146,8 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(
                 icon: Icons.send,
                 iconColor: AppColors.success,
-                title: loc.t('sendMoney'),
-                subtitle: loc.t('sendMoneyDesc'),
+                title: loc.t('upiSendMoney'),
+                subtitle: loc.t('upiSendMoneyDesc'),
                 isPremium: true,
                 onTap: () {
                   if (!PremiumService().isPremium) {
@@ -163,8 +163,8 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(
                 icon: Icons.people,
                 iconColor: const Color(0xFFEC4899),
-                title: loc.t('savedUpiIds'),
-                subtitle: loc.t('saved'),
+                title: loc.t('upiSavedIds'),
+                subtitle: loc.t('upiSavedIdsDesc'),
                 isPremium: true,
                 onTap: () {
                   if (!PremiumService().isPremium) {
