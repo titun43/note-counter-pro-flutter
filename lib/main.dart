@@ -238,6 +238,18 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
         _isFirstResume = false;
         return;
       }
+
+      // Show splash overlay again when user returns to app
+      // (app was backgrounded/exited and reopened)
+      if (mounted) {
+        setState(() => _showSplash = true);
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() => _showSplash = false);
+          }
+        });
+      }
+
       // Slightly longer delay so the UI has time to settle before the ad
       // shows — and so that very brief background trips (notifications,
       // permission dialogs) don't immediately trigger an ad.
