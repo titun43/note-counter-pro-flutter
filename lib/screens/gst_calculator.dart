@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class GstCalculator extends StatefulWidget {
   const GstCalculator({super.key});
@@ -19,7 +20,7 @@ class GstCalculator extends StatefulWidget {
 class _GstCalculatorState extends State<GstCalculator> {
   final _amountController = TextEditingController();
   double _gstRate = 18;
-  bool _addGst = true; // true = add GST, false = remove GST
+  bool _addGst = true;
 
   double _gstAmount = 0;
   double _baseAmount = 0;
@@ -43,12 +44,10 @@ class _GstCalculatorState extends State<GstCalculator> {
 
     double baseAmount, gstAmount, totalAmount;
     if (_addGst) {
-      // Add GST: amount is base, calculate GST + total
       baseAmount = amount;
       gstAmount = amount * _gstRate / 100;
       totalAmount = baseAmount + gstAmount;
     } else {
-      // Remove GST: amount is total, calculate base + GST
       totalAmount = amount;
       baseAmount = amount / (1 + _gstRate / 100);
       gstAmount = totalAmount - baseAmount;
@@ -70,18 +69,18 @@ class _GstCalculatorState extends State<GstCalculator> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = context.loc;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Mode toggle
           Row(
             children: [
               Expanded(
                 child: ChoiceChip(
-                  label: const Text('Add GST', textAlign: TextAlign.center),
+                  label: Text(loc.t('gstAddGst'), textAlign: TextAlign.center),
                   selected: _addGst,
                   onSelected: (_) => setState(() => _addGst = true),
                 ),
@@ -89,7 +88,7 @@ class _GstCalculatorState extends State<GstCalculator> {
               const SizedBox(width: 8),
               Expanded(
                 child: ChoiceChip(
-                  label: const Text('Remove GST', textAlign: TextAlign.center),
+                  label: Text(loc.t('gstRemoveGst'), textAlign: TextAlign.center),
                   selected: !_addGst,
                   onSelected: (_) => setState(() => _addGst = false),
                 ),
@@ -97,12 +96,11 @@ class _GstCalculatorState extends State<GstCalculator> {
             ],
           ),
           const SizedBox(height: 16),
-          // Amount
           TextField(
             controller: _amountController,
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: _addGst ? 'Base Amount (excl. GST)' : 'Total Amount (incl. GST)',
+              labelText: _addGst ? loc.t('gstBaseAmountExcl') : loc.t('gstTotalAmountIncl'),
               hintText: 'e.g. 1000',
               prefixText: '₹ ',
               prefixIcon: const Icon(Icons.currency_rupee),
@@ -110,9 +108,8 @@ class _GstCalculatorState extends State<GstCalculator> {
             ),
           ),
           const SizedBox(height: 16),
-          // GST Slab
           Text(
-            'GST Rate',
+            loc.t('gstRate'),
             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -132,11 +129,10 @@ class _GstCalculatorState extends State<GstCalculator> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-          // Calculate
           FilledButton.icon(
             onPressed: _calculate,
             icon: const Icon(Icons.calculate),
-            label: const Text('Calculate', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: Text(loc.t('gstCalculate'), style: const TextStyle(fontWeight: FontWeight.bold)),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.bgDark,
@@ -144,10 +140,9 @@ class _GstCalculatorState extends State<GstCalculator> {
             ),
           ),
           const SizedBox(height: 20),
-          // Results
           if (_calculated) ...[
             _buildResultCard(
-              'GST Amount ($_gstRate%)',
+              '${loc.t('gstAmount')} ($_gstRate%)',
               _formatCurrency(_gstAmount),
               AppColors.danger,
               isDark,
@@ -159,7 +154,7 @@ class _GstCalculatorState extends State<GstCalculator> {
               children: [
                 Expanded(
                   child: _buildResultCard(
-                    'Base Amount',
+                    loc.t('gstBaseAmount'),
                     _formatCurrency(_baseAmount),
                     AppColors.info,
                     isDark,
@@ -169,7 +164,7 @@ class _GstCalculatorState extends State<GstCalculator> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildResultCard(
-                    'Total Amount',
+                    loc.t('gstTotalAmount'),
                     _formatCurrency(_totalAmount),
                     AppColors.success,
                     isDark,

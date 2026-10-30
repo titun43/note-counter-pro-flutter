@@ -69,8 +69,8 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(
                 icon: Icons.account_balance,
                 iconColor: const Color(0xFFEC4899),
-                title: 'EMI Calculator',
-                subtitle: 'Calculate loan EMI, interest, total payment',
+                title: loc.t('emiCalculator'),
+                subtitle: loc.t('emiCalculatorDesc'),
                 onTap: () {
                   AdMobService.showInterstitial();
                   Navigator.push(
@@ -89,8 +89,8 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(
                 icon: Icons.percent,
                 iconColor: AppColors.warning,
-                title: 'GST Calculator',
-                subtitle: 'Add/Remove GST (5%, 12%, 18%, 28% slabs)',
+                title: loc.t('gstCalculator'),
+                subtitle: loc.t('gstCalculatorDesc'),
                 onTap: () {
                   AdMobService.showInterstitial();
                   Navigator.push(

@@ -279,11 +279,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Check if we have an initialValue — if yes, we were opened via
-    // Navigator.push from Home screen, so we need our own Scaffold +
-    // SafeArea + BannerAd. If no initialValue, we're a tab inside
-    // main.dart which already provides Scaffold + BannerAd.
-    final bool standalone = widget.initialValue != null && widget.initialValue! > 0;
+    // If opened via Navigator.push from Tools tab OR Home screen,
+    // we need our own Scaffold + SafeArea + BannerAd.
+    // Only when we're a tab inside main.dart (no initialValue, no
+    // initialEmi/Gst/DateCalc/Converter) do we skip the Scaffold.
+    final bool standalone = (widget.initialValue != null && widget.initialValue! > 0) ||
+        widget.initialEmi ||
+        widget.initialGst ||
+        widget.initialDateCalc ||
+        widget.initialConverter;
 
     Widget content = Column(
       children: [
@@ -345,15 +349,65 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       ],
     );
 
-    // If standalone (opened from Home via Navigator.push), wrap with
+    // If standalone (opened from Home/Tools via Navigator.push), wrap with
     // Scaffold + SafeArea + BannerAd so layout is correct.
     if (standalone) {
       return Scaffold(
+        backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
         body: SafeArea(
           child: Column(
             children: [
               const BannerAdWidget(),
-              Expanded(child: content),
+              // Top bar with back button for standalone mode
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[900] : Colors.grey[50],
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                      tooltip: 'Back',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.apps, size: 24),
+                      onPressed: _showMenu,
+                      tooltip: 'Calculator Modes & Converters',
+                    ),
+                    Text(
+                      _modes[_currentMode]['name'] as String,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (widget.initialValue != null && widget.initialValue! > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${AppConstants.getCurrencySymbol(widget.currencyCode)}${widget.initialValue!.toStringAsFixed(2)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.info,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(child: _buildCurrentMode()),
             ],
           ),
         ),

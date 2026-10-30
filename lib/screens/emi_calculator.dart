@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class EmiCalculator extends StatefulWidget {
   const EmiCalculator({super.key});
@@ -20,7 +21,7 @@ class _EmiCalculatorState extends State<EmiCalculator> {
   final _amountController = TextEditingController();
   final _rateController = TextEditingController();
   final _tenureController = TextEditingController();
-  bool _tenureInYears = false; // false = months, true = years
+  bool _tenureInYears = false;
 
   double _emi = 0;
   double _totalInterest = 0;
@@ -75,60 +76,56 @@ class _EmiCalculatorState extends State<EmiCalculator> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final loc = context.loc;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Loan Amount
           _buildInputField(
             controller: _amountController,
-            label: 'Loan Amount',
+            label: loc.t('emiLoanAmount'),
             hint: 'e.g. 500000',
             prefix: '₹',
             icon: Icons.account_balance_wallet,
           ),
           const SizedBox(height: 12),
-          // Interest Rate
           _buildInputField(
             controller: _rateController,
-            label: 'Interest Rate (% per annum)',
+            label: loc.t('emiInterestRate'),
             hint: 'e.g. 8.5',
             suffix: '%',
             icon: Icons.percent,
           ),
           const SizedBox(height: 12),
-          // Tenure
           _buildInputField(
             controller: _tenureController,
-            label: 'Tenure (${_tenureInYears ? "years" : "months"})',
+            label: '${loc.t('emiTenure')} (${_tenureInYears ? loc.t('emiYears') : loc.t('emiMonths')})',
             hint: _tenureInYears ? 'e.g. 5' : 'e.g. 60',
             icon: Icons.schedule,
           ),
           const SizedBox(height: 8),
-          // Tenure toggle
           Row(
             children: [
               ChoiceChip(
-                label: const Text('Months'),
+                label: Text(loc.t('emiMonths')),
                 selected: !_tenureInYears,
                 onSelected: (_) => setState(() => _tenureInYears = false),
               ),
               const SizedBox(width: 8),
               ChoiceChip(
-                label: const Text('Years'),
+                label: Text(loc.t('emiYears')),
                 selected: _tenureInYears,
                 onSelected: (_) => setState(() => _tenureInYears = true),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // Calculate button
           FilledButton.icon(
             onPressed: _calculate,
             icon: const Icon(Icons.calculate),
-            label: const Text('Calculate EMI', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: Text(loc.t('emiCalculate'), style: const TextStyle(fontWeight: FontWeight.bold)),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.bgDark,
@@ -136,10 +133,9 @@ class _EmiCalculatorState extends State<EmiCalculator> {
             ),
           ),
           const SizedBox(height: 20),
-          // Results
           if (_calculated) ...[
             _buildResultCard(
-              'Monthly EMI',
+              loc.t('emiMonthlyEmi'),
               _formatCurrency(_emi),
               AppColors.primary,
               isDark,
@@ -151,7 +147,7 @@ class _EmiCalculatorState extends State<EmiCalculator> {
               children: [
                 Expanded(
                   child: _buildResultCard(
-                    'Total Interest',
+                    loc.t('emiTotalInterest'),
                     _formatCurrency(_totalInterest),
                     AppColors.danger,
                     isDark,
@@ -161,7 +157,7 @@ class _EmiCalculatorState extends State<EmiCalculator> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildResultCard(
-                    'Total Payment',
+                    loc.t('emiTotalPayment'),
                     _formatCurrency(_totalPayment),
                     AppColors.success,
                     isDark,
