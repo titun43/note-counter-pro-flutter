@@ -289,68 +289,56 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         widget.initialDateCalc ||
         widget.initialConverter;
 
-    Widget content = Column(
-      children: [
-        // Top bar: menu icon + mode name
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.grey[900] : Colors.grey[50],
-            border: Border(
-              bottom: BorderSide(
-                color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
-                width: 0.5,
+    // For standalone mode, content is just the calculator mode (no top bar —
+    // the top bar is built in the standalone Scaffold below).
+    // For tab mode (inside main.dart), content includes the top bar.
+    Widget content;
+    if (standalone) {
+      // Standalone: just the calculator mode, no top bar in content
+      content = _buildCurrentMode();
+    } else {
+      // Tab mode: top bar + calculator mode
+      content = Column(
+        children: [
+          // Top bar: menu icon + mode name
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[900] : Colors.grey[50],
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                  width: 0.5,
+                ),
               ),
             ),
-          ),
-          child: Row(
-            children: [
-              if (standalone)
+            child: Row(
+              children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 22),
-                  onPressed: () => Navigator.pop(context),
-                  tooltip: 'Back',
+                  icon: const Icon(Icons.apps, size: 24),
+                  onPressed: _showMenu,
+                  tooltip: 'Calculator Modes & Converters',
                 ),
-              IconButton(
-                icon: const Icon(Icons.apps, size: 24),
-                onPressed: _showMenu,
-                tooltip: 'Calculator Modes & Converters',
-              ),
-              Text(
-                _modes[_currentMode]['name'] as String,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-              if (standalone)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${AppConstants.getCurrencySymbol(widget.currencyCode)}${widget.initialValue!.toStringAsFixed(2)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.info,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  _modes[_currentMode]['name'] as String,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-            ],
+                const Spacer(),
+              ],
+            ),
           ),
-        ),
-        // Calculator content
-        Expanded(
-          child: _buildCurrentMode(),
-        ),
-      ],
-    );
+          // Calculator content
+          Expanded(
+            child: _buildCurrentMode(),
+          ),
+        ],
+      );
+    }
 
     // If standalone (opened from Home/Tools via Navigator.push), wrap with
-    // Scaffold + SafeArea + BannerAd so layout is correct.
+    // Scaffold + SafeArea + BannerAd + top bar with back button.
     if (standalone) {
       return Scaffold(
         backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
@@ -407,7 +395,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   ],
                 ),
               ),
-              Expanded(child: _buildCurrentMode()),
+              Expanded(child: content),
             ],
           ),
         ),
