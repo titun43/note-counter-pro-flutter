@@ -73,10 +73,10 @@ jobs:
         echo "========================================="
 
     - name: Build APK
-      run: flutter build apk --release --no-tree-shake-icons --target-platform android-arm,android-arm64,android-x64
+      run: flutter build apk --release --no-tree-shake-icons --target-platform android-arm64,android-x64
 
     - name: Build AAB
-      run: flutter build appbundle --release --no-tree-shake-icons --target-platform android-arm,android-arm64,android-x64
+      run: flutter build appbundle --release --no-tree-shake-icons --target-platform android-arm64,android-x64
 
     - name: Rename artifacts
       run: |
