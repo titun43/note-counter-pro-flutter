@@ -20,6 +20,8 @@ import 'scientific_calculator.dart';
 import 'programmer_calculator.dart';
 import 'date_calculator.dart';
 import 'converter_screen.dart';
+import 'emi_calculator.dart';
+import 'gst_calculator.dart';
 
 class CalculatorScreen extends StatefulWidget {
   final double? initialValue;
@@ -28,6 +30,10 @@ class CalculatorScreen extends StatefulWidget {
   final bool initialConverter;
   /// When true, open Date Calc mode immediately (from Tools tab).
   final bool initialDateCalc;
+  /// When true, open EMI Calculator mode (from Tools tab).
+  final bool initialEmi;
+  /// When true, open GST Calculator mode (from Tools tab).
+  final bool initialGst;
 
   const CalculatorScreen({
     super.key,
@@ -35,6 +41,8 @@ class CalculatorScreen extends StatefulWidget {
     this.currencyCode = 'INR',
     this.initialConverter = false,
     this.initialDateCalc = false,
+    this.initialEmi = false,
+    this.initialGst = false,
   });
 
   @override
@@ -42,7 +50,8 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  int _currentMode = 0; // 0=Standard, 1=Scientific, 2=Programmer, 3=Date
+  // 0=Standard, 1=Scientific, 2=Programmer, 3=Date, 4=EMI, 5=GST
+  int _currentMode = 0;
   int _modeChangeCount = 0; // For interstitial ad frequency
 
   static const _modes = [
@@ -50,6 +59,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     {'icon': Icons.science, 'name': 'Scientific'},
     {'icon': Icons.code, 'name': 'Programmer'},
     {'icon': Icons.calendar_today, 'name': 'Date Calc'},
+    {'icon': Icons.account_balance, 'name': 'EMI Calc'},
+    {'icon': Icons.percent, 'name': 'GST Calc'},
   ];
 
   static const _converters = [
@@ -73,6 +84,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     // Handle initial mode from Tools tab
     if (widget.initialDateCalc) {
       _currentMode = 3; // Date Calc mode
+    } else if (widget.initialEmi) {
+      _currentMode = 4; // EMI Calc mode
+    } else if (widget.initialGst) {
+      _currentMode = 5; // GST Calc mode
     }
     // For initialConverter, we need to wait for the first frame
     // because we need a BuildContext to call Navigator.push
@@ -357,6 +372,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         return const ProgrammerCalculator();
       case 3:
         return const DateCalculator();
+      case 4:
+        return const EmiCalculator();
+      case 5:
+        return const GstCalculator();
       default:
         return StandardCalculator(
           initialValue: widget.initialValue,

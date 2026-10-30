@@ -39,207 +39,214 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
         top: false, // MainScaffold handles top padding for banner ad
-        child: Column(
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.primary.withOpacity(0.2),
-                    width: 0.5,
-                  ),
-                ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Calculators section
+              _buildSectionHeader(loc.t('calculators'), Icons.calculate, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(
+                icon: Icons.functions,
+                iconColor: AppColors.info,
+                title: loc.t('calculator'),
+                subtitle: loc.t('calculatorDesc'),
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CalculatorScreen(
+                        currencyCode: widget.currencyCode,
+                      ),
+                    ),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.construction, color: AppColors.primary, size: 26),
-                  const SizedBox(width: 10),
-                  Text(
-                    loc.t('proTools'),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+              _buildToolCard(
+                icon: Icons.account_balance,
+                iconColor: const Color(0xFFEC4899),
+                title: 'EMI Calculator',
+                subtitle: 'Calculate loan EMI, interest, total payment',
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CalculatorScreen(
+                        currencyCode: widget.currencyCode,
+                        initialEmi: true,
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
               ),
-            ),
-            // Tools list
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Calculators section
-                    _buildSectionHeader(loc.t('calculators'), Icons.calculate, theme),
-                    const SizedBox(height: 8),
-                    _buildToolCard(
-                      icon: Icons.functions,
-                      iconColor: AppColors.info,
-                      title: loc.t('calculator'),
-                      subtitle: loc.t('calculatorDesc'),
-                      onTap: () {
-                        _showInterstitialAndOpen();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CalculatorScreen(
-                              currencyCode: widget.currencyCode,
-                            ),
-                          ),
-                        );
-                      },
-                      theme: theme,
-                      isDark: isDark,
+              _buildToolCard(
+                icon: Icons.percent,
+                iconColor: AppColors.warning,
+                title: 'GST Calculator',
+                subtitle: 'Add/Remove GST (5%, 12%, 18%, 28% slabs)',
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CalculatorScreen(
+                        currencyCode: widget.currencyCode,
+                        initialGst: true,
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 20),
 
-                    // Converters section
-                    _buildSectionHeader(loc.t('converters'), Icons.swap_horiz, theme),
-                    const SizedBox(height: 8),
-                    _buildToolCard(
-                      icon: Icons.currency_exchange,
-                      iconColor: AppColors.success,
-                      title: loc.t('currencyConverter'),
-                      subtitle: loc.t('currencyConverterDesc'),
-                      onTap: () {
-                        _showInterstitialAndOpen();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CalculatorScreen(
-                              currencyCode: widget.currencyCode,
-                              initialConverter: true,
-                            ),
-                          ),
-                        );
-                      },
-                      theme: theme,
-                      isDark: isDark,
+              // Converters section
+              _buildSectionHeader(loc.t('converters'), Icons.swap_horiz, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(
+                icon: Icons.currency_exchange,
+                iconColor: AppColors.success,
+                title: loc.t('currencyConverter'),
+                subtitle: loc.t('currencyConverterDesc'),
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CalculatorScreen(
+                        currencyCode: widget.currencyCode,
+                        initialConverter: true,
+                      ),
                     ),
-                    _buildToolCard(
-                      icon: Icons.calendar_month,
-                      iconColor: AppColors.warning,
-                      title: loc.t('dateCalculator'),
-                      subtitle: loc.t('dateCalculatorDesc'),
-                      onTap: () {
-                        _showInterstitialAndOpen();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CalculatorScreen(
-                              currencyCode: widget.currencyCode,
-                              initialDateCalc: true,
-                            ),
-                          ),
-                        );
-                      },
-                      theme: theme,
-                      isDark: isDark,
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              _buildToolCard(
+                icon: Icons.calendar_month,
+                iconColor: AppColors.warning,
+                title: loc.t('dateCalculator'),
+                subtitle: loc.t('dateCalculatorDesc'),
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CalculatorScreen(
+                        currencyCode: widget.currencyCode,
+                        initialDateCalc: true,
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 20),
 
-                    // Hardware section
-                    _buildSectionHeader(loc.t('hardware'), Icons.print, theme),
-                    const SizedBox(height: 8),
-                    _buildToolCard(
-                      icon: Icons.print,
-                      iconColor: const Color(0xFFD4AF37),
-                      title: loc.t('printer'),
-                      subtitle: loc.t('printerDesc'),
-                      isPremium: true,
-                      onTap: () {
-                        if (!PremiumService().isPremium) {
+              // Hardware section
+              _buildSectionHeader(loc.t('hardware'), Icons.print, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(
+                icon: Icons.print,
+                iconColor: const Color(0xFFD4AF37),
+                title: loc.t('printer'),
+                subtitle: loc.t('printerDesc'),
+                isPremium: true,
+                onTap: () {
+                  if (!PremiumService().isPremium) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const PremiumScreen()),
+                    );
+                    return;
+                  }
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrinterScreen(),
+                    ),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 24),
+
+              // Premium hint
+              if (!PremiumService().isPremium)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.workspace_premium,
+                          color: Color(0xFF1A1A2E), size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              loc.t('goPremium'),
+                              style: const TextStyle(
+                                color: Color(0xFF1A1A2E),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              loc.t('removeAdsForever'),
+                              style: const TextStyle(
+                                color: Color(0xFF1A1A2E),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const PremiumScreen()),
                           );
-                          return;
-                        }
-                        _showInterstitialAndOpen();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PrinterScreen(),
-                          ),
-                        );
-                      },
-                      theme: theme,
-                      isDark: isDark,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Premium hint
-                    if (!PremiumService().isPremium)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF1A1A2E),
+                          backgroundColor: Colors.black.withOpacity(0.1),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.workspace_premium,
-                                color: Color(0xFF1A1A2E), size: 28),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    loc.t('goPremium'),
-                                    style: const TextStyle(
-                                      color: Color(0xFF1A1A2E),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    loc.t('removeAdsForever'),
-                                    style: const TextStyle(
-                                      color: Color(0xFF1A1A2E),
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const PremiumScreen()),
-                                );
-                              },
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF1A1A2E),
-                                backgroundColor: Colors.black.withOpacity(0.1),
-                              ),
-                              child: Text(loc.t('getPremium'),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12)),
-                            ),
-                          ],
-                        ),
+                        child: Text(loc.t('getPremium'),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12)),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
