@@ -24,6 +24,7 @@ import 'barcode_generator_screen.dart';
 import 'upi_generate_screen.dart';
 import 'send_money_screen.dart';
 import 'saved_upi_screen.dart';
+import 'converter_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
   final String currencyCode;
@@ -191,10 +192,7 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CalculatorScreen(
-                        currencyCode: widget.currencyCode,
-                        initialConverter: true,
-                      ),
+                      builder: (_) => const ConverterScreen(initialType: 0),
                     ),
                   );
                 },
