@@ -18,6 +18,9 @@ import '../utils/app_localizations.dart';
 import 'calculator_screen.dart';
 import 'printer_screen.dart';
 import 'premium_screen.dart';
+import 'qr_generator_screen.dart';
+import 'qr_scanner_screen.dart';
+import 'barcode_generator_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
   final String currencyCode;
@@ -107,6 +110,13 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                 isDark: isDark,
               ),
               const SizedBox(height: 20),
+
+              const SizedBox(height: 20),
+              _buildSectionHeader(loc.t('qrBarcodeSection'), Icons.qr_code_scanner, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(icon: Icons.qr_code_2, iconColor: AppColors.info, title: loc.t('qrGenerator'), subtitle: loc.t('qrGeneratorDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const QrGeneratorScreen())); }, theme: theme, isDark: isDark),
+              _buildToolCard(icon: Icons.qr_code_scanner, iconColor: AppColors.success, title: loc.t('qrScanner'), subtitle: loc.t('qrScannerDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen())); }, theme: theme, isDark: isDark),
+              _buildToolCard(icon: Icons.view_quilt, iconColor: AppColors.warning, title: loc.t('barcodeGenerator'), subtitle: loc.t('barcodeGeneratorDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const BarcodeGeneratorScreen())); }, theme: theme, isDark: isDark),
 
               // Converters section
               _buildSectionHeader(loc.t('converters'), Icons.swap_horiz, theme),

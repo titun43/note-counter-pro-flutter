@@ -423,6 +423,34 @@ class StorageService extends ChangeNotifier {
   }
 
   /// Clear all QR history
+  // === SCAN HISTORY (Universal QR/Barcode Scanner) ===
+  List<Map<String, String>> get scanHistory {
+    final json = _prefs?.getString("scanHistory");
+    if (json == null) return [];
+    try {
+      final list = jsonDecode(json) as List;
+      return list.map((e) => Map<String, String>.from(e as Map)).toList();
+    } catch (e) { return []; }
+  }
+  Future<void> addScanHistory(Map<String, String> scan) async {
+    final history = scanHistory;
+    history.insert(0, scan);
+    await _prefs?.setString("scanHistory", jsonEncode(history));
+    notifyListeners();
+  }
+  Future<void> deleteScanHistory(int index) async {
+    final history = scanHistory;
+    if (index >= 0 && index < history.length) {
+      history.removeAt(index);
+      await _prefs?.setString("scanHistory", jsonEncode(history));
+      notifyListeners();
+    }
+  }
+  Future<void> clearScanHistory() async {
+    await _prefs?.remove("scanHistory");
+    notifyListeners();
+  }
+
   Future<void> clearQrHistory() async {
     await _prefs?.remove('qrHistory');
     notifyListeners();
