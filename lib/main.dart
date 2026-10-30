@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -372,31 +373,136 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
 
   void _showExitDialog(BuildContext context) {
     final loc = context.loc;
-    showDialog<bool>(
+    showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(loc.t('exitTitle')),
-        content: Text(loc.t('exitMessage')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(loc.t('exitNo')),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop(true);
-              // Wait for dialog to fully close before exiting
-              // Prevents dialog from showing on reopen
-              await Future.delayed(const Duration(milliseconds: 300));
-              SystemNavigator.pop();
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.3),
+      builder: (ctx) {
+        return ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF16213E).withOpacity(0.85),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: const Color(0xFFD4AF37).withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Warning icon
+                  Container(
+                    width: 56,
+                    height: 56,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFD4AF37).withOpacity(0.15),
+                    ),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Color(0xFFD4AF37),
+                      size: 32,
+                    ),
+                  ),
+                  // Title
+                  Text(
+                    loc.t('exitTitle'),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Message
+                  Text(
+                    loc.t('exitMessage'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Buttons
+                  Row(
+                    children: [
+                      // No button
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              loc.t('exitNo'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Yes button
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: FilledButton(
+                            onPressed: () async {
+                              Navigator.of(ctx).pop(true);
+                              await Future.delayed(
+                                  const Duration(milliseconds: 300));
+                              SystemNavigator.pop();
+                            },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              loc.t('exitYes'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Text(loc.t('exitYes')),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
