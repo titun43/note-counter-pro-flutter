@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -238,18 +239,6 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
         _isFirstResume = false;
         return;
       }
-
-      // Show splash overlay again when user returns to app
-      // (app was backgrounded/exited and reopened)
-      if (mounted) {
-        setState(() => _showSplash = true);
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            setState(() => _showSplash = false);
-          }
-        });
-      }
-
       // Slightly longer delay so the UI has time to settle before the ad
       // shows — and so that very brief background trips (notifications,
       // permission dialogs) don't immediately trigger an ad.
@@ -489,7 +478,10 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
                               Navigator.of(ctx).pop(true);
                               await Future.delayed(
                                   const Duration(milliseconds: 300));
-                              SystemNavigator.pop();
+                              // Kill app completely so reopen = fresh start
+                              // SystemNavigator.pop() only backgrounds the app.
+                              // exit(0) kills the process — reopen shows splash.
+                              exit(0);
                             },
                             style: FilledButton.styleFrom(
                               backgroundColor: Colors.red,
