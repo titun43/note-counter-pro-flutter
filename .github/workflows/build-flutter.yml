@@ -37,11 +37,11 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        # Flutter 3.47.8 (latest stable) ships Dart 3.13.7.
-        # Required because in_app_purchase 3.3.1 needs Dart ^3.10.0
-        # and in_app_purchase_android 0.5.5 (Play Billing 9.x) too.
-        # Older Flutter (3.35.5) ships Dart 3.9.2 — dependency resolution fails.
-        flutter-version: '3.47.8'
+        # Flutter 3.35.5 — the version used for release 157 which passed
+        # Play Console's 16 KB page size check. Flutter 3.47.8 ships .so
+        # files that are NOT 16 KB aligned (libflutter.so, libapp.so etc).
+        # Flutter 3.35.5's .so files ARE 16 KB aligned.
+        flutter-version: '3.35.5'
         channel: stable
         cache: true
 
