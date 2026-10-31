@@ -52,13 +52,11 @@ android {
         versionName flutterVersionName
         multiDexEnabled true
         // 16 KB memory page size support (Google Play policy Nov 2025).
-        // All native .so files must be aligned to 16 KB boundaries.
-        // NDK r28 handles this automatically, but we also add the linker
-        // flag explicitly to ensure compatibility with all plugins.
+        // NDK r28 handles 16 KB alignment automatically. The key settings
+        // are: extractNativeLibs=false (manifest) + useLegacyPackaging=false
+        // (below) + NDK r28 (set above). No manual ldFlags needed.
         ndk {
             abiFilters 'arm64-v8a', 'x86_64'
-            // Force 16 KB page size alignment for all .so files
-            ldFlags '-Wl,-z,max-page-size=16384'
         }
     }
 
