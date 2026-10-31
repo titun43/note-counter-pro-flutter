@@ -12,11 +12,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_scanner/mobile_scanner.dart' as mscanner;
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../models/bill.dart';
+import '../models/product.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class BillFormScreen extends StatefulWidget {
   /// Pass an existing bill to edit it; leave null to create new.
@@ -109,6 +112,9 @@ class _BillFormScreenState extends State<BillFormScreen> {
         dueDate: _dueDate,
       );
       await storage.updateBill(updated);
+      // For edited bills: we DO NOT auto-deduct stock again (the deduction
+      // was already made when the bill was first created). Caller can use
+      // the manual Stock Adjust screen if a correction is needed.
     } else {
       final bill = Bill.create(
         billNumber: _billNumber,
@@ -124,6 +130,10 @@ class _BillFormScreenState extends State<BillFormScreen> {
         dueDate: _dueDate,
       );
       await storage.addBill(bill);
+      // Stock auto-deduct — only for new bills. Existing bills (no productId
+      // on items) are skipped (backward compatible). Oversell is allowed:
+      // stock can go negative and a warning is shown in the inventory list.
+      await storage.deductStockForBill(bill);
     }
 
     if (mounted) {
@@ -294,6 +304,76 @@ class _BillFormScreenState extends State<BillFormScreen> {
     }
   }
 
+  /// Open barcode scanner → look up product → auto-add to bill.
+  /// If same barcode already in bill → qty += 1.
+  /// If not found → snackbar warning + manual item add.
+  Future<void> _scanBarcodeToAdd() async {
+    final scanned = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const _BillBarcodeScannerSheet(),
+        fullscreenDialog: true,
+      ),
+    );
+    if (scanned == null || scanned.isEmpty) return;
+
+    final storage = context.read<StorageService>();
+    final loc = context.loc;
+    final product = storage.findByBarcode(scanned);
+
+    if (product == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('productNotFound')),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Same barcode already in bill? → qty++
+    final existingIndex = _items.indexWhere((i) => i.productId == product.id);
+    if (existingIndex != -1) {
+      setState(() {
+        _items[existingIndex] = _items[existingIndex].copyWith(
+          quantity: _items[existingIndex].quantity + 1,
+        );
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('sameBarcodeQtyPlus')),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } else {
+      // Add new item with product info
+      setState(() {
+        _items.add(BillItem(
+          name: product.name,
+          quantity: 1,
+          price: product.salePrice,
+          gstPercent: product.gstPercent,
+          productId: product.id,
+          barcode: product.barcode,
+        ));
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${product.name} ✓'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = context.loc;
@@ -362,6 +442,77 @@ class _BillFormScreenState extends State<BillFormScreen> {
           ),
 
           // === Items ===
+          // Scan-to-add card (gold dashed border, prominent camera button)
+          GestureDetector(
+            onTap: _scanBarcodeToAdd,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [const Color(0xFF16213E), const Color(0xFF2A2418)]
+                      : [Colors.white, const Color(0xFFFFF7ED)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFD4AF37).withOpacity(0.5),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFD4AF37).withOpacity(0.10),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFD4AF37), Color(0xFFB8941F)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD4AF37).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    loc.t('scanToAddProduct'),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    loc.t('scanToAddDesc'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           _sectionCard(
             isDark: isDark,
             children: [
@@ -408,6 +559,34 @@ class _BillFormScreenState extends State<BillFormScreen> {
                 ),
             ],
           ),
+
+          // Stock-deduction info banner (only if any item has a productId)
+          if (_items.any((i) => i.productId != null && i.productId!.isNotEmpty))
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory, size: 16, color: AppColors.warning),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      loc.t('stockWillDeduct'),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // === Discount / Due date / Notes ===
           _sectionCard(
@@ -671,6 +850,59 @@ class _BillFormScreenState extends State<BillFormScreen> {
           Text(label, style: const TextStyle(color: AppColors.textSecondary)),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Bill Barcode Scanner Sheet — opens camera, returns scanned barcode string.
+// Reuses mobile_scanner (same package as Smart Pay / QR scanner).
+// =============================================================================
+
+class _BillBarcodeScannerSheet extends StatefulWidget {
+  const _BillBarcodeScannerSheet();
+
+  @override
+  State<_BillBarcodeScannerSheet> createState() => _BillBarcodeScannerSheetState();
+}
+
+class _BillBarcodeScannerSheetState extends State<_BillBarcodeScannerSheet> {
+  final mscanner.MobileScannerController _controller = mscanner.MobileScannerController(
+    detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
+    facing: mscanner.CameraFacing.back,
+    autoStart: true,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('Scan Barcode'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: mscanner.MobileScanner(
+        controller: _controller,
+        onDetect: (capture) {
+          if (capture.barcodes.isEmpty) return;
+          final raw = capture.barcodes.first.rawValue;
+          if (raw != null && raw.isNotEmpty) {
+            _controller.stop();
+            Navigator.pop(context, raw);
+          }
+        },
       ),
     );
   }

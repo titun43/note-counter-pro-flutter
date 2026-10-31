@@ -25,6 +25,7 @@ import 'upi_generate_screen.dart';
 import 'send_money_screen.dart';
 import 'saved_upi_screen.dart';
 import 'converter_screen.dart';
+import 'inventory_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
   final String currencyCode;
@@ -121,6 +122,27 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               _buildToolCard(icon: Icons.qr_code_2, iconColor: AppColors.info, title: loc.t('qrGenerator'), subtitle: loc.t('qrGeneratorDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const QrGeneratorScreen())); }, theme: theme, isDark: isDark),
               _buildToolCard(icon: Icons.qr_code_scanner, iconColor: AppColors.success, title: loc.t('qrScanner'), subtitle: loc.t('qrScannerDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen())); }, theme: theme, isDark: isDark),
               _buildToolCard(icon: Icons.view_quilt, iconColor: AppColors.warning, title: loc.t('barcodeGenerator'), subtitle: loc.t('barcodeGeneratorDesc'), onTap: () { AdMobService.showInterstitial(); Navigator.push(context, MaterialPageRoute(builder: (_) => const BarcodeGeneratorScreen())); }, theme: theme, isDark: isDark),
+
+              const SizedBox(height: 20),
+
+              // Business section — Inventory Manager (NEW)
+              _buildSectionHeader(loc.t('businessSection'), Icons.business_center, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(
+                icon: Icons.inventory_2,
+                iconColor: const Color(0xFFD4AF37),
+                title: loc.t('inventoryManager'),
+                subtitle: loc.t('inventoryManagerDesc'),
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const InventoryScreen()),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
 
               const SizedBox(height: 20),
 

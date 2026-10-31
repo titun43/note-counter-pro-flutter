@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/entry.dart';
 import '../models/customer.dart';
 import '../models/bill.dart';
+import '../models/product.dart';
 import 'backup_service.dart';
 
 class StorageService extends ChangeNotifier {
@@ -13,6 +14,7 @@ class StorageService extends ChangeNotifier {
   List<Entry> _entries = [];
   List<Customer> _customers = [];
   List<Bill> _bills = [];
+  List<Product> _products = [];
   
   StorageService(this._prefs) {
     // Initialize the theme notifier with the persisted value so the
@@ -46,6 +48,13 @@ class StorageService extends ChangeNotifier {
         final list = jsonDecode(billsJson) as List;
         _bills = list.map((e) => Bill.fromJson(e as Map<String, dynamic>)).toList();
       }
+      
+      // Load products (inventory)
+      final productsJson = _prefs!.getString('products');
+      if (productsJson != null) {
+        final list = jsonDecode(productsJson) as List;
+        _products = list.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+      }
     } catch (e) {
       debugPrint('StorageService loadData failed: $e');
     }
@@ -75,6 +84,15 @@ class StorageService extends ChangeNotifier {
       await _prefs!.setString('bills', jsonEncode(_bills.map((e) => e.toJson()).toList()));
     } catch (e) {
       debugPrint('Save bills failed: $e');
+    }
+  }
+  
+  Future<void> _saveProducts() async {
+    if (_prefs == null) return;
+    try {
+      await _prefs!.setString('products', jsonEncode(_products.map((e) => e.toJson()).toList()));
+    } catch (e) {
+      debugPrint('Save products failed: $e');
     }
   }
   
@@ -362,6 +380,135 @@ class StorageService extends ChangeNotifier {
     if (index != -1) {
       _bills[index].markUnpaid();
       await _saveBills();
+      notifyListeners();
+    }
+  }
+
+  /// Auto-deduct stock for products linked to bill items.
+  /// Called after a new bill is saved (only for items with productId).
+  /// Existing bills without productId are skipped (backward compatible).
+  Future<void> deductStockForBill(Bill bill) async {
+    bool changed = false;
+    for (final item in bill.items) {
+      if (item.productId == null || item.productId!.isEmpty) continue;
+      final pIndex = _products.indexWhere((p) => p.id == item.productId);
+      if (pIndex == -1) continue;
+      // Allow oversell — stock can go negative (warning shown in UI).
+      _products[pIndex] = _products[pIndex].copyWith(
+        stock: _products[pIndex].stock - item.quantity,
+        updatedAt: DateTime.now(),
+      );
+      changed = true;
+    }
+    if (changed) {
+      await _saveProducts();
+      notifyListeners();
+    }
+  }
+
+  /// Revert stock deduction when a bill is deleted.
+  /// Adds back the quantity of each linked item to its product.
+  Future<void> revertStockForBill(Bill bill) async {
+    bool changed = false;
+    for (final item in bill.items) {
+      if (item.productId == null || item.productId!.isEmpty) continue;
+      final pIndex = _products.indexWhere((p) => p.id == item.productId);
+      if (pIndex == -1) continue;
+      _products[pIndex] = _products[pIndex].copyWith(
+        stock: _products[pIndex].stock + item.quantity,
+        updatedAt: DateTime.now(),
+      );
+      changed = true;
+    }
+    if (changed) {
+      await _saveProducts();
+      notifyListeners();
+    }
+  }
+
+  // === Products (Inventory) ===
+  List<Product> get products {
+    final sorted = List<Product>.from(_products);
+    sorted.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return sorted;
+  }
+
+  /// Free-user limit: 5 products max. Premium = unlimited.
+  static const int freeProductLimit = 5;
+  bool get canAddProduct {
+    // Import injected lazily to avoid circular import in the lib layer.
+    // We rely on the calling screen to check PremiumService — but as a
+    // safety net, also enforce the hard cap here.
+    return _products.length < freeProductLimit;
+  }
+
+  Future<bool> addProduct(Product product) async {
+    // Hard cap (free-user limit). PremiumService is checked by the
+    // caller before reaching here; this is a defensive check.
+    if (_products.length >= freeProductLimit) return false;
+    _products.add(product);
+    await _saveProducts();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> updateProduct(Product product) async {
+    final index = _products.indexWhere((p) => p.id == product.id);
+    if (index != -1) {
+      _products[index] = product.copyWith(updatedAt: DateTime.now());
+      await _saveProducts();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteProduct(String id) async {
+    _products.removeWhere((p) => p.id == id);
+    await _saveProducts();
+    notifyListeners();
+  }
+
+  /// Find product by barcode (returns first match — duplicates allowed).
+  Product? findByBarcode(String code) {
+    if (code.isEmpty) return null;
+    try {
+      return _products.firstWhere((p) => p.barcode == code);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Find product by id.
+  Product? getProduct(String id) {
+    try {
+      return _products.firstWhere((p) => p.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Adjust stock for a product by a signed delta (positive = stock in,
+  /// negative = stock out). Used by StockAdjustScreen.
+  Future<void> adjustStock(String productId, int delta) async {
+    final index = _products.indexWhere((p) => p.id == productId);
+    if (index != -1) {
+      _products[index] = _products[index].copyWith(
+        stock: _products[index].stock + delta,
+        updatedAt: DateTime.now(),
+      );
+      await _saveProducts();
+      notifyListeners();
+    }
+  }
+
+  /// Set absolute stock value (manual recount).
+  Future<void> setStock(String productId, int newStock) async {
+    final index = _products.indexWhere((p) => p.id == productId);
+    if (index != -1) {
+      _products[index] = _products[index].copyWith(
+        stock: newStock,
+        updatedAt: DateTime.now(),
+      );
+      await _saveProducts();
       notifyListeners();
     }
   }

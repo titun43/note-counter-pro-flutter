@@ -3,12 +3,20 @@ class BillItem {
   int quantity;
   double price;
   double? gstPercent;
+  /// Links to an inventory Product (for stock auto-deduct). Null for
+  /// legacy bills and for manually typed items without a product link.
+  String? productId;
+  /// Barcode scanned to add this item (kept for receipt/audit). Null
+  /// for manually typed items.
+  String? barcode;
 
   BillItem({
     required this.name,
     required this.quantity,
     required this.price,
     this.gstPercent,
+    this.productId,
+    this.barcode,
   });
 
   double get subtotal => quantity * price;
@@ -20,6 +28,8 @@ class BillItem {
         'quantity': quantity,
         'price': price,
         'gstPercent': gstPercent,
+        'productId': productId,
+        'barcode': barcode,
       };
 
   factory BillItem.fromJson(Map<String, dynamic> json) => BillItem(
@@ -29,6 +39,8 @@ class BillItem {
         gstPercent: json['gstPercent'] != null
             ? (json['gstPercent'] as num).toDouble()
             : null,
+        productId: json['productId'] as String?,
+        barcode: json['barcode'] as String?,
       );
 
   BillItem copyWith({
@@ -36,12 +48,16 @@ class BillItem {
     int? quantity,
     double? price,
     double? gstPercent,
+    String? productId,
+    String? barcode,
   }) {
     return BillItem(
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
       price: price ?? this.price,
       gstPercent: gstPercent ?? this.gstPercent,
+      productId: productId ?? this.productId,
+      barcode: barcode ?? this.barcode,
     );
   }
 }
