@@ -33,6 +33,7 @@ import 'stock_adjust_screen.dart';
 import 'bill_form_screen.dart';
 import 'bill_detail_screen.dart';
 import 'premium_screen.dart';
+import '../services/printer_service.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -382,6 +383,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       },
     );
+  }
+
+  /// Print a barcode label for this product to a connected thermal
+  /// printer (#41).
+  Future<void> _printBarcodeLabel(Product p) async {
+    final loc = context.loc;
+    final storage = context.read<StorageService>();
+    final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
+    final success = await PrinterService().printBarcodeLabel(
+      productName: p.name,
+      price: p.salePrice,
+      barcode: p.barcode,
+      currencySymbol: symbol,
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success ? loc.t('labelPrinted') : loc.t('printFailed'),
+          ),
+          backgroundColor: success ? AppColors.success : AppColors.warning,
+        ),
+      );
+    }
   }
 
   Widget _salesStatCard(String label, String value, Color color) {
@@ -1011,6 +1036,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   // Sales History (#5 + #27)
                   _iconBtn(Icons.bar_chart_outlined, isDark,
                       onTap: () => _showSalesHistory(p), tooltip: loc.t('salesHistory')),
+                  // Print Barcode Label (#41)
+                  _iconBtn(Icons.print_outlined, isDark,
+                      onTap: () => _printBarcodeLabel(p), tooltip: loc.t('printLabel')),
                   // Adjust
                   _iconBtn(Icons.tune, isDark, onTap: () => _adjustStock(p), tooltip: loc.t('stockAdjust')),
                   // Delete

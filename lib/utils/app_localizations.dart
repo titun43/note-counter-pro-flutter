@@ -420,6 +420,12 @@ class AppLocalizations {
       'upiPaymentLink': 'Pay via UPI',
       'reminderSetFor': 'Reminder set for',
       'reminderSetFailed': 'Failed to set reminder. Please try again.',
+      // === Phase 4: Printer + WhatsApp Share ===
+      'print': 'Print',
+      'billPrinted': 'Bill printed successfully!',
+      'printFailed': 'Print failed. Is the printer connected?',
+      'labelPrinted': 'Barcode label printed!',
+      'printLabel': 'Print Label',
       // === Inventory Manager ===
       'inventoryManager': 'Inventory Manager',
       'inventoryManagerDesc': 'Products, stock & barcode billing',
@@ -997,6 +1003,12 @@ class AppLocalizations {
       'upiPaymentLink': 'UPI এর মাধ্যমে পরিশোধ করুন',
       'reminderSetFor': 'রিমাইন্ডার নির্ধারিত হয়েছে',
       'reminderSetFailed': 'রিমাইন্ডার সেট করতে ব্যর্থ। আবার চেষ্টা করুন।',
+      // === Phase 4: Printer + WhatsApp Share ===
+      'print': 'প্রিন্ট',
+      'billPrinted': 'বিল সফলভাবে প্রিন্ট হয়েছে!',
+      'printFailed': 'প্রিন্ট ব্যর্থ। প্রিন্টার কি সংযুক্ত?',
+      'labelPrinted': 'বারকোড লেবেল প্রিন্ট হয়েছে!',
+      'printLabel': 'লেবেল প্রিন্ট করুন',
       // === Inventory Manager ===
       'inventoryManager': 'ইনভেন্টরি ম্যানেজার',
       'inventoryManagerDesc': 'পণ্য, স্টক ও বারকোড বিলিং',
@@ -1574,6 +1586,12 @@ class AppLocalizations {
       'upiPaymentLink': 'UPI के माध्यम से भुगतान करें',
       'reminderSetFor': 'रिमाइंडर सेट किया गया',
       'reminderSetFailed': 'रिमाइंडर सेट करने में विफल। पुनः प्रयास करें।',
+      // === Phase 4: Printer + WhatsApp Share ===
+      'print': 'प्रिंट',
+      'billPrinted': 'बिल सफलतापूर्वक प्रिंट हुआ!',
+      'printFailed': 'प्रिंट विफल। क्या प्रिंटर कनेक्ट है?',
+      'labelPrinted': 'बारकोड लेबल प्रिंट हुआ!',
+      'printLabel': 'लेबल प्रिंट करें',
       // === Inventory Manager ===
       'inventoryManager': 'इन्वेंटरी मैनेजर',
       'inventoryManagerDesc': 'उत्पाद, स्टॉक व बारकोड बिलिंग',

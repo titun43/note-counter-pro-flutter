@@ -17,6 +17,7 @@ import 'package:flutter/foundation.dart';
 import 'package:esc_pos_printer_plus/esc_pos_printer_plus.dart';
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import '../models/entry.dart';
+import '../models/bill.dart';
 import '../utils/constants.dart';
 import 'storage_service.dart';
 
@@ -174,6 +175,185 @@ class PrinterService {
       return true;
     } catch (e) {
       debugPrint('PrinterService: print failed: $e');
+      return false;
+    }
+  }
+
+  /// Print a bill/invoice receipt (#44).
+  /// Prints the full bill: header, customer, items, totals, payment
+  /// status, and footer. Works with 58mm and 80mm thermal printers.
+  Future<bool> printBill({
+    required Bill bill,
+    required StorageService storage,
+  }) async {
+    if (!_isConnected || _printer == null) {
+      debugPrint('PrinterService: not connected');
+      return false;
+    }
+
+    try {
+      final p = _printer!;
+      final business = storage.businessName.isNotEmpty
+          ? storage.businessName
+          : 'Note Counter Pro';
+      final symbol = AppConstants.getCurrencySymbol(bill.currency);
+      final dateStr =
+          '${bill.date.day}/${bill.date.month}/${bill.date.year}';
+
+      // Header
+      p.text(business,
+          styles: const PosStyles(
+            align: PosAlign.center,
+            bold: true,
+            height: PosTextSize.size2,
+            width: PosTextSize.size2,
+          ));
+      if (storage.businessPhone.isNotEmpty) {
+        p.text('Ph: ${storage.businessPhone}',
+            styles: const PosStyles(align: PosAlign.center));
+      }
+      if (storage.businessAddress.isNotEmpty) {
+        p.text(storage.businessAddress,
+            styles: const PosStyles(align: PosAlign.center));
+        p.feed(1);
+      }
+
+      p.text('INVOICE',
+          styles: const PosStyles(
+            align: PosAlign.center,
+            bold: true,
+          ));
+      p.feed(1);
+
+      // Bill details
+      p.text('Bill: ${bill.billNumber}');
+      p.text('Date: $dateStr');
+      if (bill.customerName != null && bill.customerName!.isNotEmpty) {
+        p.text('Customer: ${bill.customerName}');
+      }
+      if (bill.customerPhone != null && bill.customerPhone!.isNotEmpty) {
+        p.text('Phone: ${bill.customerPhone}');
+      }
+      p.feed(1);
+
+      // Items
+      p.text('Items:',
+          styles: const PosStyles(bold: true, underline: true));
+      for (final item in bill.items) {
+        p.text(
+            '${item.name} x${item.quantity} = $symbol${item.total.toStringAsFixed(2)}');
+      }
+      p.feed(1);
+
+      // Totals
+      p.text('Subtotal: $symbol${bill.subtotal.toStringAsFixed(2)}');
+      if (bill.totalGst > 0) {
+        p.text('GST: $symbol${bill.totalGst.toStringAsFixed(2)}');
+      }
+      if (bill.discountPercent > 0) {
+        p.text(
+            'Discount (${bill.discountPercent.toStringAsFixed(0)}%): -$symbol${bill.discountAmount.toStringAsFixed(2)}');
+      }
+      p.text('TOTAL: $symbol${bill.total.toStringAsFixed(2)}',
+          styles: const PosStyles(
+            bold: true,
+            height: PosTextSize.size2,
+            width: PosTextSize.size2,
+          ));
+
+      // Payment status
+      p.feed(1);
+      if (bill.paidAmount > 0) {
+        p.text('Paid: $symbol${bill.paidAmount.toStringAsFixed(2)}');
+        if (bill.remainingAmount > 0) {
+          p.text(
+              'Balance Due: $symbol${bill.remainingAmount.toStringAsFixed(2)}',
+              styles: const PosStyles(bold: true));
+        } else {
+          p.text('FULLY PAID',
+              styles: const PosStyles(bold: true, align: PosAlign.center));
+        }
+      } else {
+        p.text('UNPAID', styles: const PosStyles(bold: true, align: PosAlign.center));
+      }
+
+      // Notes
+      if (bill.notes != null && bill.notes!.isNotEmpty) {
+        p.feed(1);
+        p.text('Notes: ${bill.notes}');
+      }
+
+      // Footer
+      p.feed(1);
+      p.text('Thank You!',
+          styles: const PosStyles(
+            align: PosAlign.center,
+            bold: true,
+          ));
+      p.text('Powered by Note Counter Pro',
+          styles: const PosStyles(align: PosAlign.center));
+      p.feed(2);
+      p.cut();
+
+      debugPrint('PrinterService: bill printed');
+      return true;
+    } catch (e) {
+      debugPrint('PrinterService: printBill failed: $e');
+      return false;
+    }
+  }
+
+  /// Print a barcode label for a product (#41).
+  /// Prints the product name, price, and barcode (as text — most thermal
+  /// printers don't support barcode rendering via ESC/POS text mode, so
+  /// we print the barcode number as large text for manual entry or
+  /// external scanning).
+  Future<bool> printBarcodeLabel({
+    required String productName,
+    required double price,
+    required String? barcode,
+    required String currencySymbol,
+  }) async {
+    if (!_isConnected || _printer == null) {
+      debugPrint('PrinterService: not connected');
+      return false;
+    }
+
+    try {
+      final p = _printer!;
+
+      // Product name
+      p.text(productName,
+          styles: const PosStyles(
+            align: PosAlign.center,
+            bold: true,
+            height: PosTextSize.size2,
+            width: PosTextSize.size2,
+          ));
+
+      // Price
+      p.text('$currencySymbol${price.toStringAsFixed(2)}',
+          styles: const PosStyles(
+            align: PosAlign.center,
+            bold: true,
+            height: PosTextSize.size2,
+            width: PosTextSize.size2,
+          ));
+
+      // Barcode
+      if (barcode != null && barcode.isNotEmpty) {
+        p.feed(1);
+        p.text('Barcode: $barcode',
+            styles: const PosStyles(align: PosAlign.center));
+      }
+
+      p.feed(2);
+      p.cut();
+
+      debugPrint('PrinterService: barcode label printed');
+      return true;
+    } catch (e) {
+      debugPrint('PrinterService: printBarcodeLabel failed: $e');
       return false;
     }
   }
