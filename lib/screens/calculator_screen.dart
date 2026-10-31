@@ -297,14 +297,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       // Standalone: just the calculator mode, no top bar in content
       content = _buildCurrentMode();
     } else {
-      // Tab mode: banner ad + top bar + calculator mode.
-      // The banner ad sits above the title bar so the title is NOT pressed
-      // against the system status bar — matches standalone mode (EMI/GST/
-      // Date Calc) layout where BannerAdWidget appears above the top bar.
+      // Tab mode: top bar + calculator mode
       content = Column(
         children: [
-          // Banner ad — pushes title bar down (consistent with standalone).
-          const BannerAdWidget(),
           // Top bar: menu icon + mode name
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
