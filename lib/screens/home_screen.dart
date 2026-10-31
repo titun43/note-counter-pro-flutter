@@ -19,6 +19,9 @@ import 'calculator_screen.dart';
 import 'upi_generate_screen.dart';
 import 'premium_screen.dart';
 import 'settings_screen.dart';
+import 'bill_form_screen.dart';
+import 'customers_screen.dart';
+import '../models/customer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -180,7 +183,125 @@ class _HomeScreenState extends State<HomeScreen> {
     _hideTransactionToggle = false; // Show toggle again on reset
     setState(() {});
   }
-  
+
+  /// Quick Actions menu (#70) — one-tap access to create bills, products,
+  /// customers, and view tools. Opens as a bottom sheet with cards.
+  void _showQuickActions() {
+    final loc = context.loc;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  loc.t('quickActions'),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              childAspectRatio: 1.6,
+              children: [
+                _quickActionCard(
+                  icon: Icons.receipt_long,
+                  color: const Color(0xFFD4AF37),
+                  label: loc.t('newBill'),
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    AdMobService.showInterstitial();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BillFormScreen()),
+                    );
+                  },
+                ),
+                _quickActionCard(
+                  icon: Icons.person_add,
+                  color: AppColors.success,
+                  label: loc.t('addCustomer'),
+                  isDark: isDark,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CustomersScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickActionCard({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      margin: const EdgeInsets.all(6),
+      color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _changeCurrency(String? currencyCode) {
     if (currencyCode == null || currencyCode == _selectedCurrency) return;
     setState(() {
@@ -209,14 +330,94 @@ class _HomeScreenState extends State<HomeScreen> {
     final nameController = TextEditingController();
     final noteController = TextEditingController();
     final loc = context.loc;
+    final storage = context.read<StorageService>();
+    String? selectedCustomerId;
 
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
         title: Text(isCashIn ? loc.t('cashInDetails') : loc.t('cashOutDetails')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Customer picker (#35) — optional, links this entry to a customer
+            if (storage.customers.isNotEmpty)
+              InkWell(
+                onTap: () async {
+                  final picked = await showModalBottomSheet<Map<String, dynamic>>(
+                    context: ctx,
+                    builder: (bctx) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(loc.t('selectCustomer'),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                          const Divider(height: 1),
+                          Flexible(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: storage.customers.length,
+                              itemBuilder: (bctx, i) {
+                                final c = storage.customers[i];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: AppColors.primary,
+                                    child: Text(
+                                      c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                  title: Text(c.name),
+                                  subtitle: c.phone != null && c.phone!.isNotEmpty ? Text(c.phone!) : null,
+                                  trailing: Text('₹${c.balance.abs().toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: c.balance > 0 ? AppColors.danger : AppColors.success,
+                                      )),
+                                  onTap: () => Navigator.pop(bctx, {
+                                    'id': c.id,
+                                    'name': c.name,
+                                  }),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      selectedCustomerId = picked['id'] as String?;
+                      nameController.text = picked['name'] as String? ?? '';
+                    });
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: loc.t('customer'),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.person_search),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  child: Text(
+                    selectedCustomerId != null
+                        ? (storage.customers.firstWhere((c) => c.id == selectedCustomerId).name)
+                        : loc.t('selectCustomer'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: selectedCustomerId != null
+                          ? null
+                          : (Theme.of(ctx).brightness == Brightness.dark ? Colors.white54 : Colors.black54),
+                    ),
+                  ),
+                ),
+              ),
+            if (storage.customers.isNotEmpty) const SizedBox(height: 12),
             TextField(
               controller: nameController,
               decoration: InputDecoration(
@@ -226,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               style: const TextStyle(fontSize: 16),
-              autofocus: true,
+              autofocus: storage.customers.isEmpty,
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 16),
@@ -252,11 +453,13 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.pop(context, {
                 'name': nameController.text.trim(),
                 'note': noteController.text.trim(),
+                'customerId': selectedCustomerId ?? '',
               });
             },
             child: Text(loc.t('save')),
           ),
         ],
+      ),
       ),
     );
 
@@ -268,6 +471,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final name = result['name'] ?? '';
     final noteText = result['note'] ?? '';
+    final customerId = result['customerId'] ?? '';
+    final hasCustomerId = customerId.isNotEmpty;
 
     final storage = context.read<StorageService>();
     final denominationMap = <String, int>{};
@@ -294,9 +499,28 @@ class _HomeScreenState extends State<HomeScreen> {
       denominationCounts: denominationMap,
       category: _transactionType.toLowerCase(),
       customerName: name.isNotEmpty ? name : null,
+      customerId: hasCustomerId ? customerId : null,
     );
 
     await storage.addEntry(entry);
+
+    // #35 — If a customer was selected, update their balance.
+    // Payable (cash_out from user's perspective = money given to customer
+    // = customer owes us = credit). Receivable (cash_in = money received
+    // from customer = customer paid us = debit reduction).
+    if (hasCustomerId) {
+      final customer = storage.getCustomer(customerId);
+      if (customer != null) {
+        if (_transactionType.toLowerCase() == 'payable') {
+          // User gave money to customer → customer's credit increases
+          customer.totalCredit += _grandTotal;
+        } else {
+          // User received money from customer → customer's debit increases
+          customer.totalDebit += _grandTotal;
+        }
+        await storage.updateCustomer(customer);
+      }
+    }
 
     if (mounted) {
       // Save values before reset
@@ -1531,6 +1755,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.cleaning_services),
                   color: AppColors.danger,
                   tooltip: 'Clear',
+                  iconSize: 22,
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+                const SizedBox(width: 4),
+                // Quick Actions (#70) — one-tap access to create bills etc.
+                IconButton(
+                  onPressed: _showQuickActions,
+                  icon: const Icon(Icons.add_circle_outline),
+                  color: const Color(0xFFD4AF37),
+                  tooltip: loc.t('quickActions'),
                   iconSize: 22,
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

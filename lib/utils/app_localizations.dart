@@ -426,6 +426,8 @@ class AppLocalizations {
       'printFailed': 'Print failed. Is the printer connected?',
       'labelPrinted': 'Barcode label printed!',
       'printLabel': 'Print Label',
+      // === Phase 5: Counter ↔ Khata + Quick Actions ===
+      'selectCustomer': 'Select Customer',
       // === Inventory Manager ===
       'inventoryManager': 'Inventory Manager',
       'inventoryManagerDesc': 'Products, stock & barcode billing',
@@ -1009,6 +1011,8 @@ class AppLocalizations {
       'printFailed': 'প্রিন্ট ব্যর্থ। প্রিন্টার কি সংযুক্ত?',
       'labelPrinted': 'বারকোড লেবেল প্রিন্ট হয়েছে!',
       'printLabel': 'লেবেল প্রিন্ট করুন',
+      // === Phase 5: Counter ↔ Khata + Quick Actions ===
+      'selectCustomer': 'গ্রাহক নির্বাচন করুন',
       // === Inventory Manager ===
       'inventoryManager': 'ইনভেন্টরি ম্যানেজার',
       'inventoryManagerDesc': 'পণ্য, স্টক ও বারকোড বিলিং',
@@ -1592,6 +1596,8 @@ class AppLocalizations {
       'printFailed': 'प्रिंट विफल। क्या प्रिंटर कनेक्ट है?',
       'labelPrinted': 'बारकोड लेबल प्रिंट हुआ!',
       'printLabel': 'लेबल प्रिंट करें',
+      // === Phase 5: Counter ↔ Khata + Quick Actions ===
+      'selectCustomer': 'ग्राहक चुनें',
       // === Inventory Manager ===
       'inventoryManager': 'इन्वेंटरी मैनेजर',
       'inventoryManagerDesc': 'उत्पाद, स्टॉक व बारकोड बिलिंग',
