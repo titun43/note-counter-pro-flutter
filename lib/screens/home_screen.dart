@@ -474,7 +474,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final customerId = result['customerId'] ?? '';
     final hasCustomerId = customerId.isNotEmpty;
 
-    final storage = context.read<StorageService>();
+    // 'storage' was already declared at the top of _saveEntry for the
+    // customer picker dialog — reuse it here, don't re-declare.
     final denominationMap = <String, int>{};
     for (final denom in _denominations) {
       final value = denom['value'] as int;
