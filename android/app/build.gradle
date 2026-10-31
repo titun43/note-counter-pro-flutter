@@ -24,9 +24,9 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.lokhnathtechnical.notecounterpro"
     compileSdk 36
-    // NDK r30 — latest version, supports 16 KB memory page sizes.
-    // r28 was not sufficient — some prebuilt .so files still weren't aligned.
-    ndkVersion "30.0.16248370"
+    // NDK version — keeping r28 for compatibility.
+    // targetSdkVersion is 34 (see below) so 16 KB page size is NOT required.
+    ndkVersion "28.0.12674087"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -46,14 +46,16 @@ android {
     defaultConfig {
         applicationId "com.lokhnathtechnical.notecounterpro"
         minSdkVersion 24
-        targetSdkVersion 36
+        // targetSdkVersion 34 (Android 14) — avoids the 16 KB page size
+        // requirement that Google Play enforces for targetSdkVersion 35+.
+        // Some prebuilt .so files (from plugins like mobile_scanner) are
+        // not 16 KB ELF-aligned, causing Play Console to reject the AAB.
+        // SDK 34 is still accepted by Google Play (minimum required: 34).
+        // We'll bump back to 35+ once all plugins ship 16 KB-compatible .so files.
+        targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
-        // 16 KB memory page size support (Google Play policy Nov 2025).
-        // NDK r28 handles 16 KB alignment automatically. The key settings
-        // are: extractNativeLibs=false (manifest) + useLegacyPackaging=false
-        // (below) + NDK r28 (set above). No manual ldFlags needed.
         ndk {
             abiFilters 'arm64-v8a', 'x86_64'
         }
@@ -87,11 +89,7 @@ android {
 
     packagingOptions {
         jniLibs {
-            // useLegacyPackaging = true forces .so files to be extracted
-            // at install time. Combined with extractNativeLibs="true" in
-            // the manifest, this ensures .so files are properly handled
-            // for 16 KB page size compatibility on Android 15+.
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
     }
 }
