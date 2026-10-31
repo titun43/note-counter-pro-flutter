@@ -22,6 +22,7 @@ import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'premium_screen.dart';
+import 'product_form_screen.dart';
 
 class BillFormScreen extends StatefulWidget {
   /// Pass an existing bill to edit it; leave null to create new.
@@ -563,7 +564,7 @@ class _BillFormScreenState extends State<BillFormScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ProductFormScreen()),
+                  MaterialPageRoute(builder: (_) => ProductFormScreen()),
                 );
               },
             ),

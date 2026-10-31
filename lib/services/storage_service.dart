@@ -472,7 +472,7 @@ class StorageService extends ChangeNotifier {
     final index = _customers.indexWhere((c) => c.id == customerId);
     if (index == -1) return;
     final c = _customers[index];
-    final newDebit = (c.totalDebit + delta).clamp(0, double.infinity);
+    final newDebit = (c.totalDebit + delta).clamp(0.0, double.infinity).toDouble();
     _customers[index] = c.copyWith(
       totalDebit: newDebit,
       updatedAt: DateTime.now(),
