@@ -279,15 +279,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // If opened via Navigator.push from Tools tab OR Home screen,
-    // we need our own Scaffold + SafeArea + BannerAd.
-    // Only when we're a tab inside main.dart (no initialValue, no
-    // initialEmi/Gst/DateCalc/Converter) do we skip the Scaffold.
-    final bool standalone = (widget.initialValue != null && widget.initialValue! > 0) ||
-        widget.initialEmi ||
-        widget.initialGst ||
-        widget.initialDateCalc ||
-        widget.initialConverter;
+    // CalculatorScreen is ALWAYS opened via Navigator.push (from Tools tab
+    // or Home screen), never embedded as a tab inside MainScaffold. So we
+    // always render our own Scaffold + SafeArea + BannerAd + top bar with a
+    // back button. This ensures the title bar (apps + mode name) is pushed
+    // below the system status bar via SafeArea, NOT pressed against it.
+    // Previously, when no initial flag was passed (e.g. Tools tab →
+    // "Calculator" card), standalone=false and the screen returned a bare
+    // Column without Scaffold/SafeArea — the title bar overlapped the
+    // status bar and was invisible.
+    final bool standalone = true;
 
     // For standalone mode, content is just the calculator mode (no top bar —
     // the top bar is built in the standalone Scaffold below).
