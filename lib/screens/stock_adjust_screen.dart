@@ -104,7 +104,6 @@ class _StockAdjustScreenState extends State<StockAdjustScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
             const BannerAdWidget(),

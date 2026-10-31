@@ -195,7 +195,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
             const BannerAdWidget(),

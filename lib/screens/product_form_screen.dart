@@ -232,7 +232,6 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
             const BannerAdWidget(),
