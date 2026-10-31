@@ -24,10 +24,9 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.lokhnathtechnical.notecounterpro"
     compileSdk 36
-    // Explicit NDK r28 — required for 16 KB memory page size support
-    // (Google Play policy effective Nov 2025). flutter.ndkVersion defaults
-    // to an older NDK that does NOT support 16 KB page sizes.
-    ndkVersion "28.0.12674087"
+    // NDK r30 — latest version, supports 16 KB memory page sizes.
+    // r28 was not sufficient — some prebuilt .so files still weren't aligned.
+    ndkVersion "30.0.16248370"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -88,7 +87,11 @@ android {
 
     packagingOptions {
         jniLibs {
-            useLegacyPackaging = false
+            // useLegacyPackaging = true forces .so files to be extracted
+            // at install time. Combined with extractNativeLibs="true" in
+            // the manifest, this ensures .so files are properly handled
+            // for 16 KB page size compatibility on Android 15+.
+            useLegacyPackaging = true
         }
     }
 }

@@ -26,11 +26,13 @@ jobs:
         export ANDROID_HOME=/usr/local/lib/android/sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
         yes | sdkmanager --licenses
-        # NDK r28 supports 16 KB memory page sizes (required by Google Play from Nov 2025).
-        sdkmanager "ndk;28.0.12674087" "cmake;3.22.1" || true
-        # Verify NDK installation
+        # NDK r30 — latest, fully supports 16 KB memory page sizes.
+        # Required by Google Play from Nov 2025.
+        sdkmanager "ndk;30.0.16248370" || true
+        # Also install r28 as fallback
+        sdkmanager "ndk;28.0.12674087" || true
         echo "=== Installed NDK versions ==="
-        ls -la $ANDROID_HOME/ndk/ 2>/dev/null || echo "No NDK found in default location"
+        ls -la $ANDROID_HOME/ndk/ 2>/dev/null || echo "No NDK found"
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
