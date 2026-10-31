@@ -90,6 +90,42 @@ jobs:
         mv build/app/outputs/flutter-apk/app-release.apk note-counter-pro.apk
         mv build/app/outputs/bundle/release/app-release.aab note-counter-pro.aab
 
+    - name: Diagnose 16 KB alignment of .so files
+      run: |
+        echo "=== Checking all .so files in AAB for 16 KB alignment ==="
+        # Create temp dir
+        mkdir -p /tmp/aab-check
+        cd /tmp/aab-check
+        # Unzip the AAB
+        unzip -o -q $GITHUB_WORKSPACE/note-counter-pro.aab
+        # Find all .so files
+        echo ""
+        echo "=== All .so files found: ==="
+        find . -name "*.so" | sort
+        echo ""
+        echo "=== Checking ELF LOAD segment alignment for each .so: ==="
+        for f in $(find . -name "*.so" | sort); do
+          echo "--- $f ---"
+          # Check if readelf is available
+          if command -v readelf &>/dev/null; then
+            # Show LOAD segment alignments
+            readelf -l "$f" 2>/dev/null | grep -E "LOAD" | head -3
+            # Check if any alignment is less than 0x4000 (16384 = 16 KB)
+            ALIGN=$(readelf -l "$f" 2>/dev/null | grep LOAD | awk '{print $NF}' | sort -u | head -1)
+            echo "Min alignment: $ALIGN"
+            if [ "$ALIGN" = "0x4000" ] || [ "$ALIGN" = "0x10000" ]; then
+              echo "PASS - 16 KB or higher aligned"
+            else
+              echo "FAIL - NOT 16 KB aligned (alignment is $ALIGN, need 0x4000)"
+            fi
+          else
+            echo "readelf not available, checking with hex"
+            # Check the ELF header for alignment hints
+            xxd "$f" | head -2
+          fi
+          echo ""
+        done
+
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
