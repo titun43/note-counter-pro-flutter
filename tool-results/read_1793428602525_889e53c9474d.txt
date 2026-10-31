@@ -1,0 +1,1019 @@
+     1→     1→// =============================================================================
+     2→     2→// Note Counter Pro - UPI Tools Screen (Scan Only) — v3.36.0
+     3→     3→// =============================================================================
+     4→     4→// Smart Pay = Scan QR ONLY.
+     5→     5→//   - ₹2000 limit info banner (Option A — full text, multi-line)
+     6→     6→//   - One button with toggle switch: Gallery (default) ↔ Camera
+     7→     7→//   - Gallery: FilePicker → decode QR → show result
+     8→     8→//   - Camera: full screen camera (flash toggle + camera switch + glass bar)
+     9→     9→//   - Scan result card: Copy UPI ID / Open UPI / Save to Saved UPI
+    10→    10→//   - Scan history (SEPARATE from Counter's QR History) — SharedPreferences
+    11→    11→//     key 'upiScanHistory' (managed by StorageService)
+    12→    12→//
+    13→    13→// No glass pill tabs. No AppBar. Clean layout.
+    14→    14→// =============================================================================
+    15→    15→
+    16→    16→import 'dart:ui';
+    17→    17→import 'package:flutter/material.dart';
+    18→    18→import 'package:flutter/services.dart';
+    19→    19→import 'package:mobile_scanner/mobile_scanner.dart' as mscanner;
+    20→    20→import 'package:file_picker/file_picker.dart';
+    21→    21→import 'package:url_launcher/url_launcher.dart';
+    22→    22→import 'package:provider/provider.dart';
+    23→    23→import '../services/storage_service.dart';
+    24→    24→import '../services/saved_upi_service.dart';
+    25→    25→import '../services/admob_service.dart';
+    26→    26→import '../utils/constants.dart';
+    27→    27→import '../utils/app_localizations.dart';
+    28→    28→import '../models/saved_upi.dart';
+    29→    29→
+    30→    30→class UpiToolsScreen extends StatefulWidget {
+    31→    31→  const UpiToolsScreen({super.key});
+    32→    32→
+    33→    33→  @override
+    34→    34→  State<UpiToolsScreen> createState() => _UpiToolsScreenState();
+    35→    35→}
+    36→    36→
+    37→    37→class _UpiToolsScreenState extends State<UpiToolsScreen> {
+    38→    38→  // false = Gallery (default), true = Camera
+    39→    39→  bool _useCamera = false;
+    40→    40→
+    41→    41→  // Flash state: 0 = OFF, 1 = AUTO, 2 = ON (cycles OFF → AUTO → ON → OFF)
+    42→    42→  int _flashMode = 0;
+    43→    43→
+    44→    44→  mscanner.MobileScannerController? _cameraController;
+    45→    45→  bool _cameraActive = false;
+    46→    46→
+    47→    47→  bool _isScanning = false;
+    48→    48→  Map<String, String>? _scanResult;
+    49→    49→  String? _scanError;
+    50→    50→
+    51→    51→  @override
+    52→    52→  void dispose() {
+    53→    53→    _cameraController?.dispose();
+    54→    54→    super.dispose();
+    55→    55→  }
+    56→    56→
+    57→    57→  // === CAMERA METHODS ===
+    58→    58→
+    59→    59→  void _startCamera() {
+    60→    60→    _cameraController?.dispose();
+    61→    61→    _cameraController = mscanner.MobileScannerController(
+    62→    62→      detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
+    63→    63→      facing: mscanner.CameraFacing.back,
+    64→    64→      autoStart: true,
+    65→    65→    );
+    66→    66→    // Apply torch if flash is ON
+    67→    67→    if (_flashMode == 2) {
+    68→    68→      Future.delayed(const Duration(milliseconds: 500), () {
+    69→    69→        _cameraController?.toggleTorch();
+    70→    70→      });
+    71→    71→    }
+    72→    72→    setState(() {
+    73→    73→      _cameraActive = true;
+    74→    74→      _scanResult = null;
+    75→    75→      _scanError = null;
+    76→    76→    });
+    77→    77→  }
+    78→    78→
+    79→    79→  void _stopCamera() {
+    80→    80→    _cameraController?.dispose();
+    81→    81→    _cameraController = null;
+    82→    82→    setState(() => _cameraActive = false);
+    83→    83→  }
+    84→    84→
+    85→    85→  void _onCameraDetect(mscanner.BarcodeCapture capture) {
+    86→    86→    if (capture.barcodes.isEmpty) return;
+    87→    87→    final rawValue = capture.barcodes.first.rawValue;
+    88→    88→    if (rawValue == null || rawValue.isEmpty) return;
+    89→    89→    _stopCamera();
+    90→    90→    _processScanResult(rawValue);
+    91→    91→  }
+    92→    92→
+    93→    93→  /// Cycle flash mode: OFF → AUTO → ON → OFF
+    94→    94→  void _toggleFlash() {
+    95→    95→    setState(() {
+    96→    96→      _flashMode = (_flashMode + 1) % 3;
+    97→    97→    });
+    98→    98→    if (_cameraActive && _cameraController != null) {
+    99→    99→      _cameraController!.toggleTorch();
+   100→   100→    }
+   101→   101→  }
+   102→   102→
+   103→   103→  /// Switch camera between front and back
+   104→   104→  void _switchCamera() {
+   105→   105→    if (_cameraController == null) return;
+   106→   106→    _cameraController!.switchCamera();
+   107→   107→  }
+   108→   108→
+   109→   109→  // === GALLERY METHOD ===
+   110→   110→
+   111→   111→  Future<void> _pickImageAndScan() async {
+   112→   112→    final loc = context.loc;
+   113→   113→    setState(() {
+   114→   114→      _isScanning = true;
+   115→   115→      _scanResult = null;
+   116→   116→      _scanError = null;
+   117→   117→    });
+   118→   118→
+   119→   119→    try {
+   120→   120→      final result = await FilePicker.platform.pickFiles(
+   121→   121→        type: FileType.image,
+   122→   122→        allowMultiple: false,
+   123→   123→      );
+   124→   124→
+   125→   125→      if (result == null || result.files.isEmpty) {
+   126→   126→        if (mounted) setState(() => _isScanning = false);
+   127→   127→        return;
+   128→   128→      }
+   129→   129→
+   130→   130→      final filePath = result.files.first.path;
+   131→   131→      if (filePath == null) {
+   132→   132→        if (mounted) {
+   133→   133→          setState(() {
+   134→   134→            _isScanning = false;
+   135→   135→            _scanError = loc.t('scanImageError');
+   136→   136→          });
+   137→   137→        }
+   138→   138→        return;
+   139→   139→      }
+   140→   140→
+   141→   141→      final controller = mscanner.MobileScannerController(
+   142→   142→        detectionSpeed: mscanner.DetectionSpeed.noDuplicates,
+   143→   143→      );
+   144→   144→      final capture = await controller.analyzeImage(filePath);
+   145→   145→      controller.dispose();
+   146→   146→
+   147→   147→      if (capture == null || capture.barcodes.isEmpty) {
+   148→   148→        if (mounted) {
+   149→   149→          setState(() {
+   150→   150→            _isScanning = false;
+   151→   151→            _scanError = loc.t('noQrFound');
+   152→   152→          });
+   153→   153→        }
+   154→   154→        return;
+   155→   155→      }
+   156→   156→
+   157→   157→      final rawValue = capture.barcodes.first.rawValue;
+   158→   158→      if (rawValue == null || rawValue.isEmpty) {
+   159→   159→        if (mounted) {
+   160→   160→          setState(() {
+   161→   161→            _isScanning = false;
+   162→   162→            _scanError = loc.t('qrReadError');
+   163→   163→          });
+   164→   164→        }
+   165→   165→        return;
+   166→   166→      }
+   167→   167→
+   168→   168→      _processScanResult(rawValue);
+   169→   169→    } catch (e) {
+   170→   170→      if (mounted) {
+   171→   171→        setState(() {
+   172→   172→          _isScanning = false;
+   173→   173→          _scanError = '${loc.t('scanFailed')}: $e';
+   174→   174→        });
+   175→   175→      }
+   176→   176→    }
+   177→   177→  }
+   178→   178→
+   179→   179→  // === RESULT PARSER ===
+   180→   180→
+   181→   181→  void _processScanResult(String rawValue) {
+   182→   182→    String upiId = '';
+   183→   183→    String name = '';
+   184→   184→    String amount = '';
+   185→   185→    String note = '';
+   186→   186→
+   187→   187→    if (rawValue.startsWith('upi://')) {
+   188→   188→      final uri = Uri.tryParse(rawValue);
+   189→   189→      if (uri != null) {
+   190→   190→        final params = uri.queryParameters;
+   191→   191→        upiId = params['pa'] ?? '';
+   192→   192→        name = params['pn'] != null ? Uri.decodeComponent(params['pn']!) : '';
+   193→   193→        amount = params['am'] ?? '';
+   194→   194→        note = params['tn'] != null ? Uri.decodeComponent(params['tn']!) : '';
+   195→   195→      }
+   196→   196→    } else if (rawValue.contains('@') && !rawValue.contains(' ')) {
+   197→   197→      upiId = rawValue;
+   198→   198→    } else {
+   199→   199→      // Not a UPI QR — show raw content as upiId placeholder
+   200→   200→      upiId = rawValue;
+   201→   201→    }
+   202→   202→
+   203→   203→    final result = {
+   204→   204→      'upiId': upiId,
+   205→   205→      'name': name,
+   206→   206→      'amount': amount,
+   207→   207→      'note': note,
+   208→   208→      'rawUrl': rawValue.startsWith('upi://') ? rawValue : (upiId.contains('@') ? 'upi://pay?pa=$upiId' : rawValue),
+   209→   209→      'timestamp': DateTime.now().toIso8601String(),
+   210→   210→    };
+   211→   211→
+   212→   212→    setState(() {
+   213→   213→      _scanResult = result;
+   214→   214→      _isScanning = false;
+   215→   215→      _scanError = null;
+   216→   216→    });
+   217→   217→
+   218→   218→    // Save to UPI scan history (separate from Counter's QR History)
+   219→   219→    try {
+   220→   220→      context.read<StorageService>().addUpiScanHistory(result);
+   221→   221→    } catch (e) {
+   222→   222→      debugPrint('Save UPI scan history failed: $e');
+   223→   223→    }
+   224→   224→  }
+   225→   225→
+   226→   226→  // === RESULT ACTIONS ===
+   227→   227→
+   228→   228→  void _copyUpiId() {
+   229→   229→    final upiId = _scanResult?['upiId'];
+   230→   230→    if (upiId == null || upiId.isEmpty) return;
+   231→   231→    Clipboard.setData(ClipboardData(text: upiId));
+   232→   232→    final loc = context.loc;
+   233→   233→    ScaffoldMessenger.of(context).showSnackBar(
+   234→   234→      SnackBar(
+   235→   235→        content: Text('${loc.t('upiIdCopied')}: $upiId'),
+   236→   236→        backgroundColor: AppColors.success,
+   237→   237→      ),
+   238→   238→    );
+   239→   239→  }
+   240→   240→
+   241→   241→  Future<void> _openUpiApp() async {
+   242→   242→    final rawUrl = _scanResult?['rawUrl'];
+   243→   243→    if (rawUrl == null) return;
+   244→   244→
+   245→   245→    String upiLink;
+   246→   246→    if (rawUrl.startsWith('upi://')) {
+   247→   247→      upiLink = rawUrl;
+   248→   248→    } else {
+   249→   249→      upiLink = 'upi://pay?pa=$rawUrl';
+   250→   250→    }
+   251→   251→
+   252→   252→    AdMobService.showInterstitial();
+   253→   253→
+   254→   254→    try {
+   255→   255→      final uri = Uri.parse(upiLink);
+   256→   256→      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+   257→   257→      if (!launched && mounted) {
+   258→   258→        final launched2 = await launchUrl(uri);
+   259→   259→        if (!launched2 && mounted) {
+   260→   260→          await Clipboard.setData(ClipboardData(text: upiLink));
+   261→   261→          final loc = context.loc;
+   262→   262→          ScaffoldMessenger.of(context).showSnackBar(
+   263→   263→            SnackBar(
+   264→   264→              content: Text(loc.t('upiLinkCopied')),
+   265→   265→              backgroundColor: AppColors.info,
+   266→   266→              duration: const Duration(seconds: 4),
+   267→   267→            ),
+   268→   268→          );
+   269→   269→        }
+   270→   270→      }
+   271→   271→    } catch (e) {
+   272→   272→      debugPrint('UPI launch failed: $e');
+   273→   273→      await Clipboard.setData(ClipboardData(text: upiLink));
+   274→   274→      if (mounted) {
+   275→   275→        final loc = context.loc;
+   276→   276→        ScaffoldMessenger.of(context).showSnackBar(
+   277→   277→          SnackBar(
+   278→   278→            content: Text(loc.t('upiLinkCopied')),
+   279→   279→            backgroundColor: AppColors.info,
+   280→   280→          ),
+   281→   281→        );
+   282→   282→      }
+   283→   283→    }
+   284→   284→  }
+   285→   285→
+   286→   286→  void _saveUpiId() {
+   287→   287→    if (_scanResult == null) return;
+   288→   288→    final upiId = _scanResult!['upiId']!;
+   289→   289→    if (upiId.isEmpty) return;
+   290→   290→    final name = _scanResult!['name']?.isNotEmpty == true
+   291→   291→        ? _scanResult!['name']!
+   292→   292→        : (upiId.contains('@') ? upiId.split('@').first : upiId);
+   293→   293→    final newUpi = SavedUpi.create(upiId: upiId, name: name, group: 'other');
+   294→   294→    SavedUpiService().add(newUpi).then((success) {
+   295→   295→      if (!mounted) return;
+   296→   296→      final loc = context.loc;
+   297→   297→      ScaffoldMessenger.of(context).showSnackBar(
+   298→   298→        SnackBar(
+   299→   299→          content: Text(success ? loc.t('scanSavedSuccess') : loc.t('upiAlreadyExists')),
+   300→   300→          backgroundColor: success ? AppColors.success : AppColors.warning,
+   301→   301→        ),
+   302→   302→      );
+   303→   303→    });
+   304→   304→  }
+   305→   305→
+   306→   306→  @override
+   307→   307→  Widget build(BuildContext context) {
+   308→   308→    final theme = Theme.of(context);
+   309→   309→    final isDark = theme.brightness == Brightness.dark;
+   310→   310→    final loc = context.loc;
+   311→   311→
+   312→   312→    // If camera is active, show full screen camera (no banner, no scroll)
+   313→   313→    if (_useCamera && _cameraActive) {
+   314→   314→      return _buildFullScreenCamera(isDark, loc);
+   315→   315→    }
+   316→   316→
+   317→   317→    final storage = context.watch<StorageService>();
+   318→   318→    final scanHistory = storage.upiScanHistory;
+   319→   319→
+   320→   320→    return Scaffold(
+   321→   321→      backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
+   322→   322→      body: SafeArea(
+   323→   323→        top: false,
+   324→   324→        child: SingleChildScrollView(
+   325→   325→          padding: const EdgeInsets.all(16),
+   326→   326→          child: Column(
+   327→   327→            crossAxisAlignment: CrossAxisAlignment.stretch,
+   328→   328→            children: [
+   329→   329→              // ₹2000 Info Banner (Option A — full text, multi-line)
+   330→   330→              _buildLimitBanner(isDark, loc, theme),
+   331→   331→              const SizedBox(height: 16),
+   332→   332→
+   333→   333→              // Toggle switch (Gallery / Camera)
+   334→   334→              _buildToggleSwitch(isDark, loc, theme),
+   335→   335→              const SizedBox(height: 12),
+   336→   336→
+   337→   337→              // Scan button (Gallery or Camera based on toggle)
+   338→   338→              if (!_useCamera)
+   339→   339→                _buildGalleryButton(isDark, loc)
+   340→   340→              else
+   341→   341→                _buildCameraButton(isDark, loc),
+   342→   342→
+   343→   343→              const SizedBox(height: 16),
+   344→   344→
+   345→   345→              // Scan error
+   346→   346→              if (_scanError != null) ...[
+   347→   347→                Container(
+   348→   348→                  padding: const EdgeInsets.all(12),
+   349→   349→                  decoration: BoxDecoration(
+   350→   350→                    color: AppColors.danger.withOpacity(0.1),
+   351→   351→                    borderRadius: BorderRadius.circular(8),
+   352→   352→                    border: Border.all(color: AppColors.danger, width: 1),
+   353→   353→                  ),
+   354→   354→                  child: Row(
+   355→   355→                    children: [
+   356→   356→                      const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+   357→   357→                      const SizedBox(width: 8),
+   358→   358→                      Expanded(
+   359→   359→                        child: Text(
+   360→   360→                          _scanError!,
+   361→   361→                          style: const TextStyle(color: AppColors.danger, fontSize: 13),
+   362→   362→                        ),
+   363→   363→                      ),
+   364→   364→                    ],
+   365→   365→                  ),
+   366→   366→                ),
+   367→   367→                const SizedBox(height: 16),
+   368→   368→              ],
+   369→   369→
+   370→   370→              // Scan result
+   371→   371→              if (_scanResult != null && _scanResult!['upiId']!.isNotEmpty) ...[
+   372→   372→                _buildScanResult(isDark, loc, theme),
+   373→   373→                const SizedBox(height: 12),
+   374→   374→              ],
+   375→   375→
+   376→   376→              // Scan history (separate from Counter's QR History)
+   377→   377→              _buildScanHistory(isDark, loc, theme, storage, scanHistory),
+   378→   378→              const SizedBox(height: 24),
+   379→   379→            ],
+   380→   380→          ),
+   381→   381→        ),
+   382→   382→      ),
+   383→   383→    );
+   384→   384→  }
+   385→   385→
+   386→   386→  // === ₹2000 INFO BANNER (Option A — full text, multi-line) ===
+   387→   387→  Widget _buildLimitBanner(bool isDark, AppLocalizations loc, ThemeData theme) {
+   388→   388→    return Container(
+   389→   389→      padding: const EdgeInsets.all(16),
+   390→   390→      decoration: BoxDecoration(
+   391→   391→        gradient: LinearGradient(
+   392→   392→          begin: Alignment.topLeft,
+   393→   393→          end: Alignment.bottomRight,
+   394→   394→          colors: isDark
+   395→   395→              ? [const Color(0xFF1F2937), const Color(0xFF111827)]
+   396→   396→              : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
+   397→   397→        ),
+   398→   398→        borderRadius: BorderRadius.circular(14),
+   399→   399→        border: Border.all(
+   400→   400→          color: const Color(0xFFD4AF37).withOpacity(0.5),
+   401→   401→          width: 2,
+   402→   402→        ),
+   403→   403→      ),
+   404→   404→      child: Column(
+   405→   405→        crossAxisAlignment: CrossAxisAlignment.start,
+   406→   406→        children: [
+   407→   407→          // Title line (lightbulb + limitInfoFull1)
+   408→   408→          Row(
+   409→   409→            children: [
+   410→   410→              const Icon(Icons.lightbulb, color: Color(0xFFD4AF37), size: 20),
+   411→   411→              const SizedBox(width: 8),
+   412→   412→              Expanded(
+   413→   413→                child: Text(
+   414→   414→                  loc.t('limitInfoFull1'),
+   415→   415→                  style: theme.textTheme.titleSmall?.copyWith(
+   416→   416→                    fontWeight: FontWeight.bold,
+   417→   417→                    color: const Color(0xFFD4AF37),
+   418→   418→                  ),
+   419→   419→                ),
+   420→   420→              ),
+   421→   421→            ],
+   422→   422→          ),
+   423→   423→          const SizedBox(height: 12),
+   424→   424→          // RED block — limitInfoFull2 + limitInfoFull3
+   425→   425→          Row(
+   426→   426→            crossAxisAlignment: CrossAxisAlignment.start,
+   427→   427→            children: [
+   428→   428→              const Icon(Icons.cancel, color: AppColors.danger, size: 16),
+   429→   429→              const SizedBox(width: 8),
+   430→   430→              Expanded(
+   431→   431→                child: Column(
+   432→   432→                  crossAxisAlignment: CrossAxisAlignment.start,
+   433→   433→                  children: [
+   434→   434→                    Text(
+   435→   435→                      loc.t('limitInfoFull2'),
+   436→   436→                      style: theme.textTheme.bodySmall?.copyWith(
+   437→   437→                        fontWeight: FontWeight.bold,
+   438→   438→                        color: AppColors.danger,
+   439→   439→                        height: 1.4,
+   440→   440→                      ),
+   441→   441→                    ),
+   442→   442→                    const SizedBox(height: 2),
+   443→   443→                    Text(
+   444→   444→                      loc.t('limitInfoFull3'),
+   445→   445→                      style: theme.textTheme.bodySmall?.copyWith(
+   446→   446→                        fontWeight: FontWeight.w600,
+   447→   447→                        color: AppColors.danger,
+   448→   448→                        height: 1.4,
+   449→   449→                      ),
+   450→   450→                    ),
+   451→   451→                  ],
+   452→   452→                ),
+   453→   453→              ),
+   454→   454→            ],
+   455→   455→          ),
+   456→   456→          const SizedBox(height: 10),
+   457→   457→          // GREEN block — limitInfoFull4 + limitInfoFull5
+   458→   458→          Row(
+   459→   459→            crossAxisAlignment: CrossAxisAlignment.start,
+   460→   460→            children: [
+   461→   461→              const Icon(Icons.check_circle, color: AppColors.success, size: 16),
+   462→   462→              const SizedBox(width: 8),
+   463→   463→              Expanded(
+   464→   464→                child: Column(
+   465→   465→                  crossAxisAlignment: CrossAxisAlignment.start,
+   466→   466→                  children: [
+   467→   467→                    Text(
+   468→   468→                      loc.t('limitInfoFull4'),
+   469→   469→                      style: theme.textTheme.bodySmall?.copyWith(
+   470→   470→                        fontWeight: FontWeight.bold,
+   471→   471→                        color: AppColors.success,
+   472→   472→                        height: 1.4,
+   473→   473→                      ),
+   474→   474→                    ),
+   475→   475→                    const SizedBox(height: 2),
+   476→   476→                    Text(
+   477→   477→                      loc.t('limitInfoFull5'),
+   478→   478→                      style: theme.textTheme.bodySmall?.copyWith(
+   479→   479→                        fontWeight: FontWeight.w600,
+   480→   480→                        color: AppColors.success,
+   481→   481→                        height: 1.4,
+   482→   482→                      ),
+   483→   483→                    ),
+   484→   484→                  ],
+   485→   485→                ),
+   486→   486→              ),
+   487→   487→            ],
+   488→   488→          ),
+   489→   489→        ],
+   490→   490→      ),
+   491→   491→    );
+   492→   492→  }
+   493→   493→
+   494→   494→  // === TOGGLE SWITCH (Gallery / Camera) ===
+   495→   495→  Widget _buildToggleSwitch(bool isDark, AppLocalizations loc, ThemeData theme) {
+   496→   496→    return Container(
+   497→   497→      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+   498→   498→      decoration: BoxDecoration(
+   499→   499→        color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+   500→   500→        borderRadius: BorderRadius.circular(12),
+   501→   501→        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+   502→   502→      ),
+   503→   503→      child: Row(
+   504→   504→        children: [
+   505→   505→          Icon(Icons.image, size: 20,
+   506→   506→              color: !_useCamera ? AppColors.primary : AppColors.textSecondary),
+   507→   507→          const SizedBox(width: 8),
+   508→   508→          Text(
+   509→   509→            loc.t('scanGalleryMode'),
+   510→   510→            style: TextStyle(
+   511→   511→              fontWeight: !_useCamera ? FontWeight.bold : FontWeight.normal,
+   512→   512→              color: !_useCamera ? AppColors.primary : AppColors.textSecondary,
+   513→   513→            ),
+   514→   514→          ),
+   515→   515→          const Spacer(),
+   516→   516→          Switch(
+   517→   517→            value: _useCamera,
+   518→   518→            onChanged: (value) {
+   519→   519→              setState(() {
+   520→   520→                _useCamera = value;
+   521→   521→                _scanResult = null;
+   522→   522→                _scanError = null;
+   523→   523→                if (!value) _stopCamera();
+   524→   524→              });
+   525→   525→            },
+   526→   526→            activeColor: AppColors.primary,
+   527→   527→          ),
+   528→   528→          const SizedBox(width: 8),
+   529→   529→          Text(
+   530→   530→            loc.t('scanCameraMode'),
+   531→   531→            style: TextStyle(
+   532→   532→              fontWeight: _useCamera ? FontWeight.bold : FontWeight.normal,
+   533→   533→              color: _useCamera ? AppColors.primary : AppColors.textSecondary,
+   534→   534→            ),
+   535→   535→          ),
+   536→   536→          const SizedBox(width: 8),
+   537→   537→          Icon(Icons.camera_alt, size: 20,
+   538→   538→              color: _useCamera ? AppColors.primary : AppColors.textSecondary),
+   539→   539→        ],
+   540→   540→      ),
+   541→   541→    );
+   542→   542→  }
+   543→   543→
+   544→   544→  // === GALLERY BUTTON ===
+   545→   545→  Widget _buildGalleryButton(bool isDark, AppLocalizations loc) {
+   546→   546→    return GestureDetector(
+   547→   547→      onTap: _isScanning ? null : _pickImageAndScan,
+   548→   548→      child: Container(
+   549→   549→        padding: const EdgeInsets.all(32),
+   550→   550→        decoration: BoxDecoration(
+   551→   551→          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+   552→   552→          borderRadius: BorderRadius.circular(16),
+   553→   553→          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 2),
+   554→   554→        ),
+   555→   555→        child: Column(
+   556→   556→          children: [
+   557→   557→            _isScanning
+   558→   558→                ? const CircularProgressIndicator()
+   559→   559→                : Icon(Icons.image, size: 56, color: AppColors.primary),
+   560→   560→            const SizedBox(height: 12),
+   561→   561→            Text(
+   562→   562→              _isScanning ? loc.t('scanning') : loc.t('scanSelectImage'),
+   563→   563→              style: TextStyle(
+   564→   564→                fontSize: 16,
+   565→   565→                fontWeight: FontWeight.bold,
+   566→   566→                color: isDark ? Colors.white : Colors.black,
+   567→   567→              ),
+   568→   568→              textAlign: TextAlign.center,
+   569→   569→            ),
+   570→   570→            const SizedBox(height: 4),
+   571→   571→            Text(
+   572→   572→              loc.t('smartPayGalleryDesc'),
+   573→   573→              style: TextStyle(
+   574→   574→                fontSize: 11,
+   575→   575→                color: isDark ? Colors.white54 : Colors.black54,
+   576→   576→              ),
+   577→   577→              textAlign: TextAlign.center,
+   578→   578→            ),
+   579→   579→          ],
+   580→   580→        ),
+   581→   581→      ),
+   582→   582→    );
+   583→   583→  }
+   584→   584→
+   585→   585→  // === CAMERA BUTTON ===
+   586→   586→  Widget _buildCameraButton(bool isDark, AppLocalizations loc) {
+   587→   587→    return GestureDetector(
+   588→   588→      onTap: _startCamera,
+   589→   589→      child: Container(
+   590→   590→        padding: const EdgeInsets.all(32),
+   591→   591→        decoration: BoxDecoration(
+   592→   592→          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+   593→   593→          borderRadius: BorderRadius.circular(16),
+   594→   594→          border: Border.all(color: AppColors.info.withOpacity(0.3), width: 2),
+   595→   595→        ),
+   596→   596→        child: Column(
+   597→   597→          children: [
+   598→   598→            Icon(Icons.camera_alt, size: 56, color: AppColors.info),
+   599→   599→            const SizedBox(height: 12),
+   600→   600→            Text(
+   601→   601→              loc.t('scanOpenCamera2'),
+   602→   602→              style: TextStyle(
+   603→   603→                fontSize: 16,
+   604→   604→                fontWeight: FontWeight.bold,
+   605→   605→                color: isDark ? Colors.white : Colors.black,
+   606→   606→              ),
+   607→   607→              textAlign: TextAlign.center,
+   608→   608→            ),
+   609→   609→            const SizedBox(height: 4),
+   610→   610→            Text(
+   611→   611→              loc.t('smartPayCameraDesc'),
+   612→   612→              style: TextStyle(
+   613→   613→                fontSize: 11,
+   614→   614→                color: isDark ? Colors.white54 : Colors.black54,
+   615→   615→              ),
+   616→   616→              textAlign: TextAlign.center,
+   617→   617→            ),
+   618→   618→          ],
+   619→   619→        ),
+   620→   620→      ),
+   621→   621→    );
+   622→   622→  }
+   623→   623→
+   624→   624→  // === SCAN RESULT CARD ===
+   625→   625→  Widget _buildScanResult(bool isDark, AppLocalizations loc, ThemeData theme) {
+   626→   626→    return Container(
+   627→   627→      padding: const EdgeInsets.all(16),
+   628→   628→      decoration: BoxDecoration(
+   629→   629→        color: AppColors.success.withOpacity(0.1),
+   630→   630→        borderRadius: BorderRadius.circular(12),
+   631→   631→        border: Border.all(color: AppColors.success.withOpacity(0.4), width: 1.5),
+   632→   632→      ),
+   633→   633→      child: Column(
+   634→   634→        crossAxisAlignment: CrossAxisAlignment.start,
+   635→   635→        children: [
+   636→   636→          Row(
+   637→   637→            children: [
+   638→   638→              const Icon(Icons.check_circle, color: AppColors.success, size: 22),
+   639→   639→              const SizedBox(width: 8),
+   640→   640→              Text(
+   641→   641→                loc.t('scanUpiFound'),
+   642→   642→                style: const TextStyle(
+   643→   643→                  fontSize: 16,
+   644→   644→                  fontWeight: FontWeight.bold,
+   645→   645→                  color: AppColors.success,
+   646→   646→                ),
+   647→   647→              ),
+   648→   648→            ],
+   649→   649→          ),
+   650→   650→          const SizedBox(height: 12),
+   651→   651→          _resultRow('UPI ID', _scanResult!['upiId'] ?? '', theme),
+   652→   652→          if (_scanResult!['name']?.isNotEmpty == true)
+   653→   653→            _resultRow(loc.t('payeeName'), _scanResult!['name']!, theme),
+   654→   654→          if (_scanResult!['amount']?.isNotEmpty == true)
+   655→   655→            _resultRow(loc.t('amount'), '₹${_scanResult!['amount']}', theme),
+   656→   656→          if (_scanResult!['note']?.isNotEmpty == true)
+   657→   657→            _resultRow(loc.t('noteLabel'), _scanResult!['note']!, theme),
+   658→   658→          const SizedBox(height: 14),
+   659→   659→          Row(
+   660→   660→            children: [
+   661→   661→              Expanded(
+   662→   662→                child: OutlinedButton.icon(
+   663→   663→                  onPressed: _copyUpiId,
+   664→   664→                  icon: const Icon(Icons.copy, size: 16),
+   665→   665→                  label: Text(loc.t('copyUpi'), style: const TextStyle(fontSize: 12)),
+   666→   666→                  style: OutlinedButton.styleFrom(
+   667→   667→                    padding: const EdgeInsets.symmetric(vertical: 10),
+   668→   668→                  ),
+   669→   669→                ),
+   670→   670→              ),
+   671→   671→              const SizedBox(width: 8),
+   672→   672→              Expanded(
+   673→   673→                child: FilledButton.icon(
+   674→   674→                  onPressed: _openUpiApp,
+   675→   675→                  icon: const Icon(Icons.payment, size: 16),
+   676→   676→                  label: Text(loc.t('openUpi'), style: const TextStyle(fontSize: 12)),
+   677→   677→                  style: FilledButton.styleFrom(
+   678→   678→                    backgroundColor: AppColors.success,
+   679→   679→                    padding: const EdgeInsets.symmetric(vertical: 10),
+   680→   680→                  ),
+   681→   681→                ),
+   682→   682→              ),
+   683→   683→              const SizedBox(width: 8),
+   684→   684→              Expanded(
+   685→   685→                child: FilledButton.icon(
+   686→   686→                  onPressed: _saveUpiId,
+   687→   687→                  icon: const Icon(Icons.save, size: 16),
+   688→   688→                  label: Text(loc.t('scanSave'), style: const TextStyle(fontSize: 12)),
+   689→   689→                  style: FilledButton.styleFrom(
+   690→   690→                    backgroundColor: AppColors.primary,
+   691→   691→                    foregroundColor: AppColors.bgDark,
+   692→   692→                    padding: const EdgeInsets.symmetric(vertical: 10),
+   693→   693→                  ),
+   694→   694→                ),
+   695→   695→              ),
+   696→   696→            ],
+   697→   697→          ),
+   698→   698→        ],
+   699→   699→      ),
+   700→   700→    );
+   701→   701→  }
+   702→   702→
+   703→   703→  Widget _resultRow(String label, String value, ThemeData theme) {
+   704→   704→    return Padding(
+   705→   705→      padding: const EdgeInsets.symmetric(vertical: 2),
+   706→   706→      child: Row(
+   707→   707→        children: [
+   708→   708→          SizedBox(
+   709→   709→            width: 70,
+   710→   710→            child: Text(
+   711→   711→              '$label: ',
+   712→   712→              style: theme.textTheme.bodySmall?.copyWith(
+   713→   713→                fontWeight: FontWeight.bold,
+   714→   714→                color: AppColors.textSecondary,
+   715→   715→              ),
+   716→   716→            ),
+   717→   717→          ),
+   718→   718→          Expanded(
+   719→   719→            child: SelectableText(
+   720→   720→              value,
+   721→   721→              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+   722→   722→            ),
+   723→   723→          ),
+   724→   724→        ],
+   725→   725→      ),
+   726→   726→    );
+   727→   727→  }
+   728→   728→
+   729→   729→  // === SCAN HISTORY (separate from Counter's QR History) ===
+   730→   730→  Widget _buildScanHistory(
+   731→   731→      bool isDark, AppLocalizations loc, ThemeData theme, StorageService storage, List<Map<String, String>> history) {
+   732→   732→    return Column(
+   733→   733→      crossAxisAlignment: CrossAxisAlignment.start,
+   734→   734→      children: [
+   735→   735→        Row(
+   736→   736→          children: [
+   737→   737→            Icon(Icons.history, size: 18, color: AppColors.primary),
+   738→   738→            const SizedBox(width: 8),
+   739→   739→            Text(
+   740→   740→              loc.t('scanHistoryTitle'),
+   741→   741→              style: theme.textTheme.titleSmall?.copyWith(
+   742→   742→                fontWeight: FontWeight.bold,
+   743→   743→                color: AppColors.primary,
+   744→   744→              ),
+   745→   745→            ),
+   746→   746→          ],
+   747→   747→        ),
+   748→   748→        const SizedBox(height: 8),
+   749→   749→        if (history.isEmpty)
+   750→   750→          Container(
+   751→   751→            width: double.infinity,
+   752→   752→            padding: const EdgeInsets.all(20),
+   753→   753→            decoration: BoxDecoration(
+   754→   754→              color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+   755→   755→              borderRadius: BorderRadius.circular(12),
+   756→   756→              border: Border.all(
+   757→   757→                color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary).withOpacity(0.2),
+   758→   758→              ),
+   759→   759→            ),
+   760→   760→            child: Column(
+   761→   761→              children: [
+   762→   762→                Icon(Icons.history_toggle_off, size: 36,
+   763→   763→                    color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary).withOpacity(0.5)),
+   764→   764→                const SizedBox(height: 8),
+   765→   765→                Text(
+   766→   766→                  loc.t('scanNoHistory'),
+   767→   767→                  style: theme.textTheme.bodySmall?.copyWith(
+   768→   768→                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+   769→   769→                  ),
+   770→   770→                  textAlign: TextAlign.center,
+   771→   771→                ),
+   772→   772→              ],
+   773→   773→            ),
+   774→   774→          )
+   775→   775→        else
+   776→   776→          // Unlimited history list (max height + scroll for clean layout)
+   777→   777→          ConstrainedBox(
+   778→   778→            constraints: const BoxConstraints(maxHeight: 400),
+   779→   779→            child: ListView.separated(
+   780→   780→              shrinkWrap: true,
+   781→   781→              physics: const AlwaysScrollableScrollPhysics(),
+   782→   782→              itemCount: history.length,
+   783→   783→              separatorBuilder: (_, __) => const SizedBox(height: 4),
+   784→   784→              itemBuilder: (context, index) {
+   785→   785→                final item = history[index];
+   786→   786→                return Card(
+   787→   787→                  margin: EdgeInsets.zero,
+   788→   788→                  color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+   789→   789→                  elevation: 0,
+   790→   790→                  shape: RoundedRectangleBorder(
+   791→   791→                    borderRadius: BorderRadius.circular(10),
+   792→   792→                    side: BorderSide(
+   793→   793→                      color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary).withOpacity(0.1),
+   794→   794→                    ),
+   795→   795→                  ),
+   796→   796→                  child: ListTile(
+   797→   797→                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+   798→   798→                    leading: Container(
+   799→   799→                      width: 36,
+   800→   800→                      height: 36,
+   801→   801→                      decoration: BoxDecoration(
+   802→   802→                        color: AppColors.info.withOpacity(0.15),
+   803→   803→                        borderRadius: BorderRadius.circular(8),
+   804→   804→                      ),
+   805→   805→                      child: const Icon(Icons.qr_code_scanner, size: 18, color: AppColors.info),
+   806→   806→                    ),
+   807→   807→                    title: Text(
+   808→   808→                      item['upiId'] ?? '',
+   809→   809→                      maxLines: 1,
+   810→   810→                      overflow: TextOverflow.ellipsis,
+   811→   811→                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+   812→   812→                    ),
+   813→   813→                    subtitle: Text(
+   814→   814→                      (item['name']?.isNotEmpty == true ? '${item['name']}  ·  ' : '') +
+   815→   815→                          (item['amount']?.isNotEmpty == true ? '₹${item['amount']}' : loc.t('upiId')),
+   816→   816→                      maxLines: 1,
+   817→   817→                      overflow: TextOverflow.ellipsis,
+   818→   818→                      style: const TextStyle(fontSize: 11),
+   819→   819→                    ),
+   820→   820→                    trailing: IconButton(
+   821→   821→                      icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
+   822→   822→                      onPressed: () => storage.deleteUpiScanHistory(index),
+   823→   823→                    ),
+   824→   824→                    onTap: () {
+   825→   825→                      setState(() {
+   826→   826→                        _scanResult = Map<String, String>.from(item);
+   827→   827→                        _scanError = null;
+   828→   828→                      });
+   829→   829→                      ScaffoldMessenger.of(context).showSnackBar(
+   830→   830→                        SnackBar(
+   831→   831→                          content: Text(loc.t('scanUpiFound')),
+   832→   832→                          backgroundColor: AppColors.success,
+   833→   833→                          duration: const Duration(seconds: 1),
+   834→   834→                        ),
+   835→   835→                      );
+   836→   836→                    },
+   837→   837→                  ),
+   838→   838→                );
+   839→   839→              },
+   840→   840→            ),
+   841→   841→          ),
+   842→   842→      ],
+   843→   843→    );
+   844→   844→  }
+   845→   845→
+   846→   846→  // === FULL SCREEN CAMERA (with flash toggle + camera switch + glass controls bar) ===
+   847→   847→  Widget _buildFullScreenCamera(bool isDark, AppLocalizations loc) {
+   848→   848→    return Stack(
+   849→   849→      children: [
+   850→   850→        // Camera fills entire screen
+   851→   851→        mscanner.MobileScanner(
+   852→   852→          controller: _cameraController!,
+   853→   853→          onDetect: _onCameraDetect,
+   854→   854→        ),
+   855→   855→
+   856→   856→        // Gold gradient scan frame overlay
+   857→   857→        Center(
+   858→   858→          child: Container(
+   859→   859→            width: 240,
+   860→   860→            height: 240,
+   861→   861→            decoration: BoxDecoration(
+   862→   862→              border: Border.all(
+   863→   863→                color: const Color(0xFFD4AF37),
+   864→   864→                width: 2,
+   865→   865→              ),
+   866→   866→              borderRadius: BorderRadius.circular(16),
+   867→   867→            ),
+   868→   868→            child: Stack(
+   869→   869→              children: [
+   870→   870→                ..._buildScanFrameCorners(),
+   871→   871→              ],
+   872→   872→            ),
+   873→   873→          ),
+   874→   874→        ),
+   875→   875→
+   876→   876→        // Hint text below frame
+   877→   877→        Positioned(
+   878→   878→          top: 0,
+   879→   879→          bottom: 0,
+   880→   880→          left: 0,
+   881→   881→          right: 0,
+   882→   882→          child: Column(
+   883→   883→            mainAxisAlignment: MainAxisAlignment.end,
+   884→   884→            children: [
+   885→   885→              const SizedBox(height: 80),
+   886→   886→              Container(
+   887→   887→                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+   888→   888→                decoration: BoxDecoration(
+   889→   889→                  color: Colors.black54,
+   890→   890→                  borderRadius: BorderRadius.circular(20),
+   891→   891→                ),
+   892→   892→                child: Text(
+   893→   893→                  loc.t('alignQrHere'),
+   894→   894→                  style: const TextStyle(color: Colors.white, fontSize: 12),
+   895→   895→                ),
+   896→   896→              ),
+   897→   897→              const SizedBox(height: 100),
+   898→   898→            ],
+   899→   899→          ),
+   900→   900→        ),
+   901→   901→
+   902→   902→        // Close button (top-right)
+   903→   903→        Positioned(
+   904→   904→          top: 16,
+   905→   905→          right: 16,
+   906→   906→          child: Container(
+   907→   907→            decoration: const BoxDecoration(
+   908→   908→              color: Colors.black54,
+   909→   909→              shape: BoxShape.circle,
+   910→   910→            ),
+   911→   911→            child: IconButton(
+   912→   912→              icon: const Icon(Icons.close, color: Colors.white, size: 24),
+   913→   913→              onPressed: _stopCamera,
+   914→   914→            ),
+   915→   915→          ),
+   916→   916→        ),
+   917→   917→
+   918→   918→        // Floating glass controls bar (bottom) — Flash, Switch camera
+   919→   919→        Positioned(
+   920→   920→          bottom: 32,
+   921→   921→          left: 16,
+   922→   922→          right: 16,
+   923→   923→          child: _buildGlassControlsBar(loc),
+   924→   924→        ),
+   925→   925→      ],
+   926→   926→    );
+   927→   927→  }
+   928→   928→
+   929→   929→  List<Widget> _buildScanFrameCorners() {
+   930→   930→    const corner = Color(0xFFFFD700);
+   931→   931→    const size = 24.0;
+   932→   932→    const width = 3.0;
+   933→   933→    return [
+   934→   934→      Positioned(top: -2, left: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(top: BorderSide(color: corner, width: width), left: BorderSide(color: corner, width: width))))),
+   935→   935→      Positioned(top: -2, right: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(top: BorderSide(color: corner, width: width), right: BorderSide(color: corner, width: width))))),
+   936→   936→      Positioned(bottom: -2, left: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: corner, width: width), left: BorderSide(color: corner, width: width))))),
+   937→   937→      Positioned(bottom: -2, right: -2, child: Container(width: size, height: size, decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: corner, width: width), right: BorderSide(color: corner, width: width))))),
+   938→   938→    ];
+   939→   939→  }
+   940→   940→
+   941→   941→  // === GLASS CONTROLS BAR (Flash + Switch camera) ===
+   942→   942→  Widget _buildGlassControlsBar(AppLocalizations loc) {
+   943→   943→    return ClipRRect(
+   944→   944→      borderRadius: BorderRadius.circular(24),
+   945→   945→      child: BackdropFilter(
+   946→   946→        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+   947→   947→        child: Container(
+   948→   948→          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+   949→   949→          decoration: BoxDecoration(
+   950→   950→            color: Colors.black.withOpacity(0.5),
+   951→   951→            borderRadius: BorderRadius.circular(24),
+   952→   952→          ),
+   953→   953→          child: Row(
+   954→   954→            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+   955→   955→            children: [
+   956→   956→              _buildControlButton(
+   957→   957→                icon: _flashMode == 0
+   958→   958→                    ? Icons.flash_off
+   959→   959→                    : _flashMode == 1
+   960→   960→                        ? Icons.flash_auto
+   961→   961→                        : Icons.flash_on,
+   962→   962→                label: _flashMode == 0
+   963→   963→                    ? 'Off'
+   964→   964→                    : _flashMode == 1
+   965→   965→                        ? 'Auto'
+   966→   966→                        : 'On',
+   967→   967→                color: _flashMode > 0 ? const Color(0xFFD4AF37) : Colors.white70,
+   968→   968→                onTap: _toggleFlash,
+   969→   969→              ),
+   970→   970→              _buildControlButton(
+   971→   971→                icon: Icons.cameraswitch_outlined,
+   972→   972→                label: loc.t('switchCamera'),
+   973→   973→                color: Colors.white70,
+   974→   974→                onTap: _switchCamera,
+   975→   975→              ),
+   976→   976→              _buildControlButton(
+   977→   977→                icon: Icons.image_outlined,
+   978→   978→                label: loc.t('scanGalleryMode'),
+   979→   979→                color: Colors.white70,
+   980→   980→                onTap: () {
+   981→   981→                  _stopCamera();
+   982→   982→                  setState(() => _useCamera = false);
+   983→   983→                },
+   984→   984→              ),
+   985→   985→            ],
+   986→   986→          ),
+   987→   987→        ),
+   988→   988→      ),
+   989→   989→    );
+   990→   990→  }
+   991→   991→
+   992→   992→  Widget _buildControlButton({
+   993→   993→    required IconData icon,
+   994→   994→    required String label,
+   995→   995→    required Color color,
+   996→   996→    required VoidCallback onTap,
+   997→   997→  }) {
+   998→   998→    return GestureDetector(
+   999→   999→      onTap: onTap,
+  1000→  1000→      behavior: HitTestBehavior.opaque,
+  1001→  1001→      child: Column(
+  1002→  1002→        mainAxisSize: MainAxisSize.min,
+  1003→  1003→        children: [
+  1004→  1004→          Icon(icon, color: color, size: 24),
+  1005→  1005→          const SizedBox(height: 4),
+  1006→  1006→          Text(
+  1007→  1007→            label,
+  1008→  1008→            style: TextStyle(
+  1009→  1009→              color: color,
+  1010→  1010→              fontSize: 10,
+  1011→  1011→              fontWeight: FontWeight.w500,
+  1012→  1012→            ),
+  1013→  1013→          ),
+  1014→  1014→        ],
+  1015→  1015→      ),
+  1016→  1016→    );
+  1017→  1017→  }
+  1018→  1018→}
+  1019→  1019→
