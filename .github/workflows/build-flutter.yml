@@ -28,7 +28,9 @@ jobs:
         yes | sdkmanager --licenses
         # NDK r28 supports 16 KB memory page sizes (required by Google Play from Nov 2025).
         # Older NDK r27.0.x does NOT support 16 KB page sizes — Play Console blocks the upload.
-        sdkmanager "ndk;28.0.12674087" "cmake;3.22.1" || true
+        sdkmanager "ndk;28.0.12674087" "cmake;3.22.1"
+        # Verify NDK installation
+        ls -la $ANDROID_HOME/ndk/ || true
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
