@@ -31,6 +31,7 @@ import '../widgets/banner_ad_widget.dart';
 import 'product_form_screen.dart';
 import 'stock_adjust_screen.dart';
 import 'bill_form_screen.dart';
+import 'bill_detail_screen.dart';
 import 'premium_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -140,6 +141,278 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Show a bottom sheet with sales history for this product (#5 + #27).
+  /// Lists all bills containing this product, plus a summary of unique
+  /// customers who bought it.
+  Future<void> _showSalesHistory(Product p) async {
+    final storage = context.read<StorageService>();
+    final loc = context.loc;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Find all bills that contain this product (by productId or barcode).
+    final allBills = storage.bills;
+    final billsWithProduct = allBills.where((b) {
+      return b.items.any((i) =>
+          (i.productId != null && i.productId == p.id) ||
+          (i.barcode != null && p.barcode != null && i.barcode == p.barcode));
+    }).toList();
+
+    // Compute unique customers + total quantity sold.
+    final customerMap = <String, int>{}; // customerId → qty
+    int totalQtySold = 0;
+    double totalRevenue = 0;
+    for (final b in billsWithProduct) {
+      for (final item in b.items) {
+        final matches = (item.productId != null && item.productId == p.id) ||
+            (item.barcode != null &&
+                p.barcode != null &&
+                item.barcode == p.barcode);
+        if (matches) {
+          totalQtySold += item.quantity;
+          totalRevenue += item.total;
+          final cid = b.customerId ?? b.customerName ?? 'walk-in';
+          customerMap[cid] = (customerMap[cid] ?? 0) + item.quantity;
+        }
+      }
+    }
+
+    final symbol = AppConstants.getCurrencySymbol(storage.defaultCurrency);
+
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bar_chart,
+                        color: Color(0xFFD4AF37), size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        loc.t('salesHistory'),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  p.name,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
+                ),
+              ),
+              const Divider(height: 16),
+              // Summary stats
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _salesStatCard(
+                        loc.t('totalSold'),
+                        '$totalQtySold ${p.unit}',
+                        const Color(0xFF2563EB),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _salesStatCard(
+                        loc.t('revenue'),
+                        '$symbol${totalRevenue.toStringAsFixed(0)}',
+                        const Color(0xFF059669),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _salesStatCard(
+                        loc.t('customers'),
+                        '${customerMap.length}',
+                        const Color(0xFF9333EA),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Bills list
+              if (billsWithProduct.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Icon(Icons.history,
+                          size: 40,
+                          color: isDark ? Colors.white24 : Colors.black12),
+                      const SizedBox(height: 8),
+                      Text(
+                        loc.t('noSalesYet'),
+                        style: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: billsWithProduct.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (ctx, i) {
+                      final bill = billsWithProduct[i];
+                      // Find the matching item to get qty + amount.
+                      final item = bill.items.firstWhere(
+                        (it) =>
+                            (it.productId != null && it.productId == p.id) ||
+                            (it.barcode != null &&
+                                p.barcode != null &&
+                                it.barcode == p.barcode),
+                        orElse: () => bill.items.first,
+                      );
+                      final statusColor = bill.status == 'paid'
+                          ? AppColors.success
+                          : bill.status == 'partial'
+                              ? AppColors.warning
+                              : bill.status == 'overdue'
+                                  ? AppColors.danger
+                                  : AppColors.textSecondary;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFFD4AF37).withOpacity(0.15),
+                          child: const Icon(Icons.receipt_long,
+                              color: Color(0xFFD4AF37), size: 20),
+                        ),
+                        title: Text(
+                          bill.billNumber,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '${bill.customerName ?? loc.t('walkInCustomer')} · ${bill.date.day}/${bill.date.month}/${bill.date.year}',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        trailing: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${item.quantity} × $symbol${item.price.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFD4AF37),
+                              ),
+                            ),
+                            Text(
+                              bill.status,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BillDetailScreen(
+                                billId: bill.id,
+                                bill: bill,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close),
+                    label: Text(loc.t('close')),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _salesStatCard(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF666666),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -735,6 +1008,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   // Create Bill with this product
                   _iconBtn(Icons.receipt_long_outlined, isDark,
                       onTap: () => _createBillWithProduct(p), tooltip: loc.t('createBill')),
+                  // Sales History (#5 + #27)
+                  _iconBtn(Icons.bar_chart_outlined, isDark,
+                      onTap: () => _showSalesHistory(p), tooltip: loc.t('salesHistory')),
                   // Adjust
                   _iconBtn(Icons.tune, isDark, onTap: () => _adjustStock(p), tooltip: loc.t('stockAdjust')),
                   // Delete

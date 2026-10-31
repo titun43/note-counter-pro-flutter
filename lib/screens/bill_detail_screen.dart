@@ -22,8 +22,11 @@ import 'bill_form_screen.dart';
 
 class BillDetailScreen extends StatefulWidget {
   final String billId;
+  /// Optional: pass the Bill object directly to skip the storage lookup
+  /// (used when navigating from Customer Detail's bills list).
+  final Bill? bill;
 
-  const BillDetailScreen({super.key, required this.billId});
+  const BillDetailScreen({super.key, required this.billId, this.bill});
 
   @override
   State<BillDetailScreen> createState() => _BillDetailScreenState();
@@ -36,6 +39,10 @@ class _BillDetailScreenState extends State<BillDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Use the passed Bill object if available (skip storage lookup).
+    if (widget.bill != null) {
+      _bill = widget.bill;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refresh();
     });
@@ -133,6 +140,130 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
       ),
     );
     if (result == true) _refresh();
+  }
+
+  /// Record an additional payment against this bill (#11).
+  /// Opens a dialog where the user enters how much more the customer
+  /// has paid. The amount is added to bill.paidAmount, and the linked
+  /// Khata entry is synced (so the customer's debit balance decreases).
+  Future<void> _recordPayment() async {
+    if (_bill == null) return;
+    final loc = context.loc;
+    final amountController = TextEditingController();
+    final remaining = _bill!.remainingAmount;
+
+    final result = await showDialog<double>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.payments, color: Color(0xFFD4AF37), size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loc.t('recordPayment'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${loc.t('total')}: $symbol${_bill!.total.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                '${loc.t('amountPaid')}: $symbol${_bill!.paidAmount.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                '${loc.t('remaining')}: $symbol${remaining.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: remaining > 0 ? AppColors.warning : AppColors.success,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: loc.t('paymentAmount'),
+                  prefixText: '$symbol ',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+                autofocus: true,
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, -1),
+              child: Text(loc.t('cancel')),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final amt = double.tryParse(amountController.text.trim()) ?? 0;
+                Navigator.pop(ctx, amt);
+              },
+              child: Text(loc.t('save')),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == null || result < 0) return; // cancelled
+    if (result <= 0) return; // invalid amount
+
+    final storage = context.read<StorageService>();
+    final newPaidAmount = _bill!.paidAmount + result;
+    final oldRemaining = _bill!.remainingAmount;
+
+    // Update the bill with the new paid amount.
+    final updated = _bill!.copyWith(
+      paidAmount: newPaidAmount,
+      isPaid: newPaidAmount >= _bill!.total,
+      paidAt: newPaidAmount >= _bill!.total
+          ? (_bill!.paidAt ?? DateTime.now())
+          : null,
+    );
+    await storage.updateBill(updated);
+
+    // Sync the linked Khata entry (so the customer's debit balance
+    // decreases by the payment amount).
+    await storage.syncLinkedKhataEntry(updated);
+
+    // Adjust the customer's totalDebit down by the payment amount
+    // (but not below 0).
+    if (updated.customerId != null && updated.customerId!.isNotEmpty) {
+      final debitDelta = -result.clamp(0, oldRemaining).toDouble();
+      if (debitDelta.abs() > 0.01) {
+        await storage.adjustCustomerDebit(updated.customerId!, debitDelta);
+      }
+    }
+
+    _refresh();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${loc.t('paymentRecorded')}: $symbol${result.toStringAsFixed(2)}'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   Future<void> _deleteBill() async {
@@ -460,6 +591,22 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
             ]),
 
           const SizedBox(height: 16),
+          // === Record Payment button (#11) — only show if not fully paid ===
+          if (!_bill!.isPaid && _bill!.remainingAmount > 0)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _recordPayment,
+                icon: const Icon(Icons.payments, size: 18),
+                label: Text(loc.t('recordPayment')),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37),
+                  foregroundColor: const Color(0xFF1A1A2E),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
           // === Action buttons ===
           Row(
             children: [

@@ -10,11 +10,16 @@ import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../services/pdf_service.dart';
 import '../services/admob_service.dart';
+import '../services/premium_service.dart';
 import '../models/customer.dart';
 import '../models/entry.dart';
+import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../widgets/banner_ad_widget.dart';
+import 'bill_form_screen.dart';
+import 'bill_detail_screen.dart';
+import 'premium_screen.dart';
 
 class CustomerDetailScreen extends StatefulWidget {
   final String customerId;
@@ -49,6 +54,41 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         .toList();
     entries.sort((a, b) => b.date.compareTo(a.date));
     return entries;
+  }
+
+  /// All bills belonging to this customer (newest first).
+  List<Bill> get _customerBills {
+    final storage = context.read<StorageService>();
+    final bills = storage.bills
+        .where((b) => b.customerId == widget.customerId)
+        .toList();
+    bills.sort((a, b) => b.date.compareTo(a.date));
+    return bills;
+  }
+
+  /// Open BillFormScreen with this customer pre-selected (#14).
+  void _createBillForCustomer() {
+    // Premium gate — bills beyond free cap are premium-only.
+    final storage = context.read<StorageService>();
+    final isPremium = PremiumService().isPremium;
+    if (!isPremium && !storage.canCreateBillForFree) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const PremiumScreen()),
+      );
+      return;
+    }
+    AdMobService.showInterstitial();
+    Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BillFormScreen(
+          initialCustomerId: _customer!.id,
+          initialCustomerName: _customer!.name,
+          initialCustomerPhone: _customer!.phone,
+        ),
+      ),
+    );
   }
 
   Future<void> _addTransaction(bool isCredit) async {
@@ -1326,11 +1366,178 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 8),
+                        // Create Bill for this customer (#14)
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _createBillForCustomer,
+                            icon: const Icon(Icons.receipt_long, size: 18),
+                            label: Text(loc.t('createBillForCustomer')),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFD4AF37),
+                              foregroundColor: const Color(0xFF1A1A2E),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
+
+                // === Bills section (#13) — list this customer's bills ===
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(32, 0, 16, 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF3E2723).withOpacity(0.5)
+                          : Colors.white.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.receipt_long,
+                                color: Color(0xFFD4AF37), size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${loc.t('bills')} (${_customerBills.length})',
+                              style: TextStyle(
+                                fontFamily: 'KhataHandwriting',
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (_customerBills.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Center(
+                              child: Text(
+                                loc.t('noBillsForCustomer'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                  color: textColor.withOpacity(0.5),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          // Show up to 5 most recent bills
+                          ...(_customerBills.take(5).map((bill) {
+                            final statusColor = bill.status == 'paid'
+                                ? AppColors.success
+                                : bill.status == 'partial'
+                                    ? AppColors.warning
+                                    : bill.status == 'overdue'
+                                        ? AppColors.danger
+                                        : AppColors.textSecondary;
+                            return InkWell(
+                              onTap: () {
+                                AdMobService.showInterstitial();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BillDetailScreen(
+                                      billId: bill.id,
+                                      bill: bill,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.black.withOpacity(0.2)
+                                      : const Color(0xFFFFF8E1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border(
+                                    left: BorderSide(
+                                        color: statusColor, width: 3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            bill.billNumber,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold,
+                                              color: textColor,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${bill.date.day}/${bill.date.month}/${bill.date.year}',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: textColor.withOpacity(0.6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '$symbol${bill.total.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFFD4AF37),
+                                          ),
+                                        ),
+                                        if (bill.paidAmount > 0 &&
+                                            bill.paidAmount < bill.total)
+                                          Text(
+                                            '${loc.t('remaining')}: $symbol${bill.remainingAmount.toStringAsFixed(0)}',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: AppColors.warning,
+                                            ),
+                                          )
+                                        else
+                                          Text(
+                                            bill.status,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: statusColor,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          })),
+                      ],
+                    ),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
             ),
           ],

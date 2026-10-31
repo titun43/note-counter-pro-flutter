@@ -33,7 +33,21 @@ class BillFormScreen extends StatefulWidget {
   /// that product is passed here as the first item).
   final List<BillItem>? initialItems;
 
-  const BillFormScreen({super.key, this.existingBill, this.initialItems});
+  /// Optional pre-fill customer (e.g. when "Create Bill" is tapped from
+  /// the Customer Detail screen, the customer is pre-selected so the
+  /// user doesn't have to pick them again).
+  final String? initialCustomerId;
+  final String? initialCustomerName;
+  final String? initialCustomerPhone;
+
+  const BillFormScreen({
+    super.key,
+    this.existingBill,
+    this.initialItems,
+    this.initialCustomerId,
+    this.initialCustomerName,
+    this.initialCustomerPhone,
+  });
 
   @override
   State<BillFormScreen> createState() => _BillFormScreenState();
@@ -96,6 +110,12 @@ class _BillFormScreenState extends State<BillFormScreen> {
       } else {
         // Start with one empty item row
         _items.add(BillItem(name: '', quantity: 1, price: 0));
+      }
+      // Pre-fill customer if provided (e.g. "Create Bill" from Customer Detail).
+      if (widget.initialCustomerId != null && widget.initialCustomerId!.isNotEmpty) {
+        _customerId = widget.initialCustomerId;
+        _customerName = widget.initialCustomerName ?? '';
+        _customerPhone = widget.initialCustomerPhone ?? '';
       }
     }
   }
