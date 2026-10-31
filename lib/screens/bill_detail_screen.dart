@@ -149,6 +149,8 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
   Future<void> _recordPayment() async {
     if (_bill == null) return;
     final loc = context.loc;
+    final storage = context.read<StorageService>();
+    final symbol = AppConstants.getCurrencySymbol(_bill!.currency);
     final amountController = TextEditingController();
     final remaining = _bill!.remainingAmount;
 
@@ -228,7 +230,6 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
     if (result == null || result < 0) return; // cancelled
     if (result <= 0) return; // invalid amount
 
-    final storage = context.read<StorageService>();
     final newPaidAmount = _bill!.paidAmount + result;
     final oldRemaining = _bill!.remainingAmount;
 
