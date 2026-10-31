@@ -411,6 +411,15 @@ class AppLocalizations {
       'totalSold': 'Total Sold',
       'revenue': 'Revenue',
       'noSalesYet': 'No sales yet',
+      // === Phase 3: Bill reminders + UPI payment request ===
+      'sendReminder': 'Remind',
+      'requestPayment': 'Request',
+      'setReminder': 'Remind Me',
+      'billAlreadyPaid': 'This bill is already fully paid.',
+      'upiReminderSent': 'UPI payment reminder sent!',
+      'upiPaymentLink': 'Pay via UPI',
+      'reminderSetFor': 'Reminder set for',
+      'reminderSetFailed': 'Failed to set reminder. Please try again.',
       // === Inventory Manager ===
       'inventoryManager': 'Inventory Manager',
       'inventoryManagerDesc': 'Products, stock & barcode billing',
@@ -979,6 +988,15 @@ class AppLocalizations {
       'totalSold': 'মোট বিক্রি',
       'revenue': 'আয়',
       'noSalesYet': 'এখনো কোনো বিক্রি নেই',
+      // === Phase 3: Bill reminders + UPI payment request ===
+      'sendReminder': 'রিমাইন্ডার',
+      'requestPayment': 'অনুরোধ',
+      'setReminder': 'আমাকে মনে করিয়ে দিন',
+      'billAlreadyPaid': 'এই বিলটি সম্পূর্ণ পরিশোধিত।',
+      'upiReminderSent': 'UPI পেমেন্ট রিমাইন্ডার পাঠানো হয়েছে!',
+      'upiPaymentLink': 'UPI এর মাধ্যমে পরিশোধ করুন',
+      'reminderSetFor': 'রিমাইন্ডার নির্ধারিত হয়েছে',
+      'reminderSetFailed': 'রিমাইন্ডার সেট করতে ব্যর্থ। আবার চেষ্টা করুন।',
       // === Inventory Manager ===
       'inventoryManager': 'ইনভেন্টরি ম্যানেজার',
       'inventoryManagerDesc': 'পণ্য, স্টক ও বারকোড বিলিং',
@@ -1547,6 +1565,15 @@ class AppLocalizations {
       'totalSold': 'कुल बिक्री',
       'revenue': 'राजस्व',
       'noSalesYet': 'अभी तक कोई बिक्री नहीं',
+      // === Phase 3: Bill reminders + UPI payment request ===
+      'sendReminder': 'रिमाइंडर',
+      'requestPayment': 'अनुरोध',
+      'setReminder': 'मुझे याद दिलाएं',
+      'billAlreadyPaid': 'यह बिल पूरी तरह से भुगतान किया गया है।',
+      'upiReminderSent': 'UPI भुगतान रिमाइंडर भेजा गया!',
+      'upiPaymentLink': 'UPI के माध्यम से भुगतान करें',
+      'reminderSetFor': 'रिमाइंडर सेट किया गया',
+      'reminderSetFailed': 'रिमाइंडर सेट करने में विफल। पुनः प्रयास करें।',
       // === Inventory Manager ===
       'inventoryManager': 'इन्वेंटरी मैनेजर',
       'inventoryManagerDesc': 'उत्पाद, स्टॉक व बारकोड बिलिंग',

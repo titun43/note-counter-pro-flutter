@@ -225,6 +225,70 @@ class NotificationService {
     }
   }
 
+  /// Schedule a one-time bill reminder notification (#49).
+  /// Shows a notification at the given [scheduledDate] with the bill
+  /// number and remaining amount. Uses a unique notification ID derived
+  /// from the bill ID hash so multiple bill reminders can coexist.
+  Future<bool> scheduleBillReminder({
+    required String billId,
+    required String billNumber,
+    required double remainingAmount,
+    required String currencySymbol,
+    required DateTime scheduledDate,
+  }) async {
+    try {
+      await init();
+      // Generate a stable notification ID from the bill ID.
+      final notifId = billId.hashCode.abs() % 100000 + 2000;
+
+      final tz.TZDateTime tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
+      if (!tzScheduled.isAfter(tz.TZDateTime.now(tz.local))) {
+        debugPrint('scheduleBillReminder: scheduled date is in the past');
+        return false;
+      }
+
+      const androidDetails = AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: _channelDesc,
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+      const iosDetails = DarwinNotificationDetails();
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _plugin.zonedSchedule(
+        notifId,
+        '📋 $billNumber — Payment Due',
+        '$currencySymbol${remainingAmount.toStringAsFixed(2)} remaining. Tap to view bill.',
+        tzScheduled,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+
+      debugPrint('Bill reminder scheduled for $billNumber at $tzScheduled');
+      return true;
+    } catch (e) {
+      debugPrint('scheduleBillReminder failed: $e');
+      return false;
+    }
+  }
+
+  /// Cancel a specific bill reminder by bill ID.
+  Future<void> cancelBillReminder(String billId) async {
+    try {
+      final notifId = billId.hashCode.abs() % 100000 + 2000;
+      await _plugin.cancel(notifId);
+    } catch (e) {
+      debugPrint('cancelBillReminder failed: $e');
+    }
+  }
+
   // =====================================================================
   // HELPERS — calculate next scheduled date
   // =====================================================================

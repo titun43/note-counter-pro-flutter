@@ -15,6 +15,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import '../services/pdf_service.dart';
+import '../services/notification_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -262,6 +263,173 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
         SnackBar(
           content: Text('${loc.t('paymentRecorded')}: $symbol${result.toStringAsFixed(2)}'),
           backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  /// Send a UPI payment request to the customer via WhatsApp (#30).
+  /// Generates a UPI deep link with the bill's remaining amount and
+  /// opens WhatsApp with a pre-filled message containing the link.
+  Future<void> _sendUpiReminder() async {
+    if (_bill == null) return;
+    final loc = context.loc;
+    final storage = context.read<StorageService>();
+    final symbol = AppConstants.getCurrencySymbol(_bill!.currency);
+    final remaining = _bill!.remainingAmount;
+
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('billAlreadyPaid')),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      return;
+    }
+
+    final upiId = storage.businessUpiId;
+    final businessName = storage.businessName.isNotEmpty
+        ? storage.businessName
+        : 'My Business';
+
+    // Build UPI deep link with the remaining amount.
+    final encodedName = Uri.encodeComponent(businessName);
+    final amtStr = remaining.toStringAsFixed(2);
+    final upiLink = 'upi://pay?pa=$upiId&pn=$encodedName&am=$amtStr&cu=INR';
+
+    // Build the WhatsApp message.
+    final customerName = _bill!.customerName ?? loc.t('customer');
+    final message = '📋 ${_bill!.billNumber}\n'
+        '👤 $customerName\n'
+        '💰 ${loc.t('total')}: $symbol${_bill!.total.toStringAsFixed(2)}\n'
+        '✅ ${loc.t('amountPaid')}: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\n'
+        '⏳ ${loc.t('remaining')}: $symbol${remaining.toStringAsFixed(2)}\n\n'
+        '📲 ${loc.t('upiPaymentLink')}:\n$upiLink\n\n'
+        '— $businessName';
+
+    // If customer has a phone, open WhatsApp; otherwise just share.
+    final phone = _bill!.customerPhone;
+    if (phone != null && phone.isNotEmpty) {
+      final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
+      String waPhone = cleanPhone;
+      if (waPhone.startsWith('0')) {
+        waPhone = '91${waPhone.substring(1)}';
+      } else if (!waPhone.startsWith('91') && waPhone.length == 10) {
+        waPhone = '91$waPhone';
+      }
+      final uri = Uri.parse(
+          'https://wa.me/$waPhone?text=${Uri.encodeComponent(message)}');
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (e) {
+        // Fallback to share sheet
+        await Share.share(message, subject: '${_bill!.billNumber} - Payment Request');
+      }
+    } else {
+      await Share.share(message, subject: '${_bill!.billNumber} - Payment Request');
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('upiReminderSent')),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  /// Share a UPI payment request link directly (#31).
+  /// Opens the share sheet with the UPI deep link so the user can send
+  /// it via any app (WhatsApp, SMS, email, etc.).
+  Future<void> _requestPayment() async {
+    if (_bill == null) return;
+    final loc = context.loc;
+    final storage = context.read<StorageService>();
+    final symbol = AppConstants.getCurrencySymbol(_bill!.currency);
+    final remaining = _bill!.remainingAmount;
+
+    if (remaining <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('billAlreadyPaid')),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      return;
+    }
+
+    final upiId = storage.businessUpiId;
+    final businessName = storage.businessName.isNotEmpty
+        ? storage.businessName
+        : 'My Business';
+
+    final encodedName = Uri.encodeComponent(businessName);
+    final amtStr = remaining.toStringAsFixed(2);
+    final upiLink = 'upi://pay?pa=$upiId&pn=$encodedName&am=$amtStr&cu=INR';
+
+    final message = '📋 ${_bill!.billNumber}\n'
+        '💰 ${loc.t('remaining')}: $symbol${remaining.toStringAsFixed(2)}\n\n'
+        '📲 $upiLink\n\n'
+        '— $businessName';
+
+    await Share.share(message, subject: '${_bill!.billNumber} - Payment Request');
+  }
+
+  /// Schedule a notification reminder for this bill's due date (#49).
+  /// If the bill has no due date, the user can pick one. The notification
+  /// fires on the due date morning to remind the user to follow up.
+  Future<void> _setBillReminder() async {
+    if (_bill == null) return;
+    final loc = context.loc;
+
+    // Use the bill's due date if set, otherwise let the user pick.
+    DateTime initialDate = _bill!.dueDate ??
+        DateTime.now().add(const Duration(days: 1));
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null) return;
+
+    // Also pick a time (default 10:00 AM).
+    TimeOfDay initialTime = const TimeOfDay(hour: 10, minute: 0);
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+    if (pickedTime == null) return;
+
+    final scheduledDate = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    final symbol = AppConstants.getCurrencySymbol(_bill!.currency);
+    final success = await NotificationService().scheduleBillReminder(
+      billId: _bill!.id,
+      billNumber: _bill!.billNumber,
+      remainingAmount: _bill!.remainingAmount,
+      currencySymbol: symbol,
+      scheduledDate: scheduledDate,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? '${loc.t('reminderSetFor')} ${picked.day}/${picked.month}/${picked.year} ${pickedTime.format(context)}'
+                : loc.t('reminderSetFailed'),
+          ),
+          backgroundColor: success ? AppColors.success : AppColors.warning,
         ),
       );
     }
@@ -606,6 +774,59 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
                   foregroundColor: const Color(0xFF1A1A2E),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
+              ),
+            ),
+          // === UPI Reminder + Request Payment + Set Reminder (#30, #31, #49) ===
+          if (!_bill!.isPaid && _bill!.remainingAmount > 0)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  // Send UPI Reminder via WhatsApp (#30)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _sendUpiReminder,
+                      icon: const Icon(Icons.chat, size: 16),
+                      label: Text(loc.t('sendReminder'),
+                          style: const TextStyle(fontSize: 11)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.success,
+                        side: const BorderSide(color: AppColors.success),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // Request Payment (share UPI link) (#31)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _requestPayment,
+                      icon: const Icon(Icons.payment, size: 16),
+                      label: Text(loc.t('requestPayment'),
+                          style: const TextStyle(fontSize: 11)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFD4AF37),
+                        side: const BorderSide(color: Color(0xFFD4AF37)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // Set Reminder notification (#49)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _setBillReminder,
+                      icon: const Icon(Icons.notifications_active, size: 16),
+                      label: Text(loc.t('setReminder'),
+                          style: const TextStyle(fontSize: 11)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.info,
+                        side: const BorderSide(color: AppColors.info),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           // === Action buttons ===
