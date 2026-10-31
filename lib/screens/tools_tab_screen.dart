@@ -26,6 +26,7 @@ import 'send_money_screen.dart';
 import 'saved_upi_screen.dart';
 import 'converter_screen.dart';
 import 'inventory_screen.dart';
+import 'settings_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
   final String currencyCode;
@@ -52,6 +53,33 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // === Top bar with title + gear icon ===
+              // Settings is no longer a tab — gear icon opens SettingsScreen.
+              Row(
+                children: [
+                  Icon(Icons.construction, size: 24, color: AppColors.info),
+                  const SizedBox(width: 8),
+                  Text(
+                    loc.t('tools'),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'KhataHandwriting',
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: loc.t('settings'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               // Calculators section
               _buildSectionHeader(loc.t('calculators'), Icons.calculate, theme),
               const SizedBox(height: 8),

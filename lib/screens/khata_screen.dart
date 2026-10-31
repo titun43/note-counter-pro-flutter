@@ -15,9 +15,10 @@ import '../widgets/send_reminder_to_all_dialog.dart';
 import 'customer_detail_screen.dart';
 import 'customers_screen.dart';
 import 'reminder_history_screen.dart';
-import 'bills_screen.dart';
 import 'reports_screen.dart';
 import 'premium_screen.dart';
+import 'settings_screen.dart';
+
 
 class KhataScreen extends StatefulWidget {
   const KhataScreen({super.key});
@@ -673,6 +674,17 @@ class _KhataScreenState extends State<KhataScreen> {
                           ),
                         ),
                       ),
+                      // Gear icon → Settings (replaces old Settings tab)
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined, color: Color(0xFFD4AF37)),
+                        tooltip: loc.t('settings'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          );
+                        },
+                      ),
                       // Single overflow menu — replaces 4 cluttered icons
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert, color: Color(0xFFD4AF37)),
@@ -707,21 +719,13 @@ class _KhataScreenState extends State<KhataScreen> {
                                 MaterialPageRoute(builder: (_) => const CustomersScreen()),
                               );
                               break;
+                            // 'bills' case removed — Bills is now a
+                            // top-level tab. The PopupMenuItem was also
+                            // removed; this case is kept as a no-op for
+                            // backward compatibility in case any saved
+                            // state still references it.
                             case 'bills':
                               if (!mounted) return;
-                              // Premium gate for Bills
-                              if (!PremiumService().isPremium) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                                );
-                                return;
-                              }
-                              AdMobService.showInterstitial();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const BillsScreen()),
-                              );
                               break;
                             case 'reports':
                               if (!mounted) return;
@@ -782,19 +786,9 @@ class _KhataScreenState extends State<KhataScreen> {
                               ],
                             ),
                           ),
-                          PopupMenuItem<String>(
-                            value: 'bills',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.receipt_long, size: 20, color: Color(0xFF8B0000)),
-                                const SizedBox(width: 12),
-                                Text(loc.t('billsInvoices')),
-                                const Spacer(),
-                                if (!PremiumService().isPremium)
-                                  const Icon(Icons.lock, size: 14, color: Color(0xFFD4AF37)),
-                              ],
-                            ),
-                          ),
+                          // Bills & Invoices item removed — now a top-level
+                          // tab in the bottom navigation (tab index 3).
+                          // Keeping this entry would be redundant.
                           PopupMenuItem<String>(
                             value: 'reports',
                             child: Row(

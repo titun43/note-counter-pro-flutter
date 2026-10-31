@@ -26,6 +26,7 @@ import '../services/admob_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/saved_upi.dart';
+import 'settings_screen.dart';
 
 class UpiToolsScreen extends StatefulWidget {
   const UpiToolsScreen({super.key});
@@ -326,6 +327,33 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // === Top bar with title + gear icon ===
+              // Settings is no longer a tab — gear icon opens SettingsScreen.
+              Row(
+                children: [
+                  Icon(Icons.bolt, size: 24, color: const Color(0xFFD4AF37)),
+                  const SizedBox(width: 8),
+                  Text(
+                    loc.t('upiTools'),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'KhataHandwriting',
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: loc.t('settings'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               // ₹2000 Info Banner (Option A — full text, multi-line)
               _buildLimitBanner(isDark, loc, theme),
               const SizedBox(height: 16),

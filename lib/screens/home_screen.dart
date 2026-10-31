@@ -18,6 +18,7 @@ import '../widgets/note_widget.dart';
 import 'calculator_screen.dart';
 import 'upi_generate_screen.dart';
 import 'premium_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1530,6 +1531,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: const Icon(Icons.cleaning_services),
                   color: AppColors.danger,
                   tooltip: 'Clear',
+                  iconSize: 22,
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+                const SizedBox(width: 4),
+                // Settings gear icon — replaces old Settings tab.
+                // Tap → Navigator.push(SettingsScreen).
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.settings_outlined),
+                  color: AppColors.textSecondary,
+                  tooltip: 'Settings',
                   iconSize: 22,
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

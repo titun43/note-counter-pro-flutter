@@ -340,9 +340,32 @@ class StorageService extends ChangeNotifier {
   }
   
   String get nextBillNumber {
-    return 'BILL-${(_bills.length + 1).toString().padLeft(4, '0')}';
+    // Use max existing bill number + 1 so that deleting a bill doesn't
+    // cause duplicate numbers when creating a new one.
+    int maxNum = 0;
+    for (final b in _bills) {
+      // Try to parse the trailing 4-digit number from 'BILL-XXXX'
+      final match = RegExp(r'BILL-(\d+)').firstMatch(b.billNumber);
+      if (match != null) {
+        final n = int.tryParse(match.group(1)!) ?? 0;
+        if (n > maxNum) maxNum = n;
+      }
+    }
+    return 'BILL-${(maxNum + 1).toString().padLeft(4, '0')}';
   }
-  
+
+  /// Free-user limit: 5 bills max. Premium = unlimited.
+  /// Caller must also check PremiumService().isPremium — this getter is
+  /// the defensive hard cap.
+  static const int freeBillLimit = 5;
+
+  /// True if a free user can still create a new bill (or any premium user).
+  /// PremiumService is checked by the caller — this getter is the
+  /// defensive hard cap that only counts bills, regardless of premium.
+  bool get canCreateBillForFree {
+    return _bills.length < freeBillLimit;
+  }
+
   Future<void> addBill(Bill bill) async {
     _bills.add(bill);
     await _saveBills();

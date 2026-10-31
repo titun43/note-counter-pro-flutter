@@ -15,11 +15,13 @@ import 'package:provider/provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart' as mscanner;
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
+import '../services/premium_service.dart';
 import '../models/bill.dart';
 import '../models/product.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../widgets/banner_ad_widget.dart';
+import 'premium_screen.dart';
 
 class BillFormScreen extends StatefulWidget {
   /// Pass an existing bill to edit it; leave null to create new.
@@ -97,6 +99,35 @@ class _BillFormScreenState extends State<BillFormScreen> {
     if (!_canSave) return;
     final storage = context.read<StorageService>();
     final currency = storage.defaultCurrency;
+
+    // Free-user bill limit check (only when creating new, not when editing).
+    // Premium users have unlimited bills.
+    if (!_isEditing) {
+      final isPremium = PremiumService().isPremium;
+      if (!isPremium && !storage.canCreateBillForFree) {
+        if (mounted) {
+          final loc = context.loc;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.t('billLimitReached')),
+              backgroundColor: AppColors.warning,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'PRO',
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                  );
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
 
     if (_isEditing) {
       final updated = widget.existingBill!.copyWith(

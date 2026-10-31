@@ -14,12 +14,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
+import '../services/premium_service.dart';
+import '../services/admob_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'bill_form_screen.dart';
 import 'bill_detail_screen.dart';
+import 'settings_screen.dart';
+import 'premium_screen.dart';
 
 class BillsScreen extends StatefulWidget {
   const BillsScreen({super.key});
@@ -32,6 +36,50 @@ class _BillsScreenState extends State<BillsScreen> {
   String _searchQuery = '';
   String _filter = 'all'; // all | paid | unpaid | overdue
   String _sortBy = 'date'; // date | amount | status
+
+  /// Open Settings screen via Navigator.push (gear icon tap).
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
+  }
+
+  /// Try to create a new bill. Free users are capped at 5 bills — show
+  /// premium upsell if limit reached. Premium users get unlimited.
+  void _createBill() {
+    final storage = context.read<StorageService>();
+    final isPremium = PremiumService().isPremium;
+    final loc = context.loc;
+
+    if (!isPremium && !storage.canCreateBillForFree) {
+      // Free user at 5/5 — show premium upsell.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc.t('billLimitReached')),
+          backgroundColor: AppColors.warning,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'PRO',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PremiumScreen()),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+    // Interstitial at natural break point (AdMob policy compliant).
+    AdMobService.showInterstitial();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BillFormScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +140,12 @@ class _BillsScreenState extends State<BillsScreen> {
           style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
         ),
         actions: [
+          // Gear icon → Settings (replaces old Settings tab)
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: loc.t('settings'),
+            onPressed: _openSettings,
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort),
             tooltip: loc.t('sortBy'),
@@ -118,6 +172,62 @@ class _BillsScreenState extends State<BillsScreen> {
       ),
       body: Column(
         children: [
+          // === Free-user premium upsell banner ===
+          // Shows when free user has bills (or even 0) — encourages upgrade
+          // for unlimited billing. Hidden for premium users.
+          if (!PremiumService().isPremium)
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.workspace_premium,
+                      color: Color(0xFF1A1A2E), size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${allBills.length}/${StorageService.freeBillLimit} ${loc.t('billsUsedFree')}',
+                      style: const TextStyle(
+                        color: Color(0xFF1A1A2E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A2E),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'PRO',
+                        style: TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // === Summary card ===
           if (allBills.isNotEmpty)
             Container(
@@ -331,10 +441,7 @@ class _BillsScreenState extends State<BillsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const BillFormScreen()),
-        ),
+        onPressed: _createBill,
         backgroundColor: const Color(0xFF8B0000),
         foregroundColor: const Color(0xFFD4AF37),
         icon: const Icon(Icons.add),

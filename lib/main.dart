@@ -20,6 +20,7 @@ import 'screens/calculator_screen.dart';
 import 'screens/khata_screen.dart';
 import 'screens/upi_tab_screen.dart';
 import 'screens/tools_tab_screen.dart';
+import 'screens/bills_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
 import 'package:flutter/services.dart';
@@ -318,18 +319,21 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
     // Cache the screens list so it doesn't get recreated on every build.
     // We rebuild only when currencyCode changes.
     //
-    // 5-tab navigation (v3.26.0):
-    //   0. Counter  — note counting (main)
-    //   1. Khata    — customer ledger (with quick access to Bills & Reports)
-    //   2. UPI      — UPI Tools (premium-locked for free users)
-    //   3. Tools    — Calculator, Converter, Date Calc, Printer
-    //   4. Settings — app settings (cleaned up)
+    // 5-tab navigation (v3.37.0):
+    //   0. Counter    — note counting (main)
+    //   1. Khata      — customer ledger
+    //   2. Smart Pay  — UPI scan (premium-locked for free users)
+    //   3. Bills      — Bills & Invoices (free users: 5-bill cap, premium: unlimited)
+    //   4. Tools      — Calculator, Converter, Inventory, Printer
+    //
+    // Settings is no longer a tab — accessible via gear icon (⚙️) in the
+    // top bar of every main tab screen. Tap gear → Navigator.push(SettingsScreen).
     final List<Widget> screens = [
       const HomeScreen(),
       const KhataScreen(),
       const UpiTabScreen(),
+      const BillsScreen(),
       ToolsTabScreen(currencyCode: currencyCode),
-      const SettingsScreen(),
     ];
 
     return PopScope(

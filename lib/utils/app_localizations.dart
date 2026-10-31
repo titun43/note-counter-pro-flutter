@@ -554,6 +554,9 @@ class AppLocalizations {
       'limitInfoFull3': 'Only ₹2,000 limit (same mobile)',
       'limitInfoFull4': 'Scan here:',
       'limitInfoFull5': 'Extract UPI ID → send up to ₹1,00,000',
+      // === Bills tab — free user limit (commit: tab layout redesign) ===
+      'billsUsedFree': 'bills used on free plan. Upgrade for unlimited.',
+      'billLimitReached': 'Bill limit reached! Upgrade to premium for unlimited bills.',
     },
     'bn': {
       'appTitle': 'নোট কাউন্টার প্রো',
@@ -1103,6 +1106,9 @@ class AppLocalizations {
       'limitInfoFull3': 'মাত্র ₹2,000 পর্যন্ত (একই মোবাইল)',
       'limitInfoFull4': 'এখানে স্ক্যান করুন:',
       'limitInfoFull5': 'UPI ID বের হবে → ₹1,00,000 পর্যন্ত পাঠাতে পারবেন',
+      // === Bills tab — free user limit ===
+      'billsUsedFree': 'বিল ব্যবহৃত (ফ্রি প্ল্যান)। আনলিমিটেড পেতে আপগ্রেড করুন।',
+      'billLimitReached': 'বিল লিমিট পূর্ণ! আনলিমিটেড বিলের জন্য প্রিমিয়ামে আপগ্রেড করুন।',
     },
     'hi': {
       'appTitle': 'नोट काउंटर प्रो',
@@ -1652,6 +1658,9 @@ class AppLocalizations {
       'limitInfoFull3': 'केवल ₹2,000 सीमा (एक ही मोबाइल)',
       'limitInfoFull4': 'यहां स्कैन करें:',
       'limitInfoFull5': 'UPI ID निकालें → ₹1,00,000 तक भेजें',
+      // === Bills tab — free user limit ===
+      'billsUsedFree': 'बिल उपयोग किए (फ्री प्लान)। अनलिमिटेड के लिए अपग्रेड करें।',
+      'billLimitReached': 'बिल सीमा पूरी! अनलिमिटेड बिल के लिए प्रीमियम में अपग्रेड करें।',
     },
   };
   

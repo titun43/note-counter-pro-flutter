@@ -7,7 +7,12 @@
 //   - No border
 //   - 64px height (compact)
 //   - Active tab = gold gradient pill
-//   - 5 tabs: Counter, Khata, Smart Pay, Pro Tools, Settings
+//   - 5 tabs: Counter, Khata, Smart Pay, Bills, Tools
+// =============================================================================
+// Settings moved out of the nav bar — accessible via gear icon (⚙️) in the
+// top bar of every main tab screen (commit history: previously tab index 4
+// was Settings). Bills & Invoices is now a top-level tab (was previously
+// only reachable via Khata ⋮ menu, premium-gated).
 // =============================================================================
 
 import 'dart:ui';
@@ -51,16 +56,17 @@ class GlassNavBar extends StatelessWidget {
         isPremium: true,
       ),
       _NavBarItem(
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long,
+        label: 'Bills',
+        color: const Color(0xFF9333EA),
+        isPremium: true,
+      ),
+      _NavBarItem(
         icon: Icons.construction_outlined,
         activeIcon: Icons.construction,
         label: 'Tools',
         color: AppColors.info,
-      ),
-      _NavBarItem(
-        icon: Icons.settings_outlined,
-        activeIcon: Icons.settings,
-        label: 'Settings',
-        color: AppColors.textSecondary,
       ),
     ];
 
