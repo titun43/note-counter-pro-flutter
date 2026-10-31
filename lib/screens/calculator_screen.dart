@@ -395,7 +395,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   ],
                 ),
               ),
-              Expanded(child: content),
+              Expanded(child: SizedBox.expand(child: content)),
             ],
           ),
         ),
