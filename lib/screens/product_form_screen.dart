@@ -32,7 +32,16 @@ class ProductFormScreen extends StatefulWidget {
   /// Pass an existing product to edit; leave null to create new.
   final Product? existingProduct;
 
-  const ProductFormScreen({super.key, this.existingProduct});
+  /// Optional initial barcode (e.g. when user scans a barcode in BillForm
+  /// that has no matching product, we offer to add it — the scanned code
+  /// is pre-filled here so the user doesn't have to type/scan again).
+  final String? initialBarcode;
+
+  const ProductFormScreen({
+    super.key,
+    this.existingProduct,
+    this.initialBarcode,
+  });
 
   @override
   State<ProductFormScreen> createState() => _ProductFormScreenState();
@@ -73,6 +82,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       // Sensible defaults for new product
       _stockController.text = '0';
       _lowStockController.text = '5';
+      // Pre-fill barcode if provided (e.g. from BillForm scan-not-found flow)
+      if (widget.initialBarcode != null && widget.initialBarcode!.isNotEmpty) {
+        _barcodeController.text = widget.initialBarcode!;
+      }
     }
   }
 

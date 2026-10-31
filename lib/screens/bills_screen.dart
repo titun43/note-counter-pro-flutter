@@ -19,7 +19,6 @@ import '../services/admob_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
-import '../widgets/banner_ad_widget.dart';
 import 'bill_form_screen.dart';
 import 'bill_detail_screen.dart';
 import 'settings_screen.dart';
@@ -413,7 +412,11 @@ class _BillsScreenState extends State<BillsScreen> {
                     },
                   ),
           ),
-          const BannerAdWidget(),
+          // NOTE: No bottom BannerAdWidget here — Bills is now a tab inside
+          // MainScaffold, which already shows a banner ad at the top (above
+          // all tabs). Adding a second banner here would be redundant and
+          // waste screen space. Standalone screens (Calculator, Inventory,
+          // BillForm) keep their own banners because they're Navigator.push'd.
         ],
         ),  // close Column
       ),  // close SafeArea

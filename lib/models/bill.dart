@@ -81,6 +81,13 @@ class Bill {
   bool isPaid;
   DateTime? paidAt;
 
+  /// Amount the customer has paid so far for this bill. When this equals
+  /// or exceeds the bill total, the bill is marked as fully paid (isPaid
+  /// = true). When 0 < paidAmount < total, the bill is 'partial' and the
+  /// remaining balance is tracked as a Khata entry linked to this bill.
+  /// Defaults to 0 for backward compatibility.
+  double paidAmount;
+
   Bill({
     required this.id,
     required this.billNumber,
@@ -96,6 +103,7 @@ class Bill {
     this.dueDate,
     this.isPaid = false,
     this.paidAt,
+    this.paidAmount = 0,
   });
 
   double get subtotal => items.fold(0, (sum, item) => sum + item.subtotal);
@@ -103,23 +111,38 @@ class Bill {
   double get discountAmount => (subtotal + totalGst) * discountPercent / 100;
   double get total => subtotal + totalGst - discountAmount;
 
-  /// Status: 'paid' | 'unpaid' | 'overdue'
+  /// Remaining amount the customer still owes (total - paidAmount).
+  /// Clamped to 0 so it never goes negative if overpaid.
+  double get remainingAmount {
+    final r = total - paidAmount;
+    return r < 0 ? 0 : r;
+  }
+
+  /// Status: 'paid' | 'partial' | 'unpaid' | 'overdue'
+  /// - 'paid': fully paid (isPaid true OR paidAmount >= total)
+  /// - 'partial': some but not all paid (0 < paidAmount < total)
+  /// - 'overdue': not paid and due date has passed
+  /// - 'unpaid': nothing paid yet, due date not passed
   String get status {
-    if (isPaid) return 'paid';
+    if (isPaid || paidAmount >= total) return 'paid';
+    if (paidAmount > 0) return 'partial';
     if (dueDate != null && dueDate!.isBefore(DateTime.now())) return 'overdue';
     return 'unpaid';
   }
 
-  /// Mark this bill as paid now (or at given time).
+  /// Mark this bill as paid now (or at given time). Also sets paidAmount
+  /// to the full total if it was lower.
   void markPaid([DateTime? when]) {
     isPaid = true;
     paidAt = when ?? DateTime.now();
+    if (paidAmount < total) paidAmount = total;
   }
 
-  /// Mark this bill as unpaid (revert).
+  /// Mark this bill as unpaid (revert). Resets paidAmount to 0.
   void markUnpaid() {
     isPaid = false;
     paidAt = null;
+    paidAmount = 0;
   }
 
   factory Bill.create({
@@ -165,6 +188,7 @@ class Bill {
         'dueDate': dueDate?.toIso8601String(),
         'isPaid': isPaid,
         'paidAt': paidAt?.toIso8601String(),
+        'paidAmount': paidAmount,
       };
 
   factory Bill.fromJson(Map<String, dynamic> json) => Bill(
@@ -188,6 +212,7 @@ class Bill {
         paidAt: json['paidAt'] != null
             ? DateTime.parse(json['paidAt'] as String)
             : null,
+        paidAmount: (json['paidAmount'] as num?)?.toDouble() ?? 0,
       );
 
   Bill copyWith({
@@ -203,6 +228,7 @@ class Bill {
     DateTime? dueDate,
     bool? isPaid,
     DateTime? paidAt,
+    double? paidAmount,
   }) {
     return Bill(
       id: id,
@@ -219,6 +245,7 @@ class Bill {
       dueDate: dueDate ?? this.dueDate,
       isPaid: isPaid ?? this.isPaid,
       paidAt: paidAt ?? this.paidAt,
+      paidAmount: paidAmount ?? this.paidAmount,
     );
   }
 }

@@ -24,11 +24,13 @@ import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../services/premium_service.dart';
 import '../models/product.dart';
+import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'product_form_screen.dart';
 import 'stock_adjust_screen.dart';
+import 'bill_form_screen.dart';
 import 'premium_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
@@ -115,6 +117,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
     await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => ProductFormScreen(existingProduct: p)),
+    );
+  }
+
+  /// Open BillFormScreen with this product pre-added as the first item.
+  /// This is the Inventory → Bill linkage (#4).
+  Future<void> _createBillWithProduct(Product p) async {
+    AdMobService.showInterstitial();
+    if (!mounted) return;
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BillFormScreen(
+          initialItems: [
+            BillItem(
+              name: p.name,
+              quantity: 1,
+              price: p.salePrice,
+              gstPercent: p.gstPercent,
+              productId: p.id,
+              barcode: p.barcode,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -706,6 +732,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                   // Edit
                   _iconBtn(Icons.edit_outlined, isDark, onTap: () => _editProduct(p), tooltip: loc.t('editProduct')),
+                  // Create Bill with this product
+                  _iconBtn(Icons.receipt_long_outlined, isDark,
+                      onTap: () => _createBillWithProduct(p), tooltip: loc.t('createBill')),
                   // Adjust
                   _iconBtn(Icons.tune, isDark, onTap: () => _adjustStock(p), tooltip: loc.t('stockAdjust')),
                   // Delete

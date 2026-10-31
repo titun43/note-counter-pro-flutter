@@ -393,6 +393,14 @@ class AppLocalizations {
       'cancelDelete': 'Cancel',
       'confirmDelete': 'Delete',
       'back': 'Back',
+      // === Bill ↔ Inventory ↔ Khata linkages ===
+      'productNotFoundTitle': 'Product Not Found',
+      'productNotFoundMsg': 'This barcode is not in your inventory. Would you like to add it?',
+      'inventoryEmpty': 'No products in inventory yet. Add a product first.',
+      'payment': 'Payment',
+      'amountPaid': 'Amount Paid',
+      'remaining': 'Remaining',
+      'autoKhataHint': 'Remaining balance will be auto-added to customer\'s Khata as debit.',
       // === Inventory Manager ===
       'inventoryManager': 'Inventory Manager',
       'inventoryManagerDesc': 'Products, stock & barcode billing',
@@ -943,6 +951,14 @@ class AppLocalizations {
       'cancelDelete': 'বাতিল',
       'confirmDelete': 'মুছুন',
       'back': 'পিছনে',
+      // === Bill ↔ Inventory ↔ Khata linkages ===
+      'productNotFoundTitle': 'পণ্য পাওয়া যায়নি',
+      'productNotFoundMsg': 'এই বারকোডটি আপনার ইনভেন্টরিতে নেই। যোগ করতে চান?',
+      'inventoryEmpty': 'এখনো কোনো পণ্য নেই। আগে একটি পণ্য যোগ করুন।',
+      'payment': 'পেমেন্ট',
+      'amountPaid': 'পরিশোধিত পরিমাণ',
+      'remaining': 'বাকি',
+      'autoKhataHint': 'বাকি টাকা স্বয়ংক্রিয়ভাবে গ্রাহকের খাতায় বকেয়া হিসেবে যোগ হবে।',
       // === Inventory Manager ===
       'inventoryManager': 'ইনভেন্টরি ম্যানেজার',
       'inventoryManagerDesc': 'পণ্য, স্টক ও বারকোড বিলিং',
@@ -1493,6 +1509,14 @@ class AppLocalizations {
       'cancelDelete': 'रद्द करें',
       'confirmDelete': 'हटाएं',
       'back': 'वापस',
+      // === Bill ↔ Inventory ↔ Khata linkages ===
+      'productNotFoundTitle': 'उत्पाद नहीं मिला',
+      'productNotFoundMsg': 'यह बारकोड आपके इन्वेंटरी में नहीं है। जोड़ना चाहेंगे?',
+      'inventoryEmpty': 'अभी तक कोई उत्पाद नहीं। पहले एक उत्पाद जोड़ें।',
+      'payment': 'भुगतान',
+      'amountPaid': 'भुगतान की गई राशि',
+      'remaining': 'शेष',
+      'autoKhataHint': 'शेष राशि स्वचालित रूप से ग्राहक के खाते में बकाया के रूप में जोड़ दी जाएगी।',
       // === Inventory Manager ===
       'inventoryManager': 'इन्वेंटरी मैनेजर',
       'inventoryManagerDesc': 'उत्पाद, स्टॉक व बारकोड बिलिंग',

@@ -27,7 +27,12 @@ class BillFormScreen extends StatefulWidget {
   /// Pass an existing bill to edit it; leave null to create new.
   final Bill? existingBill;
 
-  const BillFormScreen({super.key, this.existingBill});
+  /// Optional list of items to pre-fill the bill with (e.g. when the user
+  /// taps "Create Bill with this" on a product in the Inventory screen,
+  /// that product is passed here as the first item).
+  final List<BillItem>? initialItems;
+
+  const BillFormScreen({super.key, this.existingBill, this.initialItems});
 
   @override
   State<BillFormScreen> createState() => _BillFormScreenState();
@@ -42,6 +47,12 @@ class _BillFormScreenState extends State<BillFormScreen> {
   double _discountPercent = 0;
   DateTime? _dueDate;
   final _notesController = TextEditingController();
+  /// Amount the customer has paid for this bill. Tracked separately from
+  /// the bill total so partial payments can be recorded. When this is
+  /// less than the total AND a customer is selected, the remaining
+  /// balance is auto-added as a Khata (debit) entry on save.
+  double _paidAmount = 0;
+  final _paidAmountController = TextEditingController(text: '0');
 
   bool get _isEditing => widget.existingBill != null;
 
@@ -60,20 +71,38 @@ class _BillFormScreenState extends State<BillFormScreen> {
             quantity: i.quantity,
             price: i.price,
             gstPercent: i.gstPercent,
+            productId: i.productId,
+            barcode: i.barcode,
           )));
       _discountPercent = b.discountPercent;
       _dueDate = b.dueDate;
       _notesController.text = b.notes ?? '';
+      _paidAmount = b.paidAmount;
+      _paidAmountController.text = b.paidAmount.toStringAsFixed(2);
     } else {
       _billNumber = storage.nextBillNumber;
-      // Start with one empty item row
-      _items.add(BillItem(name: '', quantity: 1, price: 0));
+      // Pre-fill with initial items if provided (e.g. "Create Bill with
+      // this" from the Inventory screen).
+      if (widget.initialItems != null && widget.initialItems!.isNotEmpty) {
+        _items.addAll(widget.initialItems!.map((i) => BillItem(
+              name: i.name,
+              quantity: i.quantity,
+              price: i.price,
+              gstPercent: i.gstPercent,
+              productId: i.productId,
+              barcode: i.barcode,
+            )));
+      } else {
+        // Start with one empty item row
+        _items.add(BillItem(name: '', quantity: 1, price: 0));
+      }
     }
   }
 
   @override
   void dispose() {
     _notesController.dispose();
+    _paidAmountController.dispose();
     super.dispose();
   }
 
@@ -99,6 +128,11 @@ class _BillFormScreenState extends State<BillFormScreen> {
     if (!_canSave) return;
     final storage = context.read<StorageService>();
     final currency = storage.defaultCurrency;
+    final loc = context.loc;
+
+    // Parse paid amount from the controller.
+    _paidAmount = double.tryParse(_paidAmountController.text.trim()) ?? 0;
+    if (_paidAmount < 0) _paidAmount = 0;
 
     // Free-user bill limit check (only when creating new, not when editing).
     // Premium users have unlimited bills.
@@ -106,7 +140,6 @@ class _BillFormScreenState extends State<BillFormScreen> {
       final isPremium = PremiumService().isPremium;
       if (!isPremium && !storage.canCreateBillForFree) {
         if (mounted) {
-          final loc = context.loc;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.t('billLimitReached')),
@@ -129,7 +162,13 @@ class _BillFormScreenState extends State<BillFormScreen> {
       }
     }
 
+    Bill? savedBill;
     if (_isEditing) {
+      // When editing, sync the paid amount and auto-manage the linked
+      // Khata entry (delete old + create new if there's still a balance).
+      final oldPaidAmount = widget.existingBill!.paidAmount;
+      final oldTotal = widget.existingBill!.total;
+
       final updated = widget.existingBill!.copyWith(
         customerId: _customerId,
         customerName: _customerName.isEmpty ? null : _customerName,
@@ -141,11 +180,29 @@ class _BillFormScreenState extends State<BillFormScreen> {
             ? null
             : _notesController.text.trim(),
         dueDate: _dueDate,
+        paidAmount: _paidAmount,
+        isPaid: _paidAmount >= _total,
+        paidAt: _paidAmount >= _total
+            ? (widget.existingBill!.paidAt ?? DateTime.now())
+            : null,
       );
       await storage.updateBill(updated);
-      // For edited bills: we DO NOT auto-deduct stock again (the deduction
-      // was already made when the bill was first created). Caller can use
-      // the manual Stock Adjust screen if a correction is needed.
+      savedBill = updated;
+
+      // Manage the linked Khata entry: delete the old one (if any) and
+      // create a new one if there's still a remaining balance. This keeps
+      // the Khata in sync when the user edits the bill's paid amount.
+      await storage.syncLinkedKhataEntry(updated);
+
+      // Update customer totals if the remaining balance changed.
+      if (_customerId != null && _customerId!.isNotEmpty) {
+        final oldRemaining = (oldTotal - oldPaidAmount).clamp(0, double.infinity);
+        final newRemaining = updated.remainingAmount;
+        final diff = newRemaining - oldRemaining;
+        if (diff.abs() > 0.01) {
+          await storage.adjustCustomerDebit(_customerId!, diff);
+        }
+      }
     } else {
       final bill = Bill.create(
         billNumber: _billNumber,
@@ -160,11 +217,27 @@ class _BillFormScreenState extends State<BillFormScreen> {
             : _notesController.text.trim(),
         dueDate: _dueDate,
       );
+      // Apply paid amount + auto-mark paid if fully paid.
+      bill.paidAmount = _paidAmount;
+      if (_paidAmount >= bill.total) {
+        bill.markPaid();
+      }
       await storage.addBill(bill);
+      savedBill = bill;
       // Stock auto-deduct — only for new bills. Existing bills (no productId
       // on items) are skipped (backward compatible). Oversell is allowed:
       // stock can go negative and a warning is shown in the inventory list.
       await storage.deductStockForBill(bill);
+
+      // Auto-create a Khata entry for the remaining (unpaid) balance,
+      // but ONLY if a customer is selected. Walk-in customers don't
+      // have a Khata ledger, so the remaining balance is just tracked
+      // on the bill itself (via paidAmount / remainingAmount).
+      if (_customerId != null && _customerId!.isNotEmpty && bill.remainingAmount > 0) {
+        await storage.createLinkedKhataEntry(bill);
+        // The remaining balance is a DEBIT for the customer (they owe us).
+        await storage.adjustCustomerDebit(_customerId!, bill.remainingAmount);
+      }
     }
 
     if (mounted) {
@@ -337,7 +410,9 @@ class _BillFormScreenState extends State<BillFormScreen> {
 
   /// Open barcode scanner → look up product → auto-add to bill.
   /// If same barcode already in bill → qty += 1.
-  /// If not found → snackbar warning + manual item add.
+  /// If not found → dialog offering to add the product to inventory
+  /// (pre-filled with the scanned barcode). On return from the product
+  /// form, the product is looked up again and auto-added to the bill.
   Future<void> _scanBarcodeToAdd() async {
     final scanned = await Navigator.push<String>(
       context,
@@ -348,23 +423,85 @@ class _BillFormScreenState extends State<BillFormScreen> {
     );
     if (scanned == null || scanned.isEmpty) return;
 
+    await _tryAddProductByBarcode(scanned);
+  }
+
+  /// Look up a product by barcode and add it to the bill.
+  /// If not found, offer to add the product to inventory (with the
+  /// barcode pre-filled). After the product is saved, it's looked up
+  /// again and added to the bill automatically.
+  Future<void> _tryAddProductByBarcode(String barcode) async {
     final storage = context.read<StorageService>();
     final loc = context.loc;
-    final product = storage.findByBarcode(scanned);
+    var product = storage.findByBarcode(barcode);
 
     if (product == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.t('productNotFound')),
-            backgroundColor: AppColors.warning,
+      // Product not found — offer to add it to inventory.
+      if (!mounted) return;
+      final shouldAdd = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.add_box_rounded, color: Color(0xFFD4AF37), size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loc.t('productNotFoundTitle'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
-        );
-      }
-      return;
+          content: Text(
+            '${loc.t('productNotFoundMsg')}\n\n'
+            '${loc.t('barcode')}: $barcode',
+            style: const TextStyle(fontSize: 13),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(loc.t('cancelDelete')),
+            ),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(loc.t('addProduct')),
+            ),
+          ],
+        ),
+      );
+      if (shouldAdd != true || !mounted) return;
+
+      // Open ProductForm with the barcode pre-filled.
+      final added = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductFormScreen(initialBarcode: barcode),
+        ),
+      );
+      if (added != true || !mounted) return;
+
+      // Re-lookup the product now that it's been saved to inventory.
+      product = storage.findByBarcode(barcode);
+      if (product == null) return; // still not found (user may have edited)
     }
 
-    // Same barcode already in bill? → qty++
+    if (!mounted) return;
+    _addProductToItems(product);
+  }
+
+  /// Add a Product to the bill's item list. If the product is already in
+  /// the bill (by productId), increment its quantity by 1.
+  void _addProductToItems(Product product) {
+    final loc = context.loc;
     final existingIndex = _items.indexWhere((i) => i.productId == product.id);
     if (existingIndex != -1) {
       setState(() {
@@ -382,7 +519,6 @@ class _BillFormScreenState extends State<BillFormScreen> {
         );
       }
     } else {
-      // Add new item with product info
       setState(() {
         _items.add(BillItem(
           name: product.name,
@@ -403,6 +539,164 @@ class _BillFormScreenState extends State<BillFormScreen> {
         );
       }
     }
+  }
+
+  /// Open a bottom-sheet inventory picker. User taps a product to add it
+  /// to the bill (qty+1 if already present). Stays open until dismissed
+  /// so the user can add multiple products in one go.
+  Future<void> _pickFromInventory() async {
+    final storage = context.read<StorageService>();
+    final loc = context.loc;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final products = storage.products;
+
+    if (products.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.t('inventoryEmpty')),
+            backgroundColor: AppColors.warning,
+            action: SnackBarAction(
+              label: loc.t('addProduct'),
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProductFormScreen()),
+                );
+              },
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.inventory_2, color: Color(0xFFD4AF37), size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        loc.t('pickFromInventory'),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 16),
+              // Product list (scrollable, max 60% screen height)
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (ctx, i) {
+                    final p = products[i];
+                    final isLow = p.isLowStock;
+                    final isOut = p.isOutOfStock;
+                    return ListTile(
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: (isOut
+                              ? AppColors.danger
+                              : isLow
+                                  ? AppColors.warning
+                                  : const Color(0xFFD4AF37)).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.inventory_2,
+                          color: isOut
+                              ? AppColors.danger
+                              : isLow
+                                  ? AppColors.warning
+                                  : const Color(0xFFD4AF37),
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        p.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        '${p.salePrice.toStringAsFixed(2)} · ${loc.t('stockLabel')}: ${p.stock} ${p.unit}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isOut
+                              ? AppColors.danger
+                              : isLow
+                                  ? AppColors.warning
+                                  : (isDark ? Colors.white54 : Colors.black54),
+                        ),
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.add, color: Colors.white, size: 18),
+                      ),
+                      onTap: () {
+                        _addProductToItems(p);
+                        // Keep the sheet open so the user can add more.
+                      },
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.check),
+                    label: Text(loc.t('done')),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -540,6 +834,26 @@ class _BillFormScreenState extends State<BillFormScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          // "Pick from Inventory" button — opens a bottom-sheet list of
+          // all products. Tap to add (qty+1 if already in bill). Stays
+          // open for multi-add convenience.
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: OutlinedButton.icon(
+              onPressed: _pickFromInventory,
+              icon: const Icon(Icons.inventory_2_outlined, size: 18),
+              label: Text(loc.t('pickFromInventory')),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFD4AF37),
+                side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -729,6 +1043,113 @@ class _BillFormScreenState extends State<BillFormScreen> {
                             color: AppColors.danger)),
                   ],
                 ),
+              ],
+            ),
+          ),
+
+          // === Payment section (Amount Paid + Remaining) ===
+          // When the customer pays less than the total, the remaining
+          // balance is auto-added to their Khata as a debit (they owe us).
+          // Only meaningful when a customer is selected — walk-in
+          // customers don't have a Khata ledger.
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF16213E) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: (_paidAmount > 0 && _paidAmount < _total)
+                    ? AppColors.warning.withOpacity(0.5)
+                    : const Color(0xFFD4AF37).withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.payments_outlined,
+                        color: Color(0xFFD4AF37), size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.t('payment'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'KhataHandwriting',
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Amount Paid input
+                TextField(
+                  controller: _paidAmountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: loc.t('amountPaid'),
+                    prefixText: '$symbol ',
+                    suffixText: loc.t('paid'),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (v) {
+                    setState(() {
+                      _paidAmount = double.tryParse(v.trim()) ?? 0;
+                      if (_paidAmount < 0) _paidAmount = 0;
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
+                // Remaining balance display
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      loc.t('remaining'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                    Text(
+                      '$symbol${(_total - _paidAmount).clamp(0, double.infinity).toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: (_total - _paidAmount > 0)
+                            ? AppColors.warning
+                            : AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+                // Hint about auto Khata entry
+                if (_customerId != null &&
+                    _customerId!.isNotEmpty &&
+                    (_total - _paidAmount) > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 14,
+                            color: isDark ? Colors.white54 : Colors.black45),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            loc.t('autoKhataHint'),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark ? Colors.white54 : Colors.black45,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

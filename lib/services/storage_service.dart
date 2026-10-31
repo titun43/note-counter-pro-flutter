@@ -382,8 +382,102 @@ class StorageService extends ChangeNotifier {
   }
   
   Future<void> deleteBill(String id) async {
+    // Find the bill before removing so we can revert stock + Khata entry.
+    final bill = _bills.where((b) => b.id == id).firstOrNull;
+    // Revert stock deduction (adds back the quantity of each linked item).
+    if (bill != null) {
+      await revertStockForBill(bill);
+      // Delete the linked Khata entry (cascade) and adjust customer totals.
+      await deleteLinkedKhataEntry(bill);
+    }
     _bills.removeWhere((b) => b.id == id);
     await _saveBills();
+    notifyListeners();
+  }
+
+  // === Bill ↔ Khata linkage (partial payment auto-entry) ===
+
+  /// Create a Khata Entry for the remaining (unpaid) balance of a bill.
+  /// The entry is linked to the bill via linkedBillId so it can be
+  /// automatically deleted if the bill is deleted. The entry type is
+  /// 'cash_in' (customer will pay us later) and category 'receivable'
+  /// (we will receive this money).
+  Future<void> createLinkedKhataEntry(Bill bill) async {
+    if (bill.customerId == null || bill.customerId!.isEmpty) return;
+    final remaining = bill.remainingAmount;
+    if (remaining <= 0) return;
+    final entry = Entry.create(
+      type: 'cash_in',
+      amount: remaining,
+      currency: bill.currency,
+      customerId: bill.customerId,
+      customerName: bill.customerName,
+      notes: 'Bill ${bill.billNumber} - remaining balance',
+      category: 'receivable',
+      linkedBillId: bill.id,
+    );
+    _entries.add(entry);
+    await _saveEntries();
+    notifyListeners();
+  }
+
+  /// Sync the linked Khata entry when a bill is edited. Deletes the old
+  /// linked entry (if any) and creates a new one if there's still a
+  /// remaining balance. Called by BillFormScreen._saveBill on edit.
+  Future<void> syncLinkedKhataEntry(Bill bill) async {
+    // Remove any existing linked entry for this bill.
+    final hadLinked = _entries.any((e) => e.linkedBillId == bill.id);
+    _entries.removeWhere((e) => e.linkedBillId == bill.id);
+    // Create a new one if there's still a remaining balance AND a customer.
+    if (bill.customerId != null &&
+        bill.customerId!.isNotEmpty &&
+        bill.remainingAmount > 0) {
+      final entry = Entry.create(
+        type: 'cash_in',
+        amount: bill.remainingAmount,
+        currency: bill.currency,
+        customerId: bill.customerId,
+        customerName: bill.customerName,
+        notes: 'Bill ${bill.billNumber} - remaining balance',
+        category: 'receivable',
+        linkedBillId: bill.id,
+      );
+      _entries.add(entry);
+    }
+    if (hadLinked || bill.remainingAmount > 0) {
+      await _saveEntries();
+      notifyListeners();
+    }
+  }
+
+  /// Delete the linked Khata entry for a bill (cascade delete) and adjust
+  /// the customer's totalDebit so their balance stays correct.
+  Future<void> deleteLinkedKhataEntry(Bill bill) async {
+    if (bill.customerId == null || bill.customerId!.isEmpty) return;
+    final linked = _entries.where((e) => e.linkedBillId == bill.id).toList();
+    if (linked.isEmpty) return;
+    // Subtract the linked entry amounts from the customer's totalDebit
+    // (since these were debit entries representing money owed to us).
+    final totalLinked = linked.fold(0.0, (s, e) => s + e.amount);
+    _entries.removeWhere((e) => e.linkedBillId == bill.id);
+    await _saveEntries();
+    // Adjust customer debit back down.
+    await adjustCustomerDebit(bill.customerId!, -totalLinked);
+  }
+
+  /// Adjust a customer's totalDebit by a signed delta. Positive = customer
+  /// owes more, negative = customer owes less. Used by BillFormScreen
+  /// when partial payments change the remaining balance.
+  Future<void> adjustCustomerDebit(String customerId, double delta) async {
+    final index = _customers.indexWhere((c) => c.id == customerId);
+    if (index == -1) return;
+    final c = _customers[index];
+    final newDebit = (c.totalDebit + delta).clamp(0, double.infinity);
+    _customers[index] = c.copyWith(
+      totalDebit: newDebit,
+      updatedAt: DateTime.now(),
+    );
+    await _saveCustomers();
     notifyListeners();
   }
 
