@@ -72,6 +72,9 @@ jobs:
         echo "  Firebase Console > Project Settings > Your apps > Add fingerprint"
         echo "========================================="
 
+    - name: Clean build cache
+      run: flutter clean && flutter pub get
+
     - name: Build APK
       run: flutter build apk --release --no-tree-shake-icons --target-platform android-arm64,android-x64
 
