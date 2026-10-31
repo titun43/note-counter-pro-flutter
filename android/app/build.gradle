@@ -24,9 +24,8 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace "com.lokhnathtechnical.notecounterpro"
     compileSdk 36
-    // NDK version — keeping r28 for compatibility.
-    // targetSdkVersion is 34 (see below) so 16 KB page size is NOT required.
-    ndkVersion "28.0.12674087"
+    // Let Flutter use its default NDK version (same as release 157 which
+    // passed Play Console's 16 KB check successfully).
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

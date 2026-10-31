@@ -90,31 +90,6 @@ jobs:
         mv build/app/outputs/flutter-apk/app-release.apk note-counter-pro.apk
         mv build/app/outputs/bundle/release/app-release.aab note-counter-pro.aab
 
-    - name: Align AAB for 16 KB page size support
-      run: |
-        export ANDROID_HOME=/usr/local/lib/android/sdk
-        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-        # Install build-tools 36.0.0 which includes zipalign with -P flag
-        sdkmanager "build-tools;36.0.0" || true
-        # Find zipalign (use the latest available)
-        ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign 2>/dev/null | sort -V | tail -1)
-        if [ -z "$ZIPALIGN" ]; then
-          echo "⚠️ zipalign not found, trying build-tools/35.0.0"
-          sdkmanager "build-tools;35.0.0" || true
-          ZIPALIGN=$(find $ANDROID_HOME/build-tools -name zipalign 2>/dev/null | sort -V | tail -1)
-        fi
-        echo "Using zipalign: $ZIPALIGN"
-        # Re-align the AAB with 16 KB page alignment (-P 16)
-        # -P takes page size in KB: valid values are 4, 16, 64
-        # This forces ALL .so files to be aligned to 16 KB page boundaries
-        # within the zip, satisfying Play Console's 16 KB checker.
-        $ZIPALIGN -P 16 -f 4 note-counter-pro.aab note-counter-pro-aligned.aab
-        # Verify alignment
-        $ZIPALIGN -c -P 16 4 note-counter-pro-aligned.aab && echo "16 KB alignment verified!" || echo "Alignment check failed!"
-        # Replace original with aligned version
-        mv -f note-counter-pro-aligned.aab note-counter-pro.aab
-        echo "AAB size after alignment: $(du -h note-counter-pro.aab | cut -f1)"
-
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
