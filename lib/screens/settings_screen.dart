@@ -446,14 +446,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Theme.of(context) automatically rebuilds with the new theme.
     // This gives us a single, smooth rebuild — no flash.
     return Scaffold(
-      // No AppBar — saves ~56px of empty space at the top.
-      // top: false because MainScaffold already handles top padding
-      // for the banner ad. Only bottom/left/right SafeArea needed.
+      // No AppBar — custom top bar below for consistency with other
+      // standalone screens (Calculator, Inventory, etc.).
+      // SafeArea (top: true) is essential now that this screen is opened
+      // via Navigator.push (gear icon) — it no longer lives inside
+      // MainScaffold's SafeArea. Without top SafeArea, the content would
+      // overlap the system status bar.
       body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+        child: Column(
           children: [
+            // === Top bar with back button + title ===
+            // Matches the design language used by Calculator, Inventory,
+            // ProductForm, and StockAdjust screens.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.grey[900] : Colors.grey[50],
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, size: 22),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: loc.t('back'),
+                  ),
+                  Icon(Icons.settings, size: 22, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Text(
+                    loc.t('settings'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // === Settings content (scrollable) ===
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                children: [
             // ===== PROFILE / PREMIUM HEADER CARD =====
             ValueListenableBuilder<bool>(
             valueListenable: _premiumNotifier,
@@ -980,10 +1018,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
+          ],          // close ListView children
+        ),            // close ListView
+      ),              // close Expanded
+          ],          // close Column children
+        ),            // close Column
+      ),              // close SafeArea
+    );                // close Scaffold
   }
 
   /// Premium status header card at the top of settings

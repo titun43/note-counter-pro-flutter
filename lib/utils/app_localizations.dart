@@ -392,6 +392,7 @@ class AppLocalizations {
       'confirmDeleteMsg': 'This scan will be removed from history. This cannot be undone.',
       'cancelDelete': 'Cancel',
       'confirmDelete': 'Delete',
+      'back': 'Back',
       // === Inventory Manager ===
       'inventoryManager': 'Inventory Manager',
       'inventoryManagerDesc': 'Products, stock & barcode billing',
@@ -409,6 +410,7 @@ class AppLocalizations {
       'unit': 'Unit',
       'openingStock': 'Opening Stock',
       'lowStockAlert': 'Low Stock Alert (when stock ≤)',
+      'description': 'Description',
       'saveProduct': 'Save Product',
       'productSaved': 'Product saved! Stock updated.',
       'productUpdated': 'Product updated successfully.',
@@ -554,9 +556,6 @@ class AppLocalizations {
       'limitInfoFull3': 'Only ₹2,000 limit (same mobile)',
       'limitInfoFull4': 'Scan here:',
       'limitInfoFull5': 'Extract UPI ID → send up to ₹1,00,000',
-      // === Bills tab — free user limit (commit: tab layout redesign) ===
-      'billsUsedFree': 'bills used on free plan. Upgrade for unlimited.',
-      'billLimitReached': 'Bill limit reached! Upgrade to premium for unlimited bills.',
     },
     'bn': {
       'appTitle': 'নোট কাউন্টার প্রো',
@@ -944,6 +943,7 @@ class AppLocalizations {
       'confirmDeleteMsg': 'এই স্ক্যানটি ইতিহাস থেকে মুছে যাবে। এটি ফিরিয়ে আনা যাবে না।',
       'cancelDelete': 'বাতিল',
       'confirmDelete': 'মুছুন',
+      'back': 'পিছনে',
       // === Inventory Manager ===
       'inventoryManager': 'ইনভেন্টরি ম্যানেজার',
       'inventoryManagerDesc': 'পণ্য, স্টক ও বারকোড বিলিং',
@@ -961,6 +961,7 @@ class AppLocalizations {
       'unit': 'একক',
       'openingStock': 'শুরুর স্টক',
       'lowStockAlert': 'লো স্টক অ্যালার্ট (যখন স্টক ≤)',
+      'description': 'বিবরণ',
       'saveProduct': 'পণ্য সংরক্ষণ',
       'productSaved': 'পণ্য সংরক্ষিত! স্টক আপডেট হয়েছে।',
       'productUpdated': 'পণ্য সফলভাবে আপডেট হয়েছে।',
@@ -1106,9 +1107,6 @@ class AppLocalizations {
       'limitInfoFull3': 'মাত্র ₹2,000 পর্যন্ত (একই মোবাইল)',
       'limitInfoFull4': 'এখানে স্ক্যান করুন:',
       'limitInfoFull5': 'UPI ID বের হবে → ₹1,00,000 পর্যন্ত পাঠাতে পারবেন',
-      // === Bills tab — free user limit ===
-      'billsUsedFree': 'বিল ব্যবহৃত (ফ্রি প্ল্যান)। আনলিমিটেড পেতে আপগ্রেড করুন।',
-      'billLimitReached': 'বিল লিমিট পূর্ণ! আনলিমিটেড বিলের জন্য প্রিমিয়ামে আপগ্রেড করুন।',
     },
     'hi': {
       'appTitle': 'नोट काउंटर प्रो',
@@ -1496,6 +1494,7 @@ class AppLocalizations {
       'confirmDeleteMsg': 'यह स्कैन इतिहास से हटा दिया जाएगा। इसे वापस नहीं लाया जा सकता।',
       'cancelDelete': 'रद्द करें',
       'confirmDelete': 'हटाएं',
+      'back': 'वापस',
       // === Inventory Manager ===
       'inventoryManager': 'इन्वेंटरी मैनेजर',
       'inventoryManagerDesc': 'उत्पाद, स्टॉक व बारकोड बिलिंग',
@@ -1513,6 +1512,7 @@ class AppLocalizations {
       'unit': 'इकाई',
       'openingStock': 'प्रारंभिक स्टॉक',
       'lowStockAlert': 'लो स्टॉक अलर्ट (जब स्टॉक ≤)',
+      'description': 'विवरण',
       'saveProduct': 'उत्पाद सहेजें',
       'productSaved': 'उत्पाद सहेजा गया! स्टॉक अपडेट हुआ।',
       'productUpdated': 'उत्पाद सफलतापूर्वक अपडेट हुआ।',
@@ -1658,9 +1658,6 @@ class AppLocalizations {
       'limitInfoFull3': 'केवल ₹2,000 सीमा (एक ही मोबाइल)',
       'limitInfoFull4': 'यहां स्कैन करें:',
       'limitInfoFull5': 'UPI ID निकालें → ₹1,00,000 तक भेजें',
-      // === Bills tab — free user limit ===
-      'billsUsedFree': 'बिल उपयोग किए (फ्री प्लान)। अनलिमिटेड के लिए अपग्रेड करें।',
-      'billLimitReached': 'बिल सीमा पूरी! अनलिमिटेड बिल के लिए प्रीमियम में अपग्रेड करें।',
     },
   };
   

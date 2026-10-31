@@ -134,96 +134,72 @@ class _BillsScreenState extends State<BillsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          loc.t('bills'),
-          style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
-        ),
-        actions: [
-          // Gear icon → Settings (replaces old Settings tab)
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: loc.t('settings'),
-            onPressed: _openSettings,
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
-            tooltip: loc.t('sortBy'),
-            onSelected: (v) => setState(() => _sortBy = v),
-            itemBuilder: (ctx) => [
-              CheckedPopupMenuItem(
-                value: 'date',
-                checked: _sortBy == 'date',
-                child: Text(loc.t('sortDate')),
-              ),
-              CheckedPopupMenuItem(
-                value: 'amount',
-                checked: _sortBy == 'amount',
-                child: Text(loc.t('sortAmount')),
-              ),
-              CheckedPopupMenuItem(
-                value: 'status',
-                checked: _sortBy == 'status',
-                child: Text(loc.t('sortStatus')),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // === Free-user premium upsell banner ===
-          // Shows when free user has bills (or even 0) — encourages upgrade
-          // for unlimited billing. Hidden for premium users.
-          if (!PremiumService().isPremium)
+      // No AppBar — custom top bar below for consistency with other tabs
+      // (Counter, Khata, Smart Pay, Tools all use custom top bars, not
+      // AppBar). When this screen was Navigator.push'd (premium-only),
+      // AppBar handled the status bar. Now that it's a tab inside
+      // MainScaffold (which already provides SafeArea for the banner ad),
+      // AppBar was adding a SECOND status-bar padding, pushing content
+      // too low. Custom top bar avoids the duplicate padding.
+      body: SafeArea(
+        top: false, // MainScaffold handles top SafeArea for banner ad
+        child: Column(
+          children: [
+            // === Custom top bar (back-free, since this is a tab) ===
+            // Title + gear icon (Settings) + sort PopupMenu
             Container(
-              margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                color: isDark ? Colors.grey[900] : Colors.grey[50],
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? Colors.grey[800]! : Colors.grey[200]!,
+                    width: 0.5,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.workspace_premium,
-                      color: Color(0xFF1A1A2E), size: 22),
+                  const SizedBox(width: 12),
+                  Icon(Icons.receipt_long, size: 22, color: const Color(0xFFD4AF37)),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${allBills.length}/${StorageService.freeBillLimit} ${loc.t('billsUsedFree')}',
-                      style: const TextStyle(
-                        color: Color(0xFF1A1A2E),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  Text(
+                    loc.t('bills'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'KhataHandwriting',
+                      fontSize: 22,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A2E),
-                        borderRadius: BorderRadius.circular(8),
+                  const Spacer(),
+                  // Gear icon → Settings
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: loc.t('settings'),
+                    onPressed: _openSettings,
+                  ),
+                  // Sort menu
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.sort),
+                    tooltip: loc.t('sortBy'),
+                    onSelected: (v) => setState(() => _sortBy = v),
+                    itemBuilder: (ctx) => [
+                      CheckedPopupMenuItem(
+                        value: 'date',
+                        checked: _sortBy == 'date',
+                        child: Text(loc.t('sortDate')),
                       ),
-                      child: const Text(
-                        'PRO',
-                        style: TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      CheckedPopupMenuItem(
+                        value: 'amount',
+                        checked: _sortBy == 'amount',
+                        child: Text(loc.t('sortAmount')),
                       ),
-                    ),
+                      CheckedPopupMenuItem(
+                        value: 'status',
+                        checked: _sortBy == 'status',
+                        child: Text(loc.t('sortStatus')),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -439,7 +415,8 @@ class _BillsScreenState extends State<BillsScreen> {
           ),
           const BannerAdWidget(),
         ],
-      ),
+        ),  // close Column
+      ),  // close SafeArea
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createBill,
         backgroundColor: const Color(0xFF8B0000),
