@@ -383,7 +383,7 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     );
   }
 
-  // === ₹2000 INFO BANNER (Option A — full text, multi-line) ===
+  // === ₹2000 INFO BANNER — redesigned (soft gold shadow + rounded 20px + modern icon badges) ===
   Widget _buildLimitBanner(bool isDark, AppLocalizations loc, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -395,11 +395,23 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
               ? [const Color(0xFF1F2937), const Color(0xFF111827)]
               : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFFD4AF37).withOpacity(0.5),
           width: 2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withOpacity(isDark ? 0.18 : 0.22),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,149 +433,285 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          // RED block — limitInfoFull2 + limitInfoFull3
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.cancel, color: AppColors.danger, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.t('limitInfoFull2'),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.danger,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      loc.t('limitInfoFull3'),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.danger,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+          // RED block — modern info badge + limitInfoFull2 + limitInfoFull3
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.danger.withOpacity(0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Modern red info badge (circle with 'i')
+                Container(
+                  width: 20,
+                  height: 20,
+                  margin: const EdgeInsets.only(top: 1),
+                  decoration: const BoxDecoration(
+                    color: AppColors.danger,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.info_outline, color: Colors.white, size: 14),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.t('limitInfoFull2'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.danger,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        loc.t('limitInfoFull3'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.danger,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          // GREEN block — limitInfoFull4 + limitInfoFull5
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.t('limitInfoFull4'),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.success,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      loc.t('limitInfoFull5'),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.success,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+          const SizedBox(height: 8),
+          // GREEN block — modern check badge + limitInfoFull4 + limitInfoFull5
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.success.withOpacity(0.25)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Modern green check badge (circle with check)
+                Container(
+                  width: 20,
+                  height: 20,
+                  margin: const EdgeInsets.only(top: 1),
+                  decoration: const BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.check, color: Colors.white, size: 14),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.t('limitInfoFull4'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        loc.t('limitInfoFull5'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.success,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  // === TOGGLE SWITCH (Gallery / Camera) ===
+  // === SEGMENTED PILL CONTROL (Gallery / Camera) — replaces Switch ===
   Widget _buildToggleSwitch(bool isDark, AppLocalizations loc, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        color: isDark ? Colors.grey[850] : const Color(0xFFF0F0F3),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          Icon(Icons.image, size: 20,
-              color: !_useCamera ? AppColors.primary : AppColors.textSecondary),
-          const SizedBox(width: 8),
-          Text(
-            loc.t('scanGalleryMode'),
-            style: TextStyle(
-              fontWeight: !_useCamera ? FontWeight.bold : FontWeight.normal,
-              color: !_useCamera ? AppColors.primary : AppColors.textSecondary,
+          Expanded(
+            child: _pillTab(
+              label: loc.t('scanGalleryMode'),
+              icon: Icons.image_outlined,
+              active: !_useCamera,
+              isDark: isDark,
+              onTap: () {
+                setState(() {
+                  _useCamera = false;
+                  _scanResult = null;
+                  _scanError = null;
+                  _stopCamera();
+                });
+              },
             ),
           ),
-          const Spacer(),
-          Switch(
-            value: _useCamera,
-            onChanged: (value) {
-              setState(() {
-                _useCamera = value;
-                _scanResult = null;
-                _scanError = null;
-                if (!value) _stopCamera();
-              });
-            },
-            activeColor: AppColors.primary,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            loc.t('scanCameraMode'),
-            style: TextStyle(
-              fontWeight: _useCamera ? FontWeight.bold : FontWeight.normal,
-              color: _useCamera ? AppColors.primary : AppColors.textSecondary,
+          Expanded(
+            child: _pillTab(
+              label: loc.t('scanCameraMode'),
+              icon: Icons.camera_alt_outlined,
+              active: _useCamera,
+              isDark: isDark,
+              onTap: () {
+                setState(() {
+                  _useCamera = true;
+                  _scanResult = null;
+                  _scanError = null;
+                });
+              },
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(Icons.camera_alt, size: 20,
-              color: _useCamera ? AppColors.primary : AppColors.textSecondary),
         ],
       ),
     );
   }
 
-  // === GALLERY BUTTON ===
+  /// Single segmented pill tab — active state uses gold gradient + shadow
+  Widget _pillTab({
+    required String label,
+    required IconData icon,
+    required bool active,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          gradient: active
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFD4AF37), Color(0xFFB8941F)],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFD4AF37).withOpacity(0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: active
+                  ? Colors.white
+                  : (isDark ? Colors.white54 : Colors.grey[600]),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: active
+                      ? Colors.white
+                      : (isDark ? Colors.white54 : Colors.grey[600]),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // === GALLERY BUTTON — redesigned with gradient + icon badge + Browse button ===
   Widget _buildGalleryButton(bool isDark, AppLocalizations loc) {
     return GestureDetector(
       onTap: _isScanning ? null : _pickImageAndScan,
       child: Container(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 2),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [AppColors.bgCardDark, const Color(0xFF2A2418)]
+                : [Colors.white, const Color(0xFFFFF7ED)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFD4AF37).withOpacity(0.5),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD4AF37).withOpacity(0.10),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            _isScanning
-                ? const CircularProgressIndicator()
-                : Icon(Icons.image, size: 56, color: AppColors.primary),
+            // Icon badge (rounded square with gold gradient)
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
+                ),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFD4AF37).withOpacity(0.20),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: _isScanning
+                  ? const CircularProgressIndicator(color: Color(0xFFD4AF37))
+                  : const Icon(Icons.image, size: 32, color: Color(0xFFD4AF37)),
+            ),
             const SizedBox(height: 12),
             Text(
               _isScanning ? loc.t('scanning') : loc.t('scanSelectImage'),
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : Colors.black54,
               ),
               textAlign: TextAlign.center,
             ),
@@ -576,6 +724,42 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
               ),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 16),
+            // Modern "Browse from Device" button
+            if (!_isScanning)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFD4AF37), Color(0xFFB8941F)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD4AF37).withOpacity(0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.folder_open, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.t('browseFromDevice'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -726,7 +910,64 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
     );
   }
 
-  // === SCAN HISTORY (separate from Counter's QR History) ===
+  // === SCAN HISTORY — redesigned (Avatar badge + muted delete + confirmation) ===
+  // Avatar color palette (5 gradients cycled by index)
+  static const List<List<Color>> _avatarGradients = [
+    [Color(0xFF667EEA), Color(0xFF764BA2)],
+    [Color(0xFFF093FB), Color(0xFFF5576C)],
+    [Color(0xFF4FACFE), Color(0xFF00F2FE)],
+    [Color(0xFF43E97B), Color(0xFF38F9D7)],
+    [Color(0xFFFA709A), Color(0xFFFEE140)],
+  ];
+
+  /// Show confirmation dialog before deleting a scan from history.
+  Future<void> _confirmDelete(int index, AppLocalizations loc) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                loc.t('confirmDeleteTitle'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(loc.t('confirmDeleteMsg'), style: const TextStyle(fontSize: 13)),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(loc.t('cancelDelete')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(loc.t('confirmDelete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      context.read<StorageService>().deleteUpiScanHistory(index);
+    }
+  }
+
+  /// Generate initials from UPI ID (e.g. 'saurav@okhdfc' → 'S').
+  String _initials(String upiId) {
+    if (upiId.isEmpty) return '?';
+    return upiId[0].toUpperCase();
+  }
+
   Widget _buildScanHistory(
       bool isDark, AppLocalizations loc, ThemeData theme, StorageService storage, List<Map<String, String>> history) {
     return Column(
@@ -780,46 +1021,114 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
               shrinkWrap: true,
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: history.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final item = history[index];
-                return Card(
-                  margin: EdgeInsets.zero,
-                  color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    side: BorderSide(
-                      color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary).withOpacity(0.1),
+                final upiId = item['upiId'] ?? '';
+                final name = item['name'] ?? '';
+                final amount = item['amount'];
+                final displayLabel = name.isNotEmpty
+                    ? name
+                    : (upiId.isNotEmpty ? upiId.split('@').first : '');
+                final gradient = _avatarGradients[index % _avatarGradients.length];
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.05),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 3,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    // IMPROVEMENT 4: Avatar / Initials badge
                     leading: Container(
-                      width: 36,
-                      height: 36,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.info.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: gradient,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.qr_code_scanner, size: 18, color: AppColors.info),
+                      child: Center(
+                        child: Text(
+                          _initials(upiId.isNotEmpty ? upiId : displayLabel),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
                     ),
                     title: Text(
-                      item['upiId'] ?? '',
+                      upiId,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    subtitle: Text(
-                      (item['name']?.isNotEmpty == true ? '${item['name']}  ·  ' : '') +
-                          (item['amount']?.isNotEmpty == true ? '₹${item['amount']}' : loc.t('upiId')),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11),
+                    subtitle: Row(
+                      children: [
+                        if (displayLabel.isNotEmpty)
+                          Flexible(
+                            child: Text(
+                              displayLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? Colors.white60 : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        if (displayLabel.isNotEmpty && (amount?.isNotEmpty == true))
+                          Text(' · ', style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+                        if (amount?.isNotEmpty == true)
+                          Text(
+                            '₹$amount',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
                     ),
+                    // IMPROVEMENT 5: Muted grey delete icon with confirmation dialog
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger),
-                      onPressed: () => storage.deleteUpiScanHistory(index),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: isDark ? Colors.white38 : Colors.grey[400],
+                      ),
+                      onPressed: () => _confirmDelete(index, loc),
+                      tooltip: loc.t('confirmDelete'),
+                      style: IconButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                     onTap: () {
                       setState(() {
