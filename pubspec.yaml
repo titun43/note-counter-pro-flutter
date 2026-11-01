@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.37.0+174
+version: 3.37.0+175
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -96,11 +96,10 @@ dev_dependencies:
 dependency_overrides:
   archive: ^3.6.1
   image: 4.1.7
-  # Force in_app_purchase_android to use Play Billing Library 8.0.0
-  # (minimum required by Play Console). Version 0.4.x uses Billing 8.x
-  # and is compatible with Dart 3.9.2 (Flutter 3.35.5).
-  # 0.5.x uses Billing 9.x but needs Dart ^3.10.0 (Flutter 3.47+).
-  in_app_purchase_android: ^0.4.0
+  # Force in_app_purchase_android to 0.4.0+10 — uses Play Billing 8.0.0
+  # AND is compatible with Dart 3.9 (Flutter 3.35.5).
+  # 0.4.0+11 needs Dart 3.10, but 0.4.0+10 only needs Dart 3.9.
+  in_app_purchase_android: 0.4.0+10
 
 flutter:
   uses-material-design: true
