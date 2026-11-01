@@ -94,12 +94,10 @@ flutter {
 dependencies {
     implementation 'com.google.android.gms:play-services-ads:22.6.0'
     implementation 'com.google.android.play:app-update:2.1.0'
-    // NOTE (v3.30.0): Removed forced billing:8.1.0 dependency.
-    // The in_app_purchase_android plugin manages its own billing client
-    // dependency. Forcing a different version caused queryProductDetails()
-    // to silently return an empty list (production users saw
-    // "Could not find this plan in Google Play" error).
-    // Now the plugin uses its compatible billing client version.
+    // Force Play Billing Library 8.0.0+ (required by Play Console).
+    // in_app_purchase_android 0.4.0+10 ships with Billing 7.1.1, but
+    // Play Console now requires >= 8.0.0. This override forces 8.1.0.
+    implementation 'com.android.billingclient:billing:8.1.0'
     // Core library desugaring — required by flutter_local_notifications for Java 8+ APIs on older Android
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
