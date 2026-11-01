@@ -66,7 +66,7 @@ dependencies:
   # In-App Purchase (Premium subscription for ad-free experience)
   # in_app_purchase_android is overridden below to a version that uses
   # Google Play Billing Library 8.x (required by Play Console policy).
-  in_app_purchase: ^3.2.4
+  in_app_purchase: ^3.2.3
 
   # Cloud Backup (Google Drive) — premium feature
   google_sign_in: ^6.2.1
