@@ -92,10 +92,15 @@ class FeedbackService {
       // engine) — first-play latency <50ms, subsequent plays instant.
       for (final type in FeedbackType.values) {
         try {
-          final player = AudioPlayer(
-            playerId: 'ncp_${type.name}',
-            mode: PlayerMode.lowLatency,
-          );
+          final player = AudioPlayer(playerId: 'ncp_${type.name}');
+          // PlayerMode.lowLatency → SoundPool on Android (low-latency SFX).
+          // Must be set via setPlayerMode() — the `mode` constructor param
+          // was removed in audioplayers 4.x.
+          try {
+            await player.setPlayerMode(PlayerMode.lowLatency);
+          } catch (_) {
+            // PlayerMode API may differ across versions — default mode still works.
+          }
           await player.setReleaseMode(ReleaseMode.stop);
           await player.setVolume(_volumeFor[type]!);
           // Pre-load the source (decodes MP3 → PCM in memory).
