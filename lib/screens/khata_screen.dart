@@ -391,6 +391,8 @@ class _KhataScreenState extends State<KhataScreen> {
       }
 
       await storage.deleteCustomer(customer.id);
+      // Destructive action feedback.
+      FeedbackService().error();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

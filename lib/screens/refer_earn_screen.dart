@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -170,7 +171,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: _copyCode,
+                          onPressed: () { FeedbackService().tap(); _copyCode(); },
                           icon: const Icon(Icons.copy, color: AppColors.primary),
                           tooltip: loc.t('referEarnCopy'),
                         ),
@@ -181,7 +182,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
 
                   // Share button
                   FilledButton.icon(
-                    onPressed: _share,
+                    onPressed: () { FeedbackService().click(); _share(); },
                     icon: const Icon(Icons.share),
                     label: Text(
                       loc.t('referEarnShare'),
@@ -239,7 +240,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
-                        onPressed: _isSubmitting ? null : _submitCode,
+                        onPressed: _isSubmitting ? null : () { FeedbackService().click(); _submitCode(); },
                         child: _isSubmitting
                             ? const SizedBox(
                                 width: 18,

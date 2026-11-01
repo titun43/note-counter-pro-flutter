@@ -10,15 +10,20 @@
 //
 // If a setting is OFF, that channel is silenced — no exceptions.
 //
+// LATENCY OPTIMIZATION:
+//   • Each sound is pre-loaded into its OWN AudioPlayer at init time.
+//   • Players use PlayerMode.lowLatency → on Android this routes through
+//     SoundPool (the OS-native low-latency SFX engine). First-play
+//     latency is typically <50ms; subsequent plays are near-instant.
+//   • To replay a sound that's already loaded, we seek(0) + resume()
+//     instead of calling play() with a fresh source — this skips
+//     source resolution and gets the sound out faster.
+//
 // Usage:
 //   FeedbackService.tap();            // light tap (most buttons)
 //   FeedbackService.click();          // medium click (primary action)
 //   FeedbackService.success();        // success chime (save / create)
 //   FeedbackService.error();          // soft buzz (delete / error)
-//
-// The service is a singleton. The SharedPreferences instance is injected
-// via init() at app start (after StorageService is built) so we never
-// block on a fresh prefs lookup for every tap.
 // =============================================================================
 
 import 'package:flutter/foundation.dart';
@@ -48,14 +53,14 @@ class FeedbackService {
   factory FeedbackService() => _instance;
 
   // Cached SharedPreferences — injected from main.dart after app start.
-  // May be null briefly during cold start; we treat null as "default ON".
   SharedPreferences? _prefs;
 
-  // Single AudioPlayer reused for all SFX. AudioPlayer is cheap to reuse
-  // and we never play more than one SFX at a time.
-  AudioPlayer? _player;
+  // One pre-loaded AudioPlayer PER sound type.
+  // Pre-loading is the key to low latency: the asset is decoded into PCM
+  // once, at init, so play() is just "start playback" (no decode delay).
+  final Map<FeedbackType, AudioPlayer> _players = {};
 
-  // Pre-resolved asset URLs. Avoids path resolution per tap.
+  // Pre-resolved asset paths.
   static const Map<FeedbackType, String> _assetFor = {
     FeedbackType.tap: 'sounds/tap.mp3',
     FeedbackType.click: 'sounds/click.mp3',
@@ -66,24 +71,43 @@ class FeedbackService {
   // Volume per feedback type (0.0 – 1.0). Kept conservative so the click
   // is clearly audible without ever being annoying.
   static const Map<FeedbackType, double> _volumeFor = {
-    FeedbackType.tap: 0.5,
-    FeedbackType.click: 0.7,
-    FeedbackType.success: 0.7,
-    FeedbackType.error: 0.7,
+    FeedbackType.tap: 0.55,
+    FeedbackType.click: 0.75,
+    FeedbackType.success: 0.75,
+    FeedbackType.error: 0.80, // louder so delete is clearly heard
   };
 
   bool _initialized = false;
   bool _soundInitFailed = false; // if true, skip sound forever (no audio device)
 
-  /// Inject SharedPreferences and warm up the AudioPlayer.
+  /// Inject SharedPreferences and pre-load all sound assets.
   /// Safe to call multiple times.
   Future<void> init(SharedPreferences prefs) async {
     _prefs = prefs;
     if (_initialized) return;
+
     try {
-      _player = AudioPlayer(playerId: 'ncp_feedback_sfx');
-      await _player!.setReleaseMode(ReleaseMode.stop);
-      await _player!.setVolume(0.7);
+      // Pre-load each sound into its own low-latency player.
+      // On Android, PlayerMode.lowLatency uses SoundPool (OS-native SFX
+      // engine) — first-play latency <50ms, subsequent plays instant.
+      for (final type in FeedbackType.values) {
+        try {
+          final player = AudioPlayer(
+            playerId: 'ncp_${type.name}',
+            mode: PlayerMode.lowLatency,
+          );
+          await player.setReleaseMode(ReleaseMode.stop);
+          await player.setVolume(_volumeFor[type]!);
+          // Pre-load the source (decodes MP3 → PCM in memory).
+          await player.setSource(AssetSource(_assetFor[type]!));
+          _players[type] = player;
+        } catch (e) {
+          debugPrint('FeedbackService: failed to pre-load ${type.name}: $e');
+        }
+      }
+      if (_players.isEmpty) {
+        _soundInitFailed = true;
+      }
     } catch (e) {
       debugPrint('FeedbackService audio init failed (non-fatal): $e');
       _soundInitFailed = true;
@@ -133,11 +157,20 @@ class FeedbackService {
 
   void _soundFor(FeedbackType type) {
     if (!_soundEnabled) return;
-    final p = _player;
+    final p = _players[type];
     if (p == null) return;
-    // Fire-and-forget — we never block the UI thread on audio.
-    p.play(AssetSource(_assetFor[type]!), volume: _volumeFor[type]!)
-        .catchError((e) {
+
+    // For instant replay of an already-loaded sound:
+    //   1. seek(Duration.zero) — rewind to start
+    //   2. resume()            — start playback (no source resolution)
+    // This is faster than calling play(AssetSource(...)) again because
+    // the source is already decoded in memory.
+    //
+    // We don't await these — fire-and-forget so the UI thread never
+    // blocks on audio. Errors are silently swallowed (sound is best-effort).
+    p.seek(Duration.zero).then((_) {
+      return p.resume();
+    }).catchError((e) {
       debugPrint('FeedbackService sound failed: $e');
     });
   }
@@ -163,10 +196,13 @@ class FeedbackService {
   /// Convenience: destructive / error. Use for delete actions and errors.
   void error() => fire(FeedbackType.error);
 
-  /// Dispose the underlying audio player. Only call on app teardown.
+  /// Dispose all underlying audio players. Only call on app teardown.
   Future<void> dispose() async {
-    try {
-      await _player?.dispose();
-    } catch (_) {}
+    for (final p in _players.values) {
+      try {
+        await p.dispose();
+      } catch (_) {}
+    }
+    _players.clear();
   }
 }

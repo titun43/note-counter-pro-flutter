@@ -6,6 +6,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../services/premium_service.dart';
 import '../services/admob_service.dart';
 import '../utils/constants.dart';
@@ -480,7 +481,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
               // Restore
               Center(
                 child: TextButton.icon(
-                  onPressed: _isLoading ? null : _restore,
+                  onPressed: _isLoading ? null : () {
+                    FeedbackService().click();
+                    _restore();
+                  },
                   icon: const Icon(Icons.restore, size: 18),
                   label: Text(loc.t('premiumRestore')),
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import 'package:local_auth/local_auth.dart';
 import '../utils/constants.dart';
 
@@ -141,7 +142,10 @@ class _LockScreenState extends State<LockScreen> {
 
                 // Unlock button
                 FilledButton.icon(
-                  onPressed: _isAuthenticating ? null : _authenticate,
+                  onPressed: _isAuthenticating ? null : () {
+                    FeedbackService().click();
+                    _authenticate();
+                  },
                   icon: const Icon(Icons.lock_open),
                   label: Text(_isAuthenticating ? 'Authenticating...' : 'Unlock'),
                   style: FilledButton.styleFrom(

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../services/storage_service.dart';
+import '../services/feedback_service.dart';
 import '../widgets/banner_ad_widget.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -119,7 +120,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           if (history.isNotEmpty) ...[
             Row(children: [Icon(Icons.history, size: 18, color: AppColors.primary), const SizedBox(width: 8), Text(loc.t('scanHistory'), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary))]),
             const SizedBox(height: 8),
-            ...history.take(10).toList().asMap().entries.map((entry) { final index = entry.key; final item = entry.value; return Card(margin: const EdgeInsets.only(bottom: 4), color: isDark ? AppColors.bgCardDark : AppColors.bgCard, child: ListTile(leading: Icon(_getIconForType(item['type'] ?? 'Text'), size: 20, color: AppColors.info), title: Text(item['content'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)), subtitle: Text(item['type'] ?? '', style: const TextStyle(fontSize: 11)), trailing: IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger), onPressed: () => storage.deleteScanHistory(index)), onTap: () => setState(() => _scanResult = Map<String, String>.from(item)))); }),
+            ...history.take(10).toList().asMap().entries.map((entry) { final index = entry.key; final item = entry.value; return Card(margin: const EdgeInsets.only(bottom: 4), color: isDark ? AppColors.bgCardDark : AppColors.bgCard, child: ListTile(leading: Icon(_getIconForType(item['type'] ?? 'Text'), size: 20, color: AppColors.info), title: Text(item['content'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)), subtitle: Text(item['type'] ?? '', style: const TextStyle(fontSize: 11)), trailing: IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.danger), onPressed: () { FeedbackService().error(); storage.deleteScanHistory(index); }), onTap: () => setState(() => _scanResult = Map<String, String>.from(item)))); }),
           ],
         ]))),
       ])),

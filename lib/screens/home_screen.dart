@@ -1661,6 +1661,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirmed == true) {
       final storage = context.read<StorageService>();
       await storage.deleteQrHistory(index);
+      // Destructive action feedback.
+      FeedbackService().error();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

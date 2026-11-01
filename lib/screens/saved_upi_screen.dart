@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import '../services/admob_service.dart';
 import '../services/saved_upi_service.dart';
+import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/saved_upi.dart';
@@ -384,6 +385,8 @@ class _SavedUpiScreenState extends State<SavedUpiScreen> {
           FilledButton(
             onPressed: () async {
               await SavedUpiService().delete(upi.id);
+              // Destructive action feedback.
+              FeedbackService().error();
               if (!mounted) return;
               Navigator.pop(ctx, true);
               setState(() {});

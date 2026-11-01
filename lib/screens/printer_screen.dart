@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'package:provider/provider.dart';
 import '../models/entry.dart';

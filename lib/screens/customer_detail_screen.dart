@@ -448,6 +448,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       await storage.updateCustomer(_customer!);
 
       await storage.deleteEntry(entry.id);
+      // Destructive action feedback.
+      FeedbackService().error();
 
       setState(() {
         _customer = storage.getCustomer(widget.customerId);
@@ -902,13 +904,17 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: loc.t('sharePage'),
-            onPressed: _sharePage,
+            onPressed: () {
+              FeedbackService().tap();
+              _sharePage();
+            },
           ),
           // Share as PDF
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'Share PDF',
             onPressed: () async {
+              FeedbackService().tap();
               final storage = context.read<StorageService>();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Generating PDF...'), duration: Duration(seconds: 1)),

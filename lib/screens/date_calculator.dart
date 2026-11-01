@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 
 class DateCalculator extends StatefulWidget {
@@ -149,7 +150,10 @@ class _DateCalculatorState extends State<DateCalculator> {
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: _calculateAddSubtract,
+                    onPressed: () {
+                      FeedbackService().click();
+                      _calculateAddSubtract();
+                    },
                     icon: const Icon(Icons.calculate),
                     label: const Text('Calculate'),
                   ),

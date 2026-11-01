@@ -7,6 +7,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 
@@ -130,7 +131,10 @@ class _GstCalculatorState extends State<GstCalculator> {
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: _calculate,
+            onPressed: () {
+              FeedbackService().click();
+              _calculate();
+            },
             icon: const Icon(Icons.calculate),
             label: Text(loc.t('gstCalculate'), style: const TextStyle(fontWeight: FontWeight.bold)),
             style: FilledButton.styleFrom(

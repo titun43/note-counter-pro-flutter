@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 
 class ScientificCalculator extends StatefulWidget {
   const ScientificCalculator({super.key});
@@ -388,7 +389,10 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
       height: 60,
       margin: const EdgeInsets.all(3),
       child: ElevatedButton(
-        onPressed: () => _onButton(label),
+        onPressed: () {
+          FeedbackService().tap();
+          _onButton(label);
+        },
         style: ElevatedButton.styleFrom(
           shape: const CircleBorder(),
           padding: EdgeInsets.zero,

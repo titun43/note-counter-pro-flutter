@@ -17,6 +17,7 @@ import '../services/storage_service.dart';
 import '../services/pdf_service.dart';
 import '../services/notification_service.dart';
 import '../services/printer_service.dart';
+import '../services/feedback_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -550,6 +551,8 @@ ${_bill!.paidAmount > 0 ? 'Paid: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\
     );
     if (confirmed == true) {
       await context.read<StorageService>().deleteBill(_bill!.id);
+      // Destructive action feedback.
+      FeedbackService().error();
       if (mounted) Navigator.pop(context, true);
     }
   }
@@ -666,7 +669,10 @@ ${_bill!.paidAmount > 0 ? 'Paid: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\
                   ),
                 ),
                 TextButton(
-                  onPressed: _togglePaid,
+                  onPressed: () {
+                    FeedbackService().success();
+                    _togglePaid();
+                  },
                   style: TextButton.styleFrom(foregroundColor: statusColor),
                   child: Text(bill.isPaid
                       ? (loc.t('markUnpaid'))

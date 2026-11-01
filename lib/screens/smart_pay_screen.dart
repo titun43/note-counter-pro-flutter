@@ -636,11 +636,11 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                             // Buttons
                             Row(
                               children: [
-                                Expanded(child: OutlinedButton.icon(onPressed: _copyUpiId, icon: const Icon(Icons.copy, size: 16), label: Text(loc.t('scanCopy')))),
+                                Expanded(child: OutlinedButton.icon(onPressed: () { FeedbackService().tap(); _copyUpiId(); }, icon: const Icon(Icons.copy, size: 16), label: Text(loc.t('scanCopy')))),
                                 const SizedBox(width: 8),
-                                Expanded(child: FilledButton.icon(onPressed: _openUpiApp, icon: const Icon(Icons.payment, size: 16), label: Text(loc.t('openUpi')))),
+                                Expanded(child: FilledButton.icon(onPressed: () { FeedbackService().click(); _openUpiApp(); }, icon: const Icon(Icons.payment, size: 16), label: Text(loc.t('openUpi')))),
                                 const SizedBox(width: 8),
-                                Expanded(child: OutlinedButton.icon(onPressed: _saveUpiId, icon: const Icon(Icons.save, size: 16), label: Text(loc.t('save')))),
+                                Expanded(child: OutlinedButton.icon(onPressed: () { FeedbackService().success(); _saveUpiId(); }, icon: const Icon(Icons.save, size: 16), label: Text(loc.t('save')))),
                               ],
                             ),
                           ],
@@ -762,7 +762,10 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                                 size: 18,
                                 color: isDark ? Colors.white38 : Colors.grey[400],
                               ),
-                              onPressed: () => _confirmDelete(index),
+                              onPressed: () {
+                                FeedbackService().error();
+                                _confirmDelete(index);
+                              },
                               tooltip: loc.t('confirmDelete'),
                               style: IconButton.styleFrom(
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
@@ -213,7 +214,10 @@ class _ConverterScreenState extends State<ConverterScreen> {
             Center(
               child: IconButton(
                 icon: const Icon(Icons.swap_vert, size: 32),
-                onPressed: _swap,
+                onPressed: () {
+                  FeedbackService().tap();
+                  _swap();
+                },
                 color: AppColors.primary,
               ),
             ),

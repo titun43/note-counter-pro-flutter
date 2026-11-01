@@ -5,6 +5,7 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
@@ -209,7 +210,10 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
                         ),
                         const SizedBox(height: 16),
                         FilledButton.icon(
-                          onPressed: _signIn,
+                          onPressed: () {
+                            FeedbackService().click();
+                            _signIn();
+                          },
                           icon: const Icon(Icons.login),
                           label: Text(loc.t('cloudBackupSignInBtn')),
                           style: FilledButton.styleFrom(
@@ -240,7 +244,10 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
                         ),
                         const SizedBox(height: 16),
                         FilledButton.icon(
-                          onPressed: _backup,
+                          onPressed: () {
+                            FeedbackService().success();
+                            _backup();
+                          },
                           icon: const Icon(Icons.backup),
                           label: Text(loc.t('cloudBackupUpload')),
                           style: FilledButton.styleFrom(
@@ -250,7 +257,10 @@ class _CloudBackupScreenState extends State<CloudBackupScreen> {
                         ),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
-                          onPressed: _restore,
+                          onPressed: () {
+                            FeedbackService().tap();
+                            _restore();
+                          },
                           icon: const Icon(Icons.restore),
                           label: Text(loc.t('cloudBackupRestore')),
                           style: OutlinedButton.styleFrom(

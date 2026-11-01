@@ -14,6 +14,7 @@
 // =============================================================================
 
 import 'dart:io';
+import '../services/feedback_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -215,7 +216,7 @@ class _UpiGenerateScreenState extends State<UpiGenerateScreen> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: _generateQr,
+                      onPressed: () { FeedbackService().click(); _generateQr(); },
                       icon: const Icon(Icons.qr_code),
                       label: Text(
                         loc.t('generateQrCode'),
@@ -287,7 +288,7 @@ class _UpiGenerateScreenState extends State<UpiGenerateScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _shareQrImage,
+                              onPressed: () { FeedbackService().tap(); _shareQrImage(); },
                               icon: const Icon(Icons.share, size: 18),
                               label: Text(loc.t('share')),
                             ),
@@ -295,7 +296,7 @@ class _UpiGenerateScreenState extends State<UpiGenerateScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _copyUpiId,
+                              onPressed: () { FeedbackService().tap(); _copyUpiId(); },
                               icon: const Icon(Icons.copy, size: 18),
                               label: Text(loc.t('copyUpi')),
                             ),

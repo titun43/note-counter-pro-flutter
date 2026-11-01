@@ -23,6 +23,7 @@ import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../services/premium_service.dart';
+import '../services/feedback_service.dart';
 import '../models/product.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
@@ -490,6 +491,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
     if (confirmed == true && mounted) {
       await context.read<StorageService>().deleteProduct(p.id);
+      // Destructive action feedback.
+      FeedbackService().error();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

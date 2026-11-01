@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../services/feedback_service.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -114,12 +115,12 @@ class _QrGeneratorScreenState extends State<QrGeneratorScreen> {
             TextField(controller: _contentController, decoration: InputDecoration(labelText: _typeIndex == 0 ? loc.t('qrTypeText') : _typeIndex == 1 ? loc.t('qrTypeUrl') : _typeIndex == 3 ? loc.t('qrTypePhone') : loc.t('qrTypeEmail'), border: const OutlineInputBorder()), maxLines: _typeIndex == 0 ? 3 : 1),
           ],
           const SizedBox(height: 16),
-          FilledButton.icon(onPressed: _generateQr, icon: const Icon(Icons.qr_code), label: Text(loc.t('qrGenerate'), style: const TextStyle(fontWeight: FontWeight.bold)), style: FilledButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.bgDark, padding: const EdgeInsets.symmetric(vertical: 14))),
+          FilledButton.icon(onPressed: () { FeedbackService().click(); _generateQr(); }, icon: const Icon(Icons.qr_code), label: Text(loc.t('qrGenerate'), style: const TextStyle(fontWeight: FontWeight.bold)), style: FilledButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.bgDark, padding: const EdgeInsets.symmetric(vertical: 14))),
           const SizedBox(height: 20),
           if (_qrData != null) ...[
             Screenshot(controller: _screenshotController, child: Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: isDark ? AppColors.bgCardDark : AppColors.bgCard, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3))), child: Column(children: [QrImageView(data: _qrData!, version: QrVersions.auto, size: 200, backgroundColor: Colors.white), const SizedBox(height: 12), Text(loc.t('qrScanMe'), style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black54))]))),
             const SizedBox(height: 12),
-            OutlinedButton.icon(onPressed: _shareQr, icon: const Icon(Icons.share), label: Text(loc.t('qrShare')), style: OutlinedButton.styleFrom(foregroundColor: AppColors.info, padding: const EdgeInsets.symmetric(vertical: 12))),
+            OutlinedButton.icon(onPressed: () { FeedbackService().tap(); _shareQr(); }, icon: const Icon(Icons.share), label: Text(loc.t('qrShare')), style: OutlinedButton.styleFrom(foregroundColor: AppColors.info, padding: const EdgeInsets.symmetric(vertical: 12))),
           ],
         ]))),
       ])),

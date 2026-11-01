@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 
 class ProgrammerCalculator extends StatefulWidget {
   const ProgrammerCalculator({super.key});
@@ -282,7 +283,7 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
       height: 36,
       margin: const EdgeInsets.symmetric(horizontal: 2),
       child: ElevatedButton(
-        onPressed: () => _changeBase(base),
+        onPressed: () { FeedbackService().tap(); _changeBase(base); },
         style: ElevatedButton.styleFrom(
           backgroundColor: active ? const Color(0xFFFF9500) : (isDark ? Colors.grey[800] : Colors.grey[300]),
           foregroundColor: active ? Colors.white : (isDark ? Colors.white70 : Colors.black54),
@@ -299,7 +300,10 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
       height: 40,
       margin: const EdgeInsets.all(2),
       child: ElevatedButton(
-        onPressed: () => _onButton(label),
+        onPressed: () {
+          FeedbackService().tap();
+          _onButton(label);
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: isDark ? const Color(0xFF1E3A5F) : const Color(0xFFE3F2FD),
           foregroundColor: const Color(0xFF1976D2),
@@ -327,7 +331,10 @@ class _ProgrammerCalculatorState extends State<ProgrammerCalculator> {
       height: 60,
       margin: const EdgeInsets.all(3),
       child: ElevatedButton(
-        onPressed: () => _onButton(label),
+        onPressed: () {
+          FeedbackService().tap();
+          _onButton(label);
+        },
         style: ElevatedButton.styleFrom(
           shape: const CircleBorder(),
           padding: EdgeInsets.zero,

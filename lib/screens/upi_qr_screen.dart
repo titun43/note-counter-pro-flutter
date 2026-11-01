@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:provider/provider.dart';
@@ -268,7 +269,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: _isSaving ? null : _generateQr,
+              onPressed: _isSaving ? null : () { FeedbackService().success(); _generateQr(); },
               icon: _isSaving
                   ? const SizedBox(
                       width: 18,
@@ -351,7 +352,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: _shareQr,
+                onPressed: () { FeedbackService().tap(); _shareQr(); },
                 icon: const Icon(Icons.share),
                 label: const Text('Share QR Image'),
                 style: OutlinedButton.styleFrom(
@@ -360,7 +361,7 @@ class _UpiQrScreenState extends State<UpiQrScreen> {
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
-                onPressed: _openInUpiApp,
+                onPressed: () { FeedbackService().click(); _openInUpiApp(); },
                 icon: const Icon(Icons.open_in_new),
                 label: Text(loc.t('openInUpiApp')),
                 style: FilledButton.styleFrom(

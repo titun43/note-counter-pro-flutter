@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../services/feedback_service.dart';
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:share_plus/share_plus.dart';
@@ -61,12 +62,12 @@ class _BarcodeGeneratorScreenState extends State<BarcodeGeneratorScreen> {
           const SizedBox(height: 16),
           TextField(controller: _contentController, decoration: InputDecoration(labelText: loc.t('barcodeContent'), border: const OutlineInputBorder(), prefixIcon: const Icon(Icons.qr_code_2)), keyboardType: _barcodeType == 1 ? TextInputType.number : TextInputType.text),
           const SizedBox(height: 16),
-          FilledButton.icon(onPressed: _generate, icon: const Icon(Icons.qr_code), label: Text(loc.t('qrGenerate'), style: const TextStyle(fontWeight: FontWeight.bold)), style: FilledButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.bgDark, padding: const EdgeInsets.symmetric(vertical: 14))),
+          FilledButton.icon(onPressed: () { FeedbackService().click(); _generate(); }, icon: const Icon(Icons.qr_code), label: Text(loc.t('qrGenerate'), style: const TextStyle(fontWeight: FontWeight.bold)), style: FilledButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.bgDark, padding: const EdgeInsets.symmetric(vertical: 14))),
           const SizedBox(height: 20),
           if (_barcodeData != null) ...[
             Screenshot(controller: _screenshotController, child: Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3))), child: Column(children: [BarcodeWidget(barcode: _barcodeTypes[_barcodeType]['type'] as Barcode, data: _barcodeData!, width: double.infinity, height: 120, color: Colors.black, errorBuilder: (context, error) => Text(error.toString(), style: const TextStyle(color: Colors.red, fontSize: 12))), const SizedBox(height: 8), Text(_barcodeData!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black))]))),
             const SizedBox(height: 12),
-            OutlinedButton.icon(onPressed: _shareBarcode, icon: const Icon(Icons.share), label: Text(loc.t('qrShare')), style: OutlinedButton.styleFrom(foregroundColor: AppColors.info, padding: const EdgeInsets.symmetric(vertical: 12))),
+            OutlinedButton.icon(onPressed: () { FeedbackService().tap(); _shareBarcode(); }, icon: const Icon(Icons.share), label: Text(loc.t('qrShare')), style: OutlinedButton.styleFrom(foregroundColor: AppColors.info, padding: const EdgeInsets.symmetric(vertical: 12))),
           ],
         ]))),
       ])),
