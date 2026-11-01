@@ -98,17 +98,5 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
 
-// Force Play Billing 8.0.0 via resolutionStrategy — NOT via implementation.
-// Using 'implementation' adds the billing library directly which may pull
-// in additional .so files that break 16 KB page size alignment.
-// resolutionStrategy.force only overrides the VERSION of the existing
-// transitive dependency from in_app_purchase_android, without adding
-// new native libraries.
-configurations.all {
-    resolutionStrategy {
-        force 'com.android.billingclient:billing:8.0.0'
-    }
-}
-
 // Google Services plugin — required for Google Sign-In (Cloud Backup)
 apply plugin: 'com.google.gms.google-services'

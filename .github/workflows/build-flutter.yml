@@ -46,6 +46,25 @@ jobs:
     - name: Get dependencies
       run: flutter pub get
 
+    - name: Patch billing version to 8.0.0 in pub cache
+      run: |
+        # Find in_app_purchase_android's build.gradle in pub cache
+        PLUGIN_DIR=$(find $HOME/.pub-cache -path "*/in_app_purchase_android*/android/build.gradle" | head -1)
+        if [ -z "$PLUGIN_DIR" ]; then
+          echo "ERROR: in_app_purchase_android build.gradle not found!"
+          exit 1
+        fi
+        echo "Found: $PLUGIN_DIR"
+        echo "=== Before patch ==="
+        grep -n "billing" "$PLUGIN_DIR" | head -5
+        # Replace billing:7.1.1 with billing:8.0.0
+        sed -i 's/com.android.billingclient:billing:[0-9.]*"/com.android.billingclient:billing:8.0.0"/g' "$PLUGIN_DIR"
+        # Also handle without quotes
+        sed -i "s/com.android.billingclient:billing:[0-9.]*/com.android.billingclient:billing:8.0.0/g" "$PLUGIN_DIR"
+        echo "=== After patch ==="
+        grep -n "billing" "$PLUGIN_DIR" | head -5
+        echo "Billing version patched to 8.0.0"
+
     - name: Analyze code
       run: flutter analyze || true
 
