@@ -10,21 +10,17 @@
 //
 // If a setting is OFF, that channel is silenced — no exceptions.
 //
-// SOUND PLAYBACK STRATEGY (after multiple iterations — this is the one
-// that actually works reliably on Android):
+// SOUND PLAYBACK STRATEGY (SIMPLEST POSSIBLE — most reliable):
 //
-//   • We keep ONE AudioPlayer PER sound type (4 players total).
-//   • Each player's source is set ONCE at init time via setSourceAsset().
-//     This pre-decodes the MP3 into PCM in memory — so play() is just
-//     "start playback" with no decode delay.
-//   • To replay a sound: stop() + resume(). This is the canonical pattern
-//     audioplayers recommends for re-triggering the same sound rapidly.
-//   • Using a dedicated player per sound means rapid taps on different
-//     buttons (e.g. calculator) never interrupt each other.
-//   • We use the DEFAULT PlayerMode (MediaPlayer), not lowLatency.
-//     SoundPool (lowLatency) had asset-path issues on some Android
-//     versions and only supports very short clips; MediaPlayer is
-//     universally supported and our clips are <5KB so latency is fine.
+//   • Single shared AudioPlayer.
+//   • Each fire() calls play(AssetSource) directly.
+//   • NO stop(), NO pre-loading, NO setSourceAsset, NO seek/resume.
+//   • audioplayers internally caches decoded assets, so the first tap
+//     of each sound has ~100ms latency but subsequent taps are fast.
+//   • play() automatically stops any currently-playing sound on the
+//     same player and starts the new one — so rapid taps naturally
+//     retrigger without us calling stop() manually (which was cutting
+//     off sound mid-play = "sound full hoynai" bug).
 //
 // Usage:
 //   FeedbackService.tap();            // light tap (most buttons)
@@ -62,11 +58,11 @@ class FeedbackService {
   // Cached SharedPreferences — injected from main.dart after app start.
   SharedPreferences? _prefs;
 
-  // ONE AudioPlayer per sound type. Each player's source is set once
-  // at init time so play() has no decode latency.
-  final Map<FeedbackType, AudioPlayer> _players = {};
+  // Single shared AudioPlayer. Reusing one player is simplest and most
+  // reliable. play() auto-stops any currently playing sound.
+  AudioPlayer? _player;
 
-  // Pre-resolved asset paths (relative to assets/, no leading slash).
+  // Pre-resolved asset paths.
   static const Map<FeedbackType, String> _assetFor = {
     FeedbackType.tap: 'sounds/tap.mp3',
     FeedbackType.click: 'sounds/click.mp3',
@@ -85,34 +81,20 @@ class FeedbackService {
   bool _initialized = false;
   bool _soundInitFailed = false; // if true, skip sound forever (no audio device)
 
-  /// Inject SharedPreferences and pre-load all sound assets.
+  /// Inject SharedPreferences and create the AudioPlayer.
   /// Safe to call multiple times.
   Future<void> init(SharedPreferences prefs) async {
     _prefs = prefs;
     if (_initialized) return;
 
     try {
-      // Pre-load each sound into its own dedicated player.
-      // setSourceAsset() decodes the MP3 into PCM in memory at init time,
-      // so subsequent resume() calls have ZERO decode latency.
-      for (final type in FeedbackType.values) {
-        try {
-          final player = AudioPlayer(playerId: 'ncp_${type.name}');
-          await player.setReleaseMode(ReleaseMode.stop);
-          await player.setVolume(_volumeFor[type]!);
-          // Pre-load the source. setSourceAsset is the recommended way
-          // to load an asset into a player for repeated playback.
-          await player.setSourceAsset(_assetFor[type]!);
-          _players[type] = player;
-          debugPrint('FeedbackService: pre-loaded ${type.name}');
-        } catch (e) {
-          debugPrint('FeedbackService: failed to pre-load ${type.name}: $e');
-        }
-      }
-      if (_players.isEmpty) {
-        debugPrint('FeedbackService: ALL sound pre-loading failed — disabling sound');
-        _soundInitFailed = true;
-      }
+      _player = AudioPlayer(playerId: 'ncp_feedback_sfx');
+      try {
+        await _player!.setReleaseMode(ReleaseMode.stop);
+      } catch (_) {}
+      try {
+        await _player!.setVolume(1.0);
+      } catch (_) {}
     } catch (e) {
       debugPrint('FeedbackService audio init failed (non-fatal): $e');
       _soundInitFailed = true;
@@ -162,24 +144,24 @@ class FeedbackService {
 
   void _soundFor(FeedbackType type) {
     if (!_soundEnabled) return;
-    final p = _players[type];
+    final p = _player;
     if (p == null) return;
 
-    // For an already-loaded player, the canonical replay pattern is:
-    //   1. stop()  — rewind to start (ReleaseMode.stop = release, but
-    //               since source is set, resume() will reload from cache)
-    //   2. resume() — start playback from the beginning
+    // SIMPLEST APPROACH: just call play(AssetSource) directly.
+    //   • No stop() — that was cutting off sound mid-play
+    //   • No pre-loading — adds complexity without clear benefit
+    //   • No seek/resume — race conditions on rapid taps
     //
-    // We use Future.then() chain (not await) so the UI thread never blocks.
-    // Errors are silently swallowed — sound is best-effort.
+    // play() automatically stops any currently playing sound on this
+    // player and starts the new one. So rapid taps naturally retrigger.
+    // The first tap of each session has ~100ms latency (asset decode);
+    // audioplayers caches the decoded asset so subsequent taps are fast.
     //
-    // Why stop() + resume() instead of just play()?
-    //   • play(AssetSource(...)) re-resolves the asset path every call
-    //   • play() with no argument doesn't exist in audioplayers 5.x
-    //   • stop() + resume() is the documented way to replay a loaded source
-    p.stop().then((_) {
-      return p.resume();
-    }).catchError((e) {
+    // Fire-and-forget — we don't await so the UI thread never blocks.
+    p.play(
+      AssetSource(_assetFor[type]!),
+      volume: _volumeFor[type]!,
+    ).catchError((e) {
       debugPrint('FeedbackService sound failed (${type.name}): $e');
     });
   }
@@ -205,13 +187,10 @@ class FeedbackService {
   /// Convenience: destructive / error. Use for delete actions and errors.
   void error() => fire(FeedbackType.error);
 
-  /// Dispose all underlying audio players. Only call on app teardown.
+  /// Dispose the underlying audio player. Only call on app teardown.
   Future<void> dispose() async {
-    for (final p in _players.values) {
-      try {
-        await p.dispose();
-      } catch (_) {}
-    }
-    _players.clear();
+    try {
+      await _player?.dispose();
+    } catch (_) {}
   }
 }
