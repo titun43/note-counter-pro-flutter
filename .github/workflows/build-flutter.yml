@@ -37,11 +37,9 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        # Flutter 3.38.0 — next stable after 3.35.x.
-        # 3.35.5 = 16 KB OK but Dart 3.9 (can't use 0.4.0+11).
-        # 3.47.8 = 16 KB FAIL.
-        # 3.38.0 = testing if .so are 16 KB OK + Dart version.
-        flutter-version: '3.38.0'
+        # Flutter 3.35.5 — ONLY version whose .so files pass 16 KB check.
+        # 3.38.0 and 3.47.8 both FAIL 16 KB.
+        flutter-version: '3.35.5'
         channel: stable
         cache: true
 
