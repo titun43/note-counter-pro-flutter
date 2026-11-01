@@ -48,22 +48,29 @@ jobs:
 
     - name: Patch billing version to 8.0.0 in pub cache
       run: |
-        # Find in_app_purchase_android's build.gradle in pub cache
-        PLUGIN_DIR=$(find $HOME/.pub-cache -path "*/in_app_purchase_android*/android/build.gradle" | head -1)
-        if [ -z "$PLUGIN_DIR" ]; then
-          echo "ERROR: in_app_purchase_android build.gradle not found!"
+        # Find ALL build.gradle files in in_app_purchase_android package
+        PLUGIN_BASE=$(find $HOME/.pub-cache -type d -name "in_app_purchase_android-*" | head -1)
+        if [ -z "$PLUGIN_BASE" ]; then
+          echo "ERROR: in_app_purchase_android package not found!"
           exit 1
         fi
-        echo "Found: $PLUGIN_DIR"
-        echo "=== Before patch ==="
-        grep -n "billing" "$PLUGIN_DIR" | head -5
-        # Replace billing:7.1.1 with billing:8.0.0
-        sed -i 's/com.android.billingclient:billing:[0-9.]*"/com.android.billingclient:billing:8.0.0"/g' "$PLUGIN_DIR"
-        # Also handle without quotes
-        sed -i "s/com.android.billingclient:billing:[0-9.]*/com.android.billingclient:billing:8.0.0/g" "$PLUGIN_DIR"
-        echo "=== After patch ==="
-        grep -n "billing" "$PLUGIN_DIR" | head -5
-        echo "Billing version patched to 8.0.0"
+        echo "Plugin dir: $PLUGIN_BASE"
+        # Search for billing version in ALL gradle files
+        echo "=== Searching for billing references ==="
+        grep -rn "billing" "$PLUGIN_BASE/android/" 2>/dev/null | head -20
+        # Patch ALL build.gradle files in the plugin's android dir
+        for gradle_file in $(find "$PLUGIN_BASE/android/" -name "build.gradle" -o -name "*.gradle" 2>/dev/null); do
+          echo "Patching: $gradle_file"
+          sed -i 's/com.android.billingclient:billing:[0-9][0-9.]*/com.android.billingclient:billing:8.0.0/g' "$gradle_file"
+          grep -n "billing" "$gradle_file" | head -5
+        done
+        # Also check gradle.properties
+        for prop_file in $(find "$PLUGIN_BASE/android/" -name "gradle.properties" 2>/dev/null); do
+          echo "Patching: $prop_file"
+          sed -i 's/com.android.billingclient:billing:[0-9][0-9.]*/com.android.billingclient:billing:8.0.0/g' "$prop_file"
+          grep -n "billing" "$prop_file" | head -5
+        done
+        echo "=== Patch complete ==="
 
     - name: Analyze code
       run: flutter analyze || true
