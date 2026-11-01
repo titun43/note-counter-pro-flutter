@@ -10,14 +10,21 @@
 //
 // If a setting is OFF, that channel is silenced — no exceptions.
 //
-// LATENCY OPTIMIZATION:
-//   • Each sound is pre-loaded into its OWN AudioPlayer at init time.
-//   • Players use PlayerMode.lowLatency → on Android this routes through
-//     SoundPool (the OS-native low-latency SFX engine). First-play
-//     latency is typically <50ms; subsequent plays are near-instant.
-//   • To replay a sound that's already loaded, we seek(0) + resume()
-//     instead of calling play() with a fresh source — this skips
-//     source resolution and gets the sound out faster.
+// SOUND PLAYBACK STRATEGY (after multiple iterations — this is the one
+// that actually works reliably on Android):
+//
+//   • We keep ONE AudioPlayer PER sound type (4 players total).
+//   • Each player's source is set ONCE at init time via setSourceAsset().
+//     This pre-decodes the MP3 into PCM in memory — so play() is just
+//     "start playback" with no decode delay.
+//   • To replay a sound: stop() + resume(). This is the canonical pattern
+//     audioplayers recommends for re-triggering the same sound rapidly.
+//   • Using a dedicated player per sound means rapid taps on different
+//     buttons (e.g. calculator) never interrupt each other.
+//   • We use the DEFAULT PlayerMode (MediaPlayer), not lowLatency.
+//     SoundPool (lowLatency) had asset-path issues on some Android
+//     versions and only supports very short clips; MediaPlayer is
+//     universally supported and our clips are <5KB so latency is fine.
 //
 // Usage:
 //   FeedbackService.tap();            // light tap (most buttons)
@@ -55,12 +62,11 @@ class FeedbackService {
   // Cached SharedPreferences — injected from main.dart after app start.
   SharedPreferences? _prefs;
 
-  // One pre-loaded AudioPlayer PER sound type.
-  // Pre-loading is the key to low latency: the asset is decoded into PCM
-  // once, at init, so play() is just "start playback" (no decode delay).
+  // ONE AudioPlayer per sound type. Each player's source is set once
+  // at init time so play() has no decode latency.
   final Map<FeedbackType, AudioPlayer> _players = {};
 
-  // Pre-resolved asset paths.
+  // Pre-resolved asset paths (relative to assets/, no leading slash).
   static const Map<FeedbackType, String> _assetFor = {
     FeedbackType.tap: 'sounds/tap.mp3',
     FeedbackType.click: 'sounds/click.mp3',
@@ -68,13 +74,12 @@ class FeedbackService {
     FeedbackType.error: 'sounds/error.mp3',
   };
 
-  // Volume per feedback type (0.0 – 1.0). Kept conservative so the click
-  // is clearly audible without ever being annoying.
+  // Volume per feedback type (0.0 – 1.0).
   static const Map<FeedbackType, double> _volumeFor = {
-    FeedbackType.tap: 0.55,
-    FeedbackType.click: 0.75,
-    FeedbackType.success: 0.75,
-    FeedbackType.error: 0.80, // louder so delete is clearly heard
+    FeedbackType.tap: 0.60,
+    FeedbackType.click: 0.85,
+    FeedbackType.success: 0.85,
+    FeedbackType.error: 0.90, // louder so delete is clearly heard
   };
 
   bool _initialized = false;
@@ -87,30 +92,25 @@ class FeedbackService {
     if (_initialized) return;
 
     try {
-      // Pre-load each sound into its own low-latency player.
-      // On Android, PlayerMode.lowLatency uses SoundPool (OS-native SFX
-      // engine) — first-play latency <50ms, subsequent plays instant.
+      // Pre-load each sound into its own dedicated player.
+      // setSourceAsset() decodes the MP3 into PCM in memory at init time,
+      // so subsequent resume() calls have ZERO decode latency.
       for (final type in FeedbackType.values) {
         try {
           final player = AudioPlayer(playerId: 'ncp_${type.name}');
-          // PlayerMode.lowLatency → SoundPool on Android (low-latency SFX).
-          // Must be set via setPlayerMode() — the `mode` constructor param
-          // was removed in audioplayers 4.x.
-          try {
-            await player.setPlayerMode(PlayerMode.lowLatency);
-          } catch (_) {
-            // PlayerMode API may differ across versions — default mode still works.
-          }
           await player.setReleaseMode(ReleaseMode.stop);
           await player.setVolume(_volumeFor[type]!);
-          // Pre-load the source (decodes MP3 → PCM in memory).
-          await player.setSource(AssetSource(_assetFor[type]!));
+          // Pre-load the source. setSourceAsset is the recommended way
+          // to load an asset into a player for repeated playback.
+          await player.setSourceAsset(_assetFor[type]!);
           _players[type] = player;
+          debugPrint('FeedbackService: pre-loaded ${type.name}');
         } catch (e) {
           debugPrint('FeedbackService: failed to pre-load ${type.name}: $e');
         }
       }
       if (_players.isEmpty) {
+        debugPrint('FeedbackService: ALL sound pre-loading failed — disabling sound');
         _soundInitFailed = true;
       }
     } catch (e) {
@@ -165,18 +165,22 @@ class FeedbackService {
     final p = _players[type];
     if (p == null) return;
 
-    // For instant replay of an already-loaded sound:
-    //   1. seek(Duration.zero) — rewind to start
-    //   2. resume()            — start playback (no source resolution)
-    // This is faster than calling play(AssetSource(...)) again because
-    // the source is already decoded in memory.
+    // For an already-loaded player, the canonical replay pattern is:
+    //   1. stop()  — rewind to start (ReleaseMode.stop = release, but
+    //               since source is set, resume() will reload from cache)
+    //   2. resume() — start playback from the beginning
     //
-    // We don't await these — fire-and-forget so the UI thread never
-    // blocks on audio. Errors are silently swallowed (sound is best-effort).
-    p.seek(Duration.zero).then((_) {
+    // We use Future.then() chain (not await) so the UI thread never blocks.
+    // Errors are silently swallowed — sound is best-effort.
+    //
+    // Why stop() + resume() instead of just play()?
+    //   • play(AssetSource(...)) re-resolves the asset path every call
+    //   • play() with no argument doesn't exist in audioplayers 5.x
+    //   • stop() + resume() is the documented way to replay a loaded source
+    p.stop().then((_) {
       return p.resume();
     }).catchError((e) {
-      debugPrint('FeedbackService sound failed: $e');
+      debugPrint('FeedbackService sound failed (${type.name}): $e');
     });
   }
 
