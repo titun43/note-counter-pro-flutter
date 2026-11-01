@@ -22,6 +22,7 @@ import 'package:mobile_scanner/mobile_scanner.dart' as mscanner;
 import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../services/premium_service.dart';
+import '../services/feedback_service.dart';
 import '../models/product.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
