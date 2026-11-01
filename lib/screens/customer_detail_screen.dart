@@ -206,6 +206,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         createdAt: entry.createdAt,
       );
       await storage.addEntry(entryWithDate);
+      FeedbackService().success();
 
       // Show interstitial after a new entry is saved (natural break point).
       // The 60-second cooldown + per-session/per-day caps in AdMobService
@@ -842,6 +843,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         category: balance > 0 ? 'debit' : 'credit',
       );
       await storage.addEntry(entry);
+      FeedbackService().success();
 
       setState(() {
         _customer = storage.getCustomer(widget.customerId);

@@ -18,6 +18,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/premium_service.dart';
+import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 
 class GlassNavBar extends StatelessWidget {
@@ -97,7 +98,10 @@ class GlassNavBar extends StatelessWidget {
                 final isActive = index == currentIndex;
                 return Expanded(
                   child: GestureDetector(
-                    onTap: () => onDestinationSelected(index),
+                    onTap: () {
+                      FeedbackService().tap();
+                      onDestinationSelected(index);
+                    },
                     behavior: HitTestBehavior.opaque,
                     child: _buildTabItem(tab, isActive, isDark, theme),
                   ),

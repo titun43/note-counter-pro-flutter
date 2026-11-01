@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 import '../services/storage_service.dart';
 import '../services/premium_service.dart';
 import '../services/admob_service.dart';
+import '../services/feedback_service.dart';
 import '../models/bill.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
@@ -421,7 +422,10 @@ class _BillsScreenState extends State<BillsScreen> {
         ),  // close Column
       ),  // close SafeArea
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createBill,
+        onPressed: () {
+          FeedbackService().click();
+          _createBill();
+        },
         backgroundColor: const Color(0xFF8B0000),
         foregroundColor: const Color(0xFFD4AF37),
         icon: const Icon(Icons.add),

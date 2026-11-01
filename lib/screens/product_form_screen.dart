@@ -211,6 +211,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       final ok = await storage.addProduct(product);
       if (!ok) {
         if (mounted) {
+          FeedbackService().error();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.t('productLimitReached')),
@@ -220,6 +221,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         }
         return;
       }
+      FeedbackService().success();
     }
 
     // Interstitial at natural break point (AdMob policy compliant).

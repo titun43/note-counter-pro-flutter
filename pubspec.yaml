@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.38.0+204
+version: 3.39.0+205
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -87,6 +87,9 @@ dependencies:
   # Refer & Earn — unique code generation
   crypto: ^3.0.3
 
+  # Sound effects on button press (paired with haptic feedback)
+  audioplayers: ^5.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -101,6 +104,7 @@ flutter:
 
   assets:
     - assets/icons/
+    - assets/sounds/
 
   fonts:
     - family: KhataHandwriting

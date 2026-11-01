@@ -119,6 +119,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
         address: addressController.text.trim(),
       );
       await storage.addCustomer(customer);
+      FeedbackService().success();
     }
     
     nameController.dispose();

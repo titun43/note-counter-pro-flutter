@@ -185,6 +185,7 @@ class _KhataScreenState extends State<KhataScreen> {
         address: addressController.text.trim(),
       );
       await storage.addCustomer(customer);
+      FeedbackService().success();
 
       // Show interstitial after a new customer is saved (natural break point).
       AdMobService.showInterstitial();

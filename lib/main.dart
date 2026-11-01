@@ -11,6 +11,7 @@ import 'services/premium_service.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/referral_service.dart';
 import 'services/saved_upi_service.dart';
+import 'services/feedback_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
@@ -34,7 +35,15 @@ void main() async {
   } catch (e) {
     debugPrint('SharedPreferences init failed: $e');
   }
-  
+
+  // Initialize FeedbackService (haptic + sound) early so the very first
+  // button taps after splash already produce feedback. Non-blocking.
+  if (prefs != null) {
+    FeedbackService().init(prefs).catchError((e) {
+      debugPrint('FeedbackService init failed: $e');
+    });
+  }
+
   // Run app immediately - no waiting for AdMob
   runApp(
     MultiProvider(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/feedback_service.dart';
 import '../utils/app_localizations.dart';
 
 class StandardCalculator extends StatefulWidget {
@@ -391,7 +392,10 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       height: 72,
       margin: const EdgeInsets.all(3),
       child: ElevatedButton(
-        onPressed: () => _onButton(label),
+        onPressed: () {
+          FeedbackService().tap();
+          _onButton(label);
+        },
         style: ElevatedButton.styleFrom(
           shape: const CircleBorder(),
           padding: EdgeInsets.zero,

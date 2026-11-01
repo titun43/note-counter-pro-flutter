@@ -11,6 +11,7 @@ import '../services/storage_service.dart';
 import '../services/admob_service.dart';
 import '../services/tts_service.dart';
 import '../services/premium_service.dart';
+import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/entry.dart';
@@ -146,9 +147,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_hideTransactionToggle) {
       _hideTransactionToggle = true;
     }
+    // Tactile + audible tap feedback for each denomination increment.
+    FeedbackService().tap();
     setState(() {});
   }
-  
+
   void _decrementCount(int value) {
     final controller = _countControllers[value];
     if (controller == null) return;
@@ -159,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_totalNotes == 0) {
         _hideTransactionToggle = false;
       }
+      FeedbackService().tap();
       setState(() {});
     }
   }
@@ -504,6 +508,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     await storage.addEntry(entry);
+
+    // Haptic + sound feedback — successful save.
+    FeedbackService().success();
 
     // #35 — If a customer was selected, update their balance.
     // Payable (cash_out from user's perspective = money given to customer
@@ -1610,6 +1617,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirmed == true) {
       final storage = context.read<StorageService>();
       await storage.deleteEntry(entry.id);
+      // Destructive action feedback.
+      FeedbackService().error();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1752,7 +1761,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 4),
                 // Clear button (moved here from AppBar)
                 IconButton(
-                  onPressed: _reset,
+                  onPressed: () {
+                    FeedbackService().tap();
+                    _reset();
+                  },
                   icon: const Icon(Icons.cleaning_services),
                   color: AppColors.danger,
                   tooltip: 'Clear',
@@ -1763,7 +1775,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 4),
                 // Quick Actions (#70) — one-tap access to create bills etc.
                 IconButton(
-                  onPressed: _showQuickActions,
+                  onPressed: () {
+                    FeedbackService().tap();
+                    _showQuickActions();
+                  },
                   icon: const Icon(Icons.add_circle_outline),
                   color: const Color(0xFFD4AF37),
                   tooltip: loc.t('quickActions'),
@@ -1776,6 +1791,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Tap → Navigator.push(SettingsScreen).
                 IconButton(
                   onPressed: () {
+                    FeedbackService().tap();
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -2282,7 +2298,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => _saveEntry(true),
+                    onPressed: () {
+                      FeedbackService().click();
+                      _saveEntry(true);
+                    },
                     icon: const Icon(Icons.south, size: 18),
                     label: Text(loc.t('saveIn'), style: TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(
@@ -2292,7 +2311,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 IconButton(
-                  onPressed: _sendToCalculator,
+                  onPressed: () {
+                    FeedbackService().tap();
+                    _sendToCalculator();
+                  },
                   icon: const Icon(Icons.calculate),
                   color: AppColors.info,
                   tooltip: loc.t('calculator'),
@@ -2303,7 +2325,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 // === HISTORY BUTTON (center) ===
                 // Click to view Save In/Out + QR history
                 IconButton(
-                  onPressed: _showHistorySheet,
+                  onPressed: () {
+                    FeedbackService().tap();
+                    _showHistorySheet();
+                  },
                   icon: const Icon(Icons.history),
                   color: AppColors.primaryDark,
                   tooltip: loc.t('history'),
@@ -2315,7 +2340,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Calculator icon remains — it's the "send amount to calculator" cross-tab flow.
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => _saveEntry(false),
+                    onPressed: () {
+                      FeedbackService().click();
+                      _saveEntry(false);
+                    },
                     icon: const Icon(Icons.north, size: 18),
                     label: Text(loc.t('saveOut'), style: TextStyle(fontSize: 13)),
                     style: FilledButton.styleFrom(

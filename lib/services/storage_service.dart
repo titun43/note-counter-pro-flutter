@@ -134,9 +134,19 @@ class StorageService extends ChangeNotifier {
   
   // === Haptics ===
   bool get hapticFeedback => _prefs?.getBool('hapticFeedback') ?? true;
-  
+
   Future<void> setHapticFeedback(bool value) async {
     await _prefs?.setBool('hapticFeedback', value);
+    notifyListeners();
+  }
+
+  // === Button Sound ===
+  // Plays a short UI click sound when the user taps a button.
+  // Independent of hapticFeedback — user can enable one, both, or neither.
+  bool get buttonSound => _prefs?.getBool('buttonSound') ?? true;
+
+  Future<void> setButtonSound(bool value) async {
+    await _prefs?.setBool('buttonSound', value);
     notifyListeners();
   }
   
@@ -764,6 +774,7 @@ class StorageService extends ChangeNotifier {
           'defaultCurrency': defaultCurrency,
           'isDarkMode': isDarkMode,
           'hapticFeedback': hapticFeedback,
+          'buttonSound': buttonSound,
           'appLockEnabled': appLockEnabled,
         },
       },
@@ -844,6 +855,9 @@ class StorageService extends ChangeNotifier {
         }
         if (s.containsKey('hapticFeedback')) {
           await _prefs?.setBool('hapticFeedback', s['hapticFeedback'] as bool);
+        }
+        if (s.containsKey('buttonSound')) {
+          await _prefs?.setBool('buttonSound', s['buttonSound'] as bool);
         }
         if (s.containsKey('appLockEnabled')) {
           await _prefs?.setBool('appLockEnabled', s['appLockEnabled'] as bool);

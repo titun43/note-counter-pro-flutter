@@ -245,6 +245,8 @@ class _BillFormScreenState extends State<BillFormScreen> {
       }
       await storage.addBill(bill);
       savedBill = bill;
+      // Haptic + sound feedback — successful bill creation.
+      FeedbackService().success();
       // Stock auto-deduct — only for new bills. Existing bills (no productId
       // on items) are skipped (backward compatible). Oversell is allowed:
       // stock can go negative and a warning is shown in the inventory list.

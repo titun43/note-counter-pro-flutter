@@ -11,6 +11,7 @@ import '../services/backup_service.dart';
 import '../services/tts_service.dart';
 import '../services/premium_service.dart';
 import '../services/admob_service.dart';
+import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'reports_screen.dart';
@@ -531,8 +532,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SwitchListTile(
                 secondary: const Icon(Icons.vibration_outlined, color: AppColors.primary),
                 title: Text(loc.t('hapticFeedback')),
+                subtitle: Text(loc.t('hapticFeedbackDesc')),
                 value: storage.hapticFeedback,
-                onChanged: (value) => storage.setHapticFeedback(value),
+                onChanged: (value) {
+                  // Fire haptic + sound to preview the change.
+                  // When turning OFF, the service will silence itself
+                  // immediately, so the user feels the toggle "click" once
+                  // and then nothing thereafter — confirming the setting.
+                  storage.setHapticFeedback(value).then((_) {
+                    if (value) FeedbackService().click();
+                  });
+                },
+              ),
+              const _Divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.volume_up_outlined, color: AppColors.primary),
+                title: Text(loc.t('buttonSound')),
+                subtitle: Text(loc.t('buttonSoundDesc')),
+                value: storage.buttonSound,
+                onChanged: (value) {
+                  storage.setButtonSound(value).then((_) {
+                    if (value) FeedbackService().click();
+                  });
+                },
               ),
               const _Divider(),
               ListTile(
