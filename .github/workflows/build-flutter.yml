@@ -37,11 +37,12 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        # Flutter 3.35.5 — the version used for release 157 which passed
-        # Play Console's 16 KB page size check. Flutter 3.47.8 ships .so
-        # files that are NOT 16 KB aligned (libflutter.so, libapp.so etc).
-        # Flutter 3.35.5's .so files ARE 16 KB aligned.
-        flutter-version: '3.35.5'
+        # Flutter 3.39.0 — ships Dart 3.10 which supports
+        # in_app_purchase_android 0.4.0+11 (Play Billing 8.x native).
+        # Flutter 3.35.5 (Dart 3.9) can't use 0.4.0+11.
+        # Flutter 3.47.8 .so files are NOT 16 KB aligned.
+        # 3.39.0 is between the two — testing if .so are 16 KB OK.
+        flutter-version: '3.39.0'
         channel: stable
         cache: true
 

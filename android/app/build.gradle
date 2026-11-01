@@ -94,10 +94,9 @@ flutter {
 dependencies {
     implementation 'com.google.android.gms:play-services-ads:22.6.0'
     implementation 'com.google.android.play:app-update:2.1.0'
-    // Force Play Billing Library 8.0.0 (required by Play Console).
-    // 8.1.0 brings .so files that fail 16 KB check; 8.0.0 is pure Java.
-    implementation 'com.android.billingclient:billing:8.0.0'
-    // Core library desugaring — required by flutter_local_notifications for Java 8+ APIs on older Android
+    // No forced billing — in_app_purchase_android 0.4.0+11 uses Billing 8.x natively.
+    // Forcing billing in build.gradle brings .so files that break 16 KB page size.
+    // Core library desugaring
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 }
 
