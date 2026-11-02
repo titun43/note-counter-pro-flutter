@@ -185,8 +185,9 @@ class _KhataScreenState extends State<KhataScreen> {
         email: emailController.text.trim(),
         address: addressController.text.trim(),
       );
-      await storage.addCustomer(customer);
+      // INSTANT: play feedback immediately, then fire-and-forget save
       FeedbackService().success();
+      storage.addCustomer(customer);
 
       // Show interstitial after a new customer is saved (natural break point).
       AdMobService.showInterstitial();
@@ -335,7 +336,8 @@ class _KhataScreenState extends State<KhataScreen> {
         address: addressController.text.trim(),
         updatedAt: DateTime.now(),
       );
-      await storage.updateCustomer(updated);
+      // INSTANT: fire-and-forget update (UI updates via notifyListeners)
+      storage.updateCustomer(updated);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -386,13 +388,12 @@ class _KhataScreenState extends State<KhataScreen> {
 
       final customerEntries =
           storage.entries.where((e) => e.customerId == customer.id).toList();
-      for (final entry in customerEntries) {
-        await storage.deleteEntry(entry.id);
-      }
-
-      await storage.deleteCustomer(customer.id);
-      // Destructive action feedback.
+      // INSTANT: play feedback immediately, then fire-and-forget all deletes
       FeedbackService().error();
+      for (final entry in customerEntries) {
+        storage.deleteEntry(entry.id);
+      }
+      storage.deleteCustomer(customer.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -208,7 +208,8 @@ class _BillFormScreenState extends State<BillFormScreen> {
             ? (widget.existingBill!.paidAt ?? DateTime.now())
             : null,
       );
-      await storage.updateBill(updated);
+      // INSTANT: fire-and-forget update (UI updates via notifyListeners)
+      storage.updateBill(updated);
       savedBill = updated;
 
       // Manage the linked Khata entry: delete the old one (if any) and
@@ -244,10 +245,10 @@ class _BillFormScreenState extends State<BillFormScreen> {
       if (_paidAmount >= bill.total) {
         bill.markPaid();
       }
-      await storage.addBill(bill);
-      savedBill = bill;
-      // Haptic + sound feedback — successful bill creation.
+      // INSTANT: play feedback immediately, then fire-and-forget save
       FeedbackService().success();
+      storage.addBill(bill);
+      savedBill = bill;
       // Stock auto-deduct — only for new bills. Existing bills (no productId
       // on items) are skipped (backward compatible). Oversell is allowed:
       // stock can go negative and a warning is shown in the inventory list.

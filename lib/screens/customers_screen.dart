@@ -119,8 +119,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
         email: emailController.text.trim(),
         address: addressController.text.trim(),
       );
-      await storage.addCustomer(customer);
+      // INSTANT: play feedback immediately, then fire-and-forget save
       FeedbackService().success();
+      storage.addCustomer(customer);
     }
     
     nameController.dispose();

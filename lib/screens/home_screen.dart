@@ -509,10 +509,9 @@ class _HomeScreenState extends State<HomeScreen> {
       customerId: hasCustomerId ? customerId : null,
     );
 
-    await storage.addEntry(entry);
-
-    // Haptic + sound feedback — successful save.
+    // INSTANT: play feedback immediately, then fire-and-forget save
     FeedbackService().success();
+    storage.addEntry(entry);
 
     // #35 — If a customer was selected, update their balance.
     // Payable (cash_out from user's perspective = money given to customer
@@ -528,7 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // User received money from customer → customer's debit increases
           customer.totalDebit += _grandTotal;
         }
-        await storage.updateCustomer(customer);
+        storage.updateCustomer(customer); // fire-and-forget
       }
     }
 
@@ -1618,9 +1617,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed == true) {
       final storage = context.read<StorageService>();
-      await storage.deleteEntry(entry.id);
-      // Destructive action feedback.
+      // INSTANT: play feedback + show snackbar immediately
+      // Don't await delete — it's fire-and-forget (storage notifies UI
+      // instantly via notifyListeners(), disk save runs in background).
       FeedbackService().error();
+      storage.deleteEntry(entry.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1662,9 +1663,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed == true) {
       final storage = context.read<StorageService>();
-      await storage.deleteQrHistory(index);
-      // Destructive action feedback.
+      // INSTANT: play feedback + show snackbar immediately
       FeedbackService().error();
+      storage.deleteQrHistory(index);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

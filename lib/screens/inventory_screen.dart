@@ -490,9 +490,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await context.read<StorageService>().deleteProduct(p.id);
-      // Destructive action feedback.
+      // INSTANT: play feedback immediately, then fire-and-forget delete
       FeedbackService().error();
+      context.read<StorageService>().deleteProduct(p.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

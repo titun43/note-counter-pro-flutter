@@ -181,7 +181,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         _customer!.totalDebit += amount;
       }
 
-      await storage.updateCustomer(_customer!);
+      storage.updateCustomer(_customer!); // fire-and-forget
 
       final entry = Entry.create(
         type: isCredit ? 'cash_out' : 'cash_in',
@@ -206,8 +206,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         category: entry.category,
         createdAt: entry.createdAt,
       );
-      await storage.addEntry(entryWithDate);
+      // INSTANT: play feedback immediately, then fire-and-forget save
       FeedbackService().success();
+      storage.addEntry(entryWithDate);
 
       // Show interstitial after a new entry is saved (natural break point).
       // The 60-second cooldown + per-session/per-day caps in AdMobService
@@ -374,7 +375,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       } else {
         _customer!.totalDebit = _customer!.totalDebit - oldAmount + newAmount;
       }
-      await storage.updateCustomer(_customer!);
+      storage.updateCustomer(_customer!); // fire-and-forget
 
       final updatedEntry = Entry(
         id: entry.id,
@@ -445,11 +446,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       } else {
         _customer!.totalDebit -= entry.amount;
       }
-      await storage.updateCustomer(_customer!);
-
-      await storage.deleteEntry(entry.id);
-      // Destructive action feedback.
+      // INSTANT: play feedback immediately, then fire-and-forget updates
       FeedbackService().error();
+      storage.updateCustomer(_customer!);
+      storage.deleteEntry(entry.id);
 
       setState(() {
         _customer = storage.getCustomer(widget.customerId);
@@ -834,7 +834,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         // To Take — we took extra, now give it back (credit)
         _customer!.totalCredit += balance.abs();
       }
-      await storage.updateCustomer(_customer!);
+      storage.updateCustomer(_customer!); // fire-and-forget
 
       final entry = Entry.create(
         type: balance > 0 ? 'cash_in' : 'cash_out',
@@ -845,8 +845,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         notes: loc.t('accountSettled'),
         category: balance > 0 ? 'debit' : 'credit',
       );
-      await storage.addEntry(entry);
+      // INSTANT: play feedback immediately, then fire-and-forget add
       FeedbackService().success();
+      storage.addEntry(entry);
 
       setState(() {
         _customer = storage.getCustomer(widget.customerId);

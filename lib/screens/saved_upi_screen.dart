@@ -383,10 +383,10 @@ class _SavedUpiScreenState extends State<SavedUpiScreen> {
             child: Text(loc.t('cancel')),
           ),
           FilledButton(
-            onPressed: () async {
-              await SavedUpiService().delete(upi.id);
-              // Destructive action feedback.
+            onPressed: () {
+              // INSTANT: play feedback immediately, then fire-and-forget delete
               FeedbackService().error();
+              SavedUpiService().delete(upi.id);
               if (!mounted) return;
               Navigator.pop(ctx, true);
               setState(() {});

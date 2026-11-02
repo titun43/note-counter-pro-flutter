@@ -274,8 +274,8 @@ class StorageService extends ChangeNotifier {
   
   Future<void> addEntry(Entry entry) async {
     _entries.add(entry);
-    await _saveEntries();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly
+    await _saveEntries(); // persist to disk in background
     _scheduleAutoBackup();
   }
   
@@ -283,23 +283,23 @@ class StorageService extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == entry.id);
     if (index != -1) {
       _entries[index] = entry;
-      await _saveEntries();
-      notifyListeners();
+      notifyListeners(); // UI updates instantly
+      await _saveEntries(); // persist to disk in background
       _scheduleAutoBackup();
     }
   }
   
   Future<void> deleteEntry(String id) async {
     _entries.removeWhere((e) => e.id == id);
-    await _saveEntries();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly — entry disappears
+    await _saveEntries(); // persist to disk in background
     _scheduleAutoBackup();
   }
   
   Future<void> clearAllEntries() async {
     _entries.clear();
-    await _saveEntries();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly
+    await _saveEntries(); // persist to disk in background
     _scheduleAutoBackup();
   }
   
@@ -312,8 +312,8 @@ class StorageService extends ChangeNotifier {
   
   Future<void> addCustomer(Customer customer) async {
     _customers.add(customer);
-    await _saveCustomers();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly
+    await _saveCustomers(); // persist to disk in background
     _scheduleAutoBackup();
   }
   
@@ -321,16 +321,16 @@ class StorageService extends ChangeNotifier {
     final index = _customers.indexWhere((c) => c.id == customer.id);
     if (index != -1) {
       _customers[index] = customer.copyWith(updatedAt: DateTime.now());
-      await _saveCustomers();
-      notifyListeners();
+      notifyListeners(); // UI updates instantly
+      await _saveCustomers(); // persist to disk in background
       _scheduleAutoBackup();
     }
   }
   
   Future<void> deleteCustomer(String id) async {
     _customers.removeWhere((c) => c.id == id);
-    await _saveCustomers();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly — customer disappears
+    await _saveCustomers(); // persist to disk in background
     _scheduleAutoBackup();
   }
   
@@ -378,16 +378,16 @@ class StorageService extends ChangeNotifier {
 
   Future<void> addBill(Bill bill) async {
     _bills.add(bill);
-    await _saveBills();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly
+    await _saveBills(); // persist to disk in background
   }
   
   Future<void> updateBill(Bill bill) async {
     final index = _bills.indexWhere((b) => b.id == bill.id);
     if (index != -1) {
       _bills[index] = bill;
-      await _saveBills();
-      notifyListeners();
+      notifyListeners(); // UI updates instantly
+      await _saveBills(); // persist to disk in background
     }
   }
   
@@ -401,8 +401,8 @@ class StorageService extends ChangeNotifier {
       await deleteLinkedKhataEntry(bill);
     }
     _bills.removeWhere((b) => b.id == id);
-    await _saveBills();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly — bill disappears
+    await _saveBills(); // persist to disk in background
   }
 
   // === Bill ↔ Khata linkage (partial payment auto-entry) ===
@@ -574,8 +574,8 @@ class StorageService extends ChangeNotifier {
     // caller before reaching here; this is a defensive check.
     if (_products.length >= freeProductLimit) return false;
     _products.add(product);
-    await _saveProducts();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly
+    await _saveProducts(); // persist to disk in background
     return true;
   }
 
@@ -583,15 +583,15 @@ class StorageService extends ChangeNotifier {
     final index = _products.indexWhere((p) => p.id == product.id);
     if (index != -1) {
       _products[index] = product.copyWith(updatedAt: DateTime.now());
-      await _saveProducts();
-      notifyListeners();
+      notifyListeners(); // UI updates instantly
+      await _saveProducts(); // persist to disk in background
     }
   }
 
   Future<void> deleteProduct(String id) async {
     _products.removeWhere((p) => p.id == id);
-    await _saveProducts();
-    notifyListeners();
+    notifyListeners(); // UI updates instantly — product disappears
+    await _saveProducts(); // persist to disk in background
   }
 
   /// Find product by barcode (returns first match — duplicates allowed).
@@ -691,8 +691,8 @@ class StorageService extends ChangeNotifier {
     final history = qrHistory;
     if (index >= 0 && index < history.length) {
       history.removeAt(index);
-      await _prefs?.setString('qrHistory', jsonEncode(history));
-      notifyListeners();
+      notifyListeners(); // UI updates instantly
+      await _prefs?.setString('qrHistory', jsonEncode(history)); // persist in background
     }
   }
 
@@ -716,8 +716,8 @@ class StorageService extends ChangeNotifier {
     final history = scanHistory;
     if (index >= 0 && index < history.length) {
       history.removeAt(index);
-      await _prefs?.setString("scanHistory", jsonEncode(history));
-      notifyListeners();
+      notifyListeners(); // UI updates instantly
+      await _prefs?.setString("scanHistory", jsonEncode(history)); // persist in background
     }
   }
   // === UPI SCAN HISTORY (Smart Pay — separate from Counter QR history) ===

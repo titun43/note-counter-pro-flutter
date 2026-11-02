@@ -244,11 +244,9 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
           ? (_bill!.paidAt ?? DateTime.now())
           : null,
     );
-    await storage.updateBill(updated);
-
-    // Sync the linked Khata entry (so the customer's debit balance
-    // decreases by the payment amount).
-    await storage.syncLinkedKhataEntry(updated);
+    // INSTANT: fire-and-forget updates (UI updates via notifyListeners)
+    storage.updateBill(updated);
+    storage.syncLinkedKhataEntry(updated);
 
     // Adjust the customer's totalDebit down by the payment amount
     // (but not below 0).
@@ -550,9 +548,9 @@ ${_bill!.paidAmount > 0 ? 'Paid: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\
       ),
     );
     if (confirmed == true) {
-      await context.read<StorageService>().deleteBill(_bill!.id);
-      // Destructive action feedback.
+      // INSTANT: play feedback immediately, then fire-and-forget delete
       FeedbackService().error();
+      context.read<StorageService>().deleteBill(_bill!.id);
       if (mounted) Navigator.pop(context, true);
     }
   }

@@ -209,8 +209,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         lowStockThreshold: lowStock,
         description: desc,
       );
-      final ok = await storage.addProduct(product);
-      if (!ok) {
+      // Check hard cap synchronously (addProduct returns false if at limit)
+      if (!storage.canAddProduct) {
         if (mounted) {
           FeedbackService().error();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -222,7 +222,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         }
         return;
       }
+      // INSTANT: play feedback immediately, then fire-and-forget save
       FeedbackService().success();
+      storage.addProduct(product);
     }
 
     // Interstitial at natural break point (AdMob policy compliant).
