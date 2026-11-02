@@ -913,13 +913,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                // Tab content
+                // Tab content — wrapped in Consumer<StorageService> so
+                // that delete/save inside the sheet triggers a rebuild
+                // of the sheet itself (context.watch from the parent
+                // HomeScreen does NOT propagate into modal sheets).
                 Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildSaveInOutHistoryTab(isDark),
-                      _buildQrHistoryTab(isDark),
-                    ],
+                  child: Consumer<StorageService>(
+                    builder: (sheetContext, storage, _) {
+                      return TabBarView(
+                        children: [
+                          _buildSaveInOutHistoryTab(isDark, storage),
+                          _buildQrHistoryTab(isDark, storage),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -930,11 +937,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Build Save In/Out history tab content
-  Widget _buildSaveInOutHistoryTab(bool isDark) {
+  /// Build Save In/Out history tab content.
+  /// [storage] is injected by the caller so that this widget rebuilds
+  /// when StorageService notifies (works inside modal sheets).
+  Widget _buildSaveInOutHistoryTab(bool isDark, StorageService storage) {
     final loc = context.loc;
     final theme = Theme.of(context);
-    final storage = context.watch<StorageService>();
     final entries = storage.entries.take(20).toList();
 
     if (entries.isEmpty) {
@@ -1053,11 +1061,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Build QR Code history tab content
-  Widget _buildQrHistoryTab(bool isDark) {
+  /// Build QR Code history tab content.
+  /// [storage] is injected by the caller so that this widget rebuilds
+  /// when StorageService notifies (works inside modal sheets).
+  Widget _buildQrHistoryTab(bool isDark, StorageService storage) {
     final loc = context.loc;
     final theme = Theme.of(context);
-    final storage = context.watch<StorageService>();
     final qrHistory = storage.qrHistory;
 
     if (qrHistory.isEmpty) {
