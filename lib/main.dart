@@ -16,6 +16,7 @@ import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
 import 'widgets/banner_ad_widget.dart';
 import 'widgets/glass_nav_bar.dart';
+import 'widgets/animated_update_dialog.dart';
 import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/khata_screen.dart';
@@ -263,26 +264,21 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
       const platform = MethodChannel('com.lokhnathtechnical.notecounterpro/update');
       final result = await platform.invokeMethod('checkUpdate');
       if (result != null && result['updateAvailable'] == true) {
+        // Build a friendly version label from the available version code.
+        // Play Store gives us an int versionCode; we show it as "vXXX" since
+        // we don't have the friendly version string from Play Console here.
+        final versionCode = result['versionCode'];
+        final versionLabel = versionCode != null ? 'v$versionCode' : 'New version';
         if (mounted) {
           showDialog(
             context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              title: const Text('Update Available'),
-              content: const Text('A new version of Note Counter Pro is available. Please update for the best experience.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Later'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    platform.invokeMethod('startUpdate');
-                  },
-                  child: const Text('Update Now'),
-                ),
-              ],
+            barrierDismissible: true, // allow tap-outside to dismiss (= "Later")
+            builder: (context) => AnimatedUpdateDialog(
+              version: versionLabel,
+              size: 'Update',
+              onUpdate: () {
+                platform.invokeMethod('startUpdate');
+              },
             ),
           );
         }
