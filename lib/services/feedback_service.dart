@@ -69,11 +69,13 @@ class FeedbackService {
   final Map<FeedbackType, Uint8List> _soundBytes = {};
 
   // Pre-resolved asset paths (relative to project root, with folder).
+  // Using WAV instead of MP3 — WAV has lower startup latency on Android
+  // because no decode step is needed.
   static const Map<FeedbackType, String> _assetFor = {
-    FeedbackType.tap: 'assets/sounds/tap.mp3',
-    FeedbackType.click: 'assets/sounds/click.mp3',
-    FeedbackType.success: 'assets/sounds/success.mp3',
-    FeedbackType.error: 'assets/sounds/error.mp3',
+    FeedbackType.tap: 'assets/sounds/tap.wav',
+    FeedbackType.click: 'assets/sounds/click.wav',
+    FeedbackType.success: 'assets/sounds/success.wav',
+    FeedbackType.error: 'assets/sounds/error.wav',
   };
 
   // Volume per feedback type (0.0 – 1.0).
