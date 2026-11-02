@@ -1716,141 +1716,223 @@ class _HomeScreenState extends State<HomeScreen> {
         top: false, // MainScaffold already handles top padding for banner ad
         child: Column(
         children: [
-          // === TOP: Currency + Notes + Clear + Total (compact, one row) ===
+          // === TOP: Single Border Wrap (Variation 1) ===
+          // All header elements (Currency / Notes / Tools / Total) live
+          // inside ONE rounded-border card. Each sub-element has its own
+          // subtle inner box so the row feels organized, not crowded.
+          // Total is the "hero" — dark gradient (light mode) or gold
+          // gradient (dark mode) so it pops against the other elements.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-            child: Row(
-              children: [
-                // Currency selector (compact)
-                Expanded(
-                  flex: 3,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCurrency,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      border: OutlineInputBorder(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.bgDarker : const Color(0xFFFAFBFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? AppColors.textSecondaryDark.withOpacity(0.25)
+                      : const Color(0xFFE5E7EB),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  // --- Currency selector (white inner box) ---
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.textSecondaryDark.withOpacity(0.25)
+                            : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
                     ),
-                    items: AppConstants.currencies.map((currency) {
-                      return DropdownMenuItem<String>(
-                        value: currency['code'],
-                        child: Text(
-                          currency['code']!,
-                          style: const TextStyle(fontSize: 13),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currencySymbol,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.info,
+                          ),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: _changeCurrency,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                // Notes count
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.bgDarker : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.textSecondary.withOpacity(0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '$_totalNotes',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                          fontFamily: 'KhataHandwriting',
-                          fontSize: 18,
+                        const SizedBox(width: 4),
+                        // Compact dropdown — no OutlineInputBorder decoration
+                        // so it fits inside the inner box cleanly.
+                        DropdownButton<String>(
+                          value: _selectedCurrency,
+                          underline: const SizedBox(),
+                          isDense: true,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColors.bgCard : AppColors.bgDark,
+                          ),
+                          dropdownColor: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                          items: AppConstants.currencies.map((currency) {
+                            return DropdownMenuItem<String>(
+                              value: currency['code'],
+                              child: Text(currency['code']!),
+                            );
+                          }).toList(),
+                          onChanged: _changeCurrency,
                         ),
-                      ),
-                      Text(
-                        loc.t('notes'),
-                        style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                // Clear button (moved here from AppBar)
-                IconButton(
-                  onPressed: () {
-                    // Professional: silent (haptic only).
-                    HapticFeedback.selectionClick();
-                    _reset();
-                  },
-                  icon: const Icon(Icons.cleaning_services),
-                  color: AppColors.danger,
-                  tooltip: 'Clear',
-                  iconSize: 22,
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                ),
-                const SizedBox(width: 4),
-                // Quick Actions (#70) — one-tap access to create bills etc.
-                IconButton(
-                  onPressed: () {
-                    // Professional: silent (haptic only).
-                    HapticFeedback.selectionClick();
-                    _showQuickActions();
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                  color: const Color(0xFFD4AF37),
-                  tooltip: loc.t('quickActions'),
-                  iconSize: 22,
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                ),
-                const SizedBox(width: 4),
-                // Settings gear icon — replaces old Settings tab.
-                // Tap → Navigator.push(SettingsScreen).
-                IconButton(
-                  onPressed: () {
-                    // Professional: silent (haptic only).
-                    HapticFeedback.selectionClick();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.settings_outlined),
-                  color: AppColors.textSecondary,
-                  tooltip: 'Settings',
-                  iconSize: 22,
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                ),
-                const SizedBox(width: 4),
-                // Grand Total
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.bgDark,
-                          fontFamily: 'KhataHandwriting',
-                          fontSize: 18,
+                  const SizedBox(width: 8),
+                  // --- Notes count (white inner box) ---
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.textSecondaryDark.withOpacity(0.25)
+                            : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '$_totalNotes',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                            fontFamily: 'KhataHandwriting',
+                            height: 1.1,
+                          ),
                         ),
-                      ),
-                      Text(
-                        loc.t('total'),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.bgDark,
-                          fontSize: 10,
+                        Text(
+                          loc.t('notes'),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  // --- Tools (3 icon buttons grouped in one inner box) ---
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.textSecondaryDark.withOpacity(0.25)
+                            : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Clear button
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            _reset();
+                          },
+                          icon: const Icon(Icons.cleaning_services),
+                          color: AppColors.danger,
+                          tooltip: 'Clear',
+                          iconSize: 20,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        ),
+                        // Quick Actions
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            _showQuickActions();
+                          },
+                          icon: const Icon(Icons.add_circle_outline),
+                          color: const Color(0xFFD4AF37),
+                          tooltip: loc.t('quickActions'),
+                          iconSize: 20,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        ),
+                        // Settings gear
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.settings_outlined),
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                          tooltip: 'Settings',
+                          iconSize: 20,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  // --- Grand Total (hero — gradient box) ---
+                  // Light mode: dark navy gradient + gold text (premium contrast)
+                  // Dark mode: gold/amber gradient + dark text (pops on dark bg)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [AppColors.primary, AppColors.primaryDark]
+                            : [AppColors.bgDark, const Color(0xFF2A2A4E)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppColors.bgDark : AppColors.primary,
+                            fontFamily: 'KhataHandwriting',
+                            height: 1.1,
+                          ),
+                        ),
+                        Text(
+                          loc.t('total'),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: isDark
+                                ? AppColors.bgDark.withOpacity(0.7)
+                                : AppColors.textSecondaryDark,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           
