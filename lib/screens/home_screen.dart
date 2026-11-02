@@ -147,8 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_hideTransactionToggle) {
       _hideTransactionToggle = true;
     }
-    // Tactile + audible tap feedback for each denomination increment.
-    FeedbackService().tap();
+    // Professional: denomination buttons are silent (haptic only).
+    // Sound reserved for important actions (Save In/Out, Delete, etc).
+    HapticFeedback.selectionClick();
     setState(() {});
   }
 
@@ -162,7 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_totalNotes == 0) {
         _hideTransactionToggle = false;
       }
-      FeedbackService().tap();
+      // Professional: silent (haptic only).
+      HapticFeedback.selectionClick();
       setState(() {});
     }
   }
@@ -1764,7 +1766,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Clear button (moved here from AppBar)
                 IconButton(
                   onPressed: () {
-                    FeedbackService().tap();
+                    // Professional: silent (haptic only).
+                    HapticFeedback.selectionClick();
                     _reset();
                   },
                   icon: const Icon(Icons.cleaning_services),
@@ -1778,7 +1781,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Quick Actions (#70) — one-tap access to create bills etc.
                 IconButton(
                   onPressed: () {
-                    FeedbackService().tap();
+                    // Professional: silent (haptic only).
+                    HapticFeedback.selectionClick();
                     _showQuickActions();
                   },
                   icon: const Icon(Icons.add_circle_outline),
@@ -1793,7 +1797,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Tap → Navigator.push(SettingsScreen).
                 IconButton(
                   onPressed: () {
-                    FeedbackService().tap();
+                    // Professional: silent (haptic only).
+                    HapticFeedback.selectionClick();
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -2314,7 +2319,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 IconButton(
                   onPressed: () {
-                    FeedbackService().tap();
+                    // Professional: silent (haptic only).
+                    HapticFeedback.selectionClick();
                     _sendToCalculator();
                   },
                   icon: const Icon(Icons.calculate),
@@ -2328,7 +2334,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Click to view Save In/Out + QR history
                 IconButton(
                   onPressed: () {
-                    FeedbackService().tap();
+                    // Professional: silent (haptic only).
+                    HapticFeedback.selectionClick();
                     _showHistorySheet();
                   },
                   icon: const Icon(Icons.history),

@@ -10,7 +10,7 @@
 | 2 | **3 languages (en/bn/hi)** | সব নতুন user-facing string `lib/utils/app_localizations.dart` এ তিন ভাষায় যোগ করতে হবে — English (line ~194-), Bengali (line ~677-), Hindi (line ~1160-)। হার্ডকোডেড স্ট্রিং নয়। |
 | 3 | **Dark/Light mode** | প্রতিটি UI component এ `final isDark = theme.brightness == Brightness.dark;` check করতে হবে। দুটো মোডেই কালার/গ্রেডিয়েন্ট/শ্যাডো সঠিক দেখাতে হবে। |
 | 4 | **Ads (interstitial + banner, AdMob policy)** | `BannerAdWidget` top এ থাকবে। Interstitial শুধুমাত্র user action (button tap) এর পরে দেখাবে — কখনো automatic নয়। AdMob policy compliant। |
-| 5 | **Feedback (Haptic + Sound)** | সব user-facing button এ `FeedbackService().tap()/click()/success()/error()` দিতে হবে। দুটো independent setting: `hapticFeedback` (vibration) এবং `buttonSound` (UI click MP3)। উভয় Settings → Appearance এ toggle আছে। Toggle OFF = সেই channel সম্পূর্ণ silent। Assets: `assets/sounds/{tap,click,success,error}.mp3`। |
+| 5 | **Feedback (Professional Sound Policy)** | **Tier-based feedback (v3.42.0+):**<br>• **Silent (haptic only):** Calculator buttons, denomination +/-, navigation tabs, settings gear, reset/clear, history, quick actions — `HapticFeedback.selectionClick()` direct call<br>• **Sound (FeedbackService):** Only on important actions — `success()` for save/create, `error()` for delete/fail, `click()` for primary action buttons (Calculate, Generate, Backup, Restore)<br>• **Utility actions:** copy/share/swap keep `tap()` sound<br>Settings → Appearance: `hapticFeedback` (vibration) + `buttonSound` (UI click) toggles. Assets: `assets/sounds/{tap,click,success,error}.wav` (220-280ms WAV for Android MediaPlayer compatibility). |
 
 ---
 

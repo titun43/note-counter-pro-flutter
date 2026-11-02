@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/feedback_service.dart';
+import 'package:flutter/services.dart';
 import '../utils/app_localizations.dart';
 
 class StandardCalculator extends StatefulWidget {
@@ -393,7 +393,9 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       margin: const EdgeInsets.all(3),
       child: ElevatedButton(
         onPressed: () {
-          FeedbackService().tap();
+          // Professional: calculator buttons are silent (haptic only).
+          // Sound reserved for important actions (save/delete/etc).
+          HapticFeedback.selectionClick();
           _onButton(label);
         },
         style: ElevatedButton.styleFrom(

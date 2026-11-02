@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../services/feedback_service.dart';
+import 'package:flutter/services.dart';
 
 class ScientificCalculator extends StatefulWidget {
   const ScientificCalculator({super.key});
@@ -390,7 +390,8 @@ class _ScientificCalculatorState extends State<ScientificCalculator> {
       margin: const EdgeInsets.all(3),
       child: ElevatedButton(
         onPressed: () {
-          FeedbackService().tap();
+          // Professional: calculator buttons are silent (haptic only).
+          HapticFeedback.selectionClick();
           _onButton(label);
         },
         style: ElevatedButton.styleFrom(

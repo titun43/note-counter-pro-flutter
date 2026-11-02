@@ -17,8 +17,8 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/premium_service.dart';
-import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 
 class GlassNavBar extends StatelessWidget {
@@ -99,7 +99,9 @@ class GlassNavBar extends StatelessWidget {
                 return Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      FeedbackService().tap();
+                      // Professional: navigation is silent (haptic only).
+                      // Sound only on important actions (save/delete/etc).
+                      HapticFeedback.selectionClick();
                       onDestinationSelected(index);
                     },
                     behavior: HitTestBehavior.opaque,
