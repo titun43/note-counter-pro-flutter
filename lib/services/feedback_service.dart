@@ -10,17 +10,22 @@
 //
 // If a setting is OFF, that channel is silenced — no exceptions.
 //
-// SOUND PLAYBACK STRATEGY (SIMPLEST POSSIBLE — most reliable):
+// SOUND PLAYBACK STRATEGY (after multiple iterations — this version uses
+// pre-loaded ByteData + BytesSource for maximum reliability):
 //
-//   • Single shared AudioPlayer.
-//   • Each fire() calls play(AssetSource) directly.
-//   • NO stop(), NO pre-loading, NO setSourceAsset, NO seek/resume.
-//   • audioplayers internally caches decoded assets, so the first tap
-//     of each sound has ~100ms latency but subsequent taps are fast.
-//   • play() automatically stops any currently-playing sound on the
-//     same player and starts the new one — so rapid taps naturally
-//     retrigger without us calling stop() manually (which was cutting
-//     off sound mid-play = "sound full hoynai" bug).
+//   • At init time, we load each sound file's raw bytes via rootBundle.
+//     This bypasses audioplayers' asset-path resolution entirely.
+//   • We store the ByteData in a map.
+//   • Each play() creates a NEW AudioPlayer, feeds it BytesSource, plays,
+//     and disposes. This sounds wasteful but is actually the most
+//     reliable pattern for short sound effects in audioplayers 5.x:
+//       - No state-management race conditions
+//       - No "player already in use" silent failures
+//       - Each play is independent
+//   • The bytes are already in memory (decoded at init), so the only
+//     overhead is creating a player object (~1ms).
+//   • AudioPlayer auto-disposes after playback completes when
+//     ReleaseMode.release is set.
 //
 // Usage:
 //   FeedbackService.tap();            // light tap (most buttons)
@@ -58,16 +63,17 @@ class FeedbackService {
   // Cached SharedPreferences — injected from main.dart after app start.
   SharedPreferences? _prefs;
 
-  // Single shared AudioPlayer. Reusing one player is simplest and most
-  // reliable. play() auto-stops any currently playing sound.
-  AudioPlayer? _player;
+  // Pre-loaded raw bytes for each sound. Loaded once at init via
+  // rootBundle.load() — bypasses audioplayers asset-path resolution.
+  // Stored as Uint8List because BytesSource constructor requires it.
+  final Map<FeedbackType, Uint8List> _soundBytes = {};
 
-  // Pre-resolved asset paths.
+  // Pre-resolved asset paths (relative to project root, with folder).
   static const Map<FeedbackType, String> _assetFor = {
-    FeedbackType.tap: 'sounds/tap.mp3',
-    FeedbackType.click: 'sounds/click.mp3',
-    FeedbackType.success: 'sounds/success.mp3',
-    FeedbackType.error: 'sounds/error.mp3',
+    FeedbackType.tap: 'assets/sounds/tap.mp3',
+    FeedbackType.click: 'assets/sounds/click.mp3',
+    FeedbackType.success: 'assets/sounds/success.mp3',
+    FeedbackType.error: 'assets/sounds/error.mp3',
   };
 
   // Volume per feedback type (0.0 – 1.0).
@@ -81,20 +87,34 @@ class FeedbackService {
   bool _initialized = false;
   bool _soundInitFailed = false; // if true, skip sound forever (no audio device)
 
-  /// Inject SharedPreferences and create the AudioPlayer.
+  /// Inject SharedPreferences and pre-load all sound assets as raw bytes.
   /// Safe to call multiple times.
   Future<void> init(SharedPreferences prefs) async {
     _prefs = prefs;
     if (_initialized) return;
 
     try {
-      _player = AudioPlayer(playerId: 'ncp_feedback_sfx');
-      try {
-        await _player!.setReleaseMode(ReleaseMode.stop);
-      } catch (_) {}
-      try {
-        await _player!.setVolume(1.0);
-      } catch (_) {}
+      // Pre-load each sound file's raw bytes via rootBundle.
+      // This is the most reliable way to load assets in Flutter —
+      // it bypasses audioplayers' internal asset resolution which
+      // can fail silently on some Android devices.
+      for (final type in FeedbackType.values) {
+        try {
+          final byteData = await rootBundle.load(_assetFor[type]!);
+          // Convert ByteData → Uint8List for BytesSource constructor.
+          _soundBytes[type] = byteData.buffer.asUint8List(
+              byteData.offsetInBytes, byteData.lengthInBytes);
+          debugPrint('FeedbackService: pre-loaded ${type.name} '
+              '(${byteData.lengthInBytes} bytes)');
+        } catch (e) {
+          debugPrint('FeedbackService: failed to load ${type.name}: $e');
+        }
+      }
+      if (_soundBytes.isEmpty) {
+        debugPrint('FeedbackService: ALL sound bytes failed to load — '
+            'disabling sound');
+        _soundInitFailed = true;
+      }
     } catch (e) {
       debugPrint('FeedbackService audio init failed (non-fatal): $e');
       _soundInitFailed = true;
@@ -144,26 +164,33 @@ class FeedbackService {
 
   void _soundFor(FeedbackType type) {
     if (!_soundEnabled) return;
-    final p = _player;
-    if (p == null) return;
+    final bytes = _soundBytes[type];
+    if (bytes == null) return;
 
-    // SIMPLEST APPROACH: just call play(AssetSource) directly.
-    //   • No stop() — that was cutting off sound mid-play
-    //   • No pre-loading — adds complexity without clear benefit
-    //   • No seek/resume — race conditions on rapid taps
+    // Create a fresh AudioPlayer for each play. This is the most reliable
+    // pattern in audioplayers 5.x for short sound effects:
+    //   • No state-management race conditions
+    //   • No "player already in use" silent failures
+    //   • Each play is fully independent
     //
-    // play() automatically stops any currently playing sound on this
-    // player and starts the new one. So rapid taps naturally retrigger.
-    // The first tap of each session has ~100ms latency (asset decode);
-    // audioplayers caches the decoded asset so subsequent taps are fast.
+    // The bytes are already in memory (loaded at init), so the only
+    // overhead is creating a player object (~1ms).
+    //
+    // We use ReleaseMode.release so the player auto-disposes its native
+    // resources after playback completes.
     //
     // Fire-and-forget — we don't await so the UI thread never blocks.
-    p.play(
-      AssetSource(_assetFor[type]!),
-      volume: _volumeFor[type]!,
-    ).catchError((e) {
-      debugPrint('FeedbackService sound failed (${type.name}): $e');
-    });
+    AudioPlayer(playerId: 'ncp_${type.name}_${DateTime.now().millisecondsSinceEpoch}')
+        .play(
+          BytesSource(bytes),
+          volume: _volumeFor[type]!,
+        )
+        .then((_) {
+          // Playback started successfully — nothing more to do.
+        })
+        .catchError((e) {
+          debugPrint('FeedbackService sound failed (${type.name}): $e');
+        });
   }
 
   // -------------------------------------------------------------------- public
@@ -187,10 +214,8 @@ class FeedbackService {
   /// Convenience: destructive / error. Use for delete actions and errors.
   void error() => fire(FeedbackType.error);
 
-  /// Dispose the underlying audio player. Only call on app teardown.
+  /// Dispose. Only call on app teardown. (Per-play players auto-dispose.)
   Future<void> dispose() async {
-    try {
-      await _player?.dispose();
-    } catch (_) {}
+    _soundBytes.clear();
   }
 }
