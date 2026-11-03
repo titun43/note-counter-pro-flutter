@@ -67,22 +67,49 @@ class CloudVisionService {
       case OcrEngine.online:
         return _processWithCloudVision(imagePath);
       case OcrEngine.auto:
-        // Try ML Kit first (fast, offline).
-        final mlResult = await _processWithMlKit(imagePath);
-        // If ML Kit found enough numbers, use that.
-        if (mlResult.totalNumbers >= 3) {
-          debugPrint('CloudVision: ML Kit found ${mlResult.totalNumbers} '
-              'numbers — using offline result');
-          return mlResult;
-        }
-        // Otherwise, try Cloud Vision for better accuracy.
-        debugPrint('CloudVision: ML Kit found only ${mlResult.totalNumbers} '
-            'numbers — falling back to Cloud Vision');
+        // Try Cloud Vision FIRST (handwriting needs it for accuracy).
+        // If Cloud Vision fails (no internet, API error), fall back to ML Kit.
         try {
-          return await _processWithCloudVision(imagePath);
+          debugPrint('CloudVision: trying Cloud Vision first (auto mode)');
+          final cvResult = await _processWithCloudVision(imagePath);
+          if (cvResult.totalNumbers > 0) {
+            debugPrint('CloudVision: found ${cvResult.totalNumbers} numbers');
+            return cvResult;
+          }
+          // Cloud Vision found nothing — try ML Kit as backup.
+          debugPrint('CloudVision: no numbers found, trying ML Kit backup');
+          final mlResult = await _processWithMlKit(imagePath);
+          if (mlResult.totalNumbers > 0) {
+            return mlResult;
+          }
+          // Both failed — return Cloud Vision's error message (more descriptive).
+          return cvResult;
         } catch (e) {
-          debugPrint('CloudVision: online failed ($e) — using ML Kit result');
-          return mlResult;
+          debugPrint('CloudVision: failed ($e) — falling back to ML Kit');
+          // Cloud Vision failed (network/API error) — try ML Kit offline.
+          try {
+            final mlResult = await _processWithMlKit(imagePath);
+            if (mlResult.totalNumbers > 0) {
+              return mlResult;
+            }
+            // ML Kit also found nothing — return the Cloud Vision error
+            // so the user knows what went wrong.
+            return ScanResult(
+              columns: [],
+              totalNumbers: 0,
+              grandTotal: 0,
+              errorMessage: 'Cloud Vision: $e\n\n'
+                  'ML Kit (offline) also found no numbers.\n\n'
+                  'Check: internet connection, API key, billing.',
+            );
+          } catch (mlErr) {
+            return ScanResult(
+              columns: [],
+              totalNumbers: 0,
+              grandTotal: 0,
+              errorMessage: 'Cloud Vision: $e\nML Kit: $mlErr',
+            );
+          }
         }
     }
   }
@@ -123,7 +150,10 @@ class CloudVisionService {
       ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode != 200) {
-        throw Exception('API error ${response.statusCode}: ${response.body}');
+        // Show the FULL error response so we can diagnose the issue.
+        final errorBody = response.body;
+        debugPrint('CloudVision: HTTP ${response.statusCode} — $errorBody');
+        throw Exception('HTTP ${response.statusCode}: $errorBody');
       }
 
       final data = jsonDecode(response.body);

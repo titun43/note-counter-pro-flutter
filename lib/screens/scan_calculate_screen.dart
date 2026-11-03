@@ -538,14 +538,31 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppColors.danger.withOpacity(0.3)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.error_outline, color: AppColors.danger, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(color: AppColors.danger, fontSize: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.error_outline, color: AppColors.danger, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Error Details:',
+                          style: TextStyle(
+                            color: AppColors.danger,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          _errorMessage!,
+                          style: TextStyle(color: AppColors.danger, fontSize: 10),
+                        ),
                       ),
                     ),
                   ],
