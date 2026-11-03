@@ -4,11 +4,18 @@
 //
 // Handwritten bill OCR with column-wise sum calculation.
 //
-// Flow (4 stages):
-//   1. Capture — camera or gallery via image_picker
-//   2. Processing — animated loader while ML Kit runs
-//   3. Verify — auto-detected columns shown to user for confirmation
-//   4. Result — table with per-column sums + grand total
+// Flow (5 stages):
+//   1. Capture    — camera or gallery via image_picker
+//   2. Preview    — captured image shown with zoom + crop + confirm ⭐ NEW
+//   3. Processing — animated loader while ML Kit runs OCR
+//   4. Verify     — auto-detected columns shown to user for confirmation
+//   5. Result     — table with per-column sums + grand total
+//
+// Preview stage (NEW):
+//   - Full image preview so user can verify it's clear before processing
+//   - Pinch-to-zoom (InteractiveViewer) for inspecting small numbers
+//   - Optional crop via image_cropper (user taps "Crop" to trim edges)
+//   - Two CTAs: "Retake" (camera + gallery options) and "Calculate"
 //
 // Features:
 //   - Hybrid column detection (auto + user verify)
@@ -17,13 +24,13 @@
 //   - Empty cells treated as 0
 //   - Bengali + English + Hindi digit normalization
 //   - Edit option (numbers can be removed/edited)
-//   - Save result (in-memory only for now; persisted history is a future
-//     enhancement)
+//   - 30s timeout on OCR
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import '../services/scan_calculate_service.dart';
 import '../services/feedback_service.dart';
@@ -37,7 +44,7 @@ class ScanCalculateScreen extends StatefulWidget {
   State<ScanCalculateScreen> createState() => _ScanCalculateScreenState();
 }
 
-enum _Stage { capture, processing, verify, result }
+enum _Stage { capture, preview, processing, verify, result }
 
 class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
   _Stage _stage = _Stage.capture;
@@ -52,33 +59,16 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
         source: source,
-        maxWidth: 2000,
-        maxHeight: 2000,
+        maxWidth: 1800,
+        maxHeight: 1800,
         imageQuality: 90,
       );
       if (picked == null) return; // user cancelled
 
       setState(() {
         _imagePath = picked.path;
-        _stage = _Stage.processing;
+        _stage = _Stage.preview; // ⭐ preview before processing
         _errorMessage = null;
-      });
-
-      // Run OCR + column detection.
-      final result = await ScanCalculateService().processImage(picked.path);
-
-      if (!mounted) return;
-      if (result.errorMessage != null) {
-        setState(() {
-          _errorMessage = result.errorMessage;
-          _stage = _Stage.capture;
-        });
-        FeedbackService().error();
-        return;
-      }
-      setState(() {
-        _result = result;
-        _stage = _Stage.verify;
       });
       FeedbackService().success();
     } catch (e) {
@@ -91,12 +81,89 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
     }
   }
 
+  /// Launch image_cropper for the current _imagePath.
+  /// On success, replaces _imagePath with the cropped file.
+  Future<void> _cropImage() async {
+    if (_imagePath == null) return;
+    try {
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: _imagePath!,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1.4),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop',
+            toolbarColor: AppColors.bgDark,
+            toolbarWidgetColor: AppColors.primary,
+            activeControlsWidgetColor: AppColors.primary,
+            cropGridColor: AppColors.primary,
+            backgroundColor: AppColors.bgDarker,
+            dimmedLayerColor: Colors.black54,
+            lockAspectRatio: false,
+            hideBottomControls: false,
+          ),
+        ],
+      );
+      if (cropped != null) {
+        setState(() => _imagePath = cropped.path);
+        FeedbackService().tap();
+      }
+    } catch (e) {
+      // Silent fail — crop is optional
+      debugPrint('Crop failed: $e');
+    }
+  }
+
+  /// User confirmed the image is clear → start OCR.
+  Future<void> _confirmAndProcess() async {
+    if (_imagePath == null) return;
+    setState(() {
+      _stage = _Stage.processing;
+      _errorMessage = null;
+    });
+    FeedbackService().click();
+
+    try {
+      final result = await ScanCalculateService()
+          .processImage(_imagePath!)
+          .timeout(const Duration(seconds: 30), onTimeout: () {
+        return ScanResult(
+          columns: [],
+          totalNumbers: 0,
+          grandTotal: 0,
+          errorMessage: 'Timeout — please try again with a clearer photo.',
+        );
+      });
+
+      if (!mounted) return;
+      if (result.errorMessage != null) {
+        setState(() {
+          _errorMessage = result.errorMessage;
+          _stage = _Stage.preview; // back to preview so user can retake
+        });
+        FeedbackService().error();
+        return;
+      }
+      setState(() {
+        _result = result;
+        _stage = _Stage.verify;
+      });
+      FeedbackService().success();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Scan failed: $e';
+        _stage = _Stage.preview;
+      });
+      FeedbackService().error();
+    }
+  }
+
   void _confirmAndShowResult() {
     FeedbackService().click();
     setState(() => _stage = _Stage.result);
   }
 
-  void _rescan() {
+  void _retake() {
     FeedbackService().tap();
     setState(() {
       _stage = _Stage.capture;
@@ -139,6 +206,8 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
     switch (_stage) {
       case _Stage.capture:
         return _buildCaptureStage(theme, isDark, loc);
+      case _Stage.preview:
+        return _buildPreviewStage(theme, isDark, loc);
       case _Stage.processing:
         return _buildProcessingStage(theme, isDark, loc);
       case _Stage.verify:
@@ -230,16 +299,16 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                       HapticFeedback.selectionClick();
                       _pickImage(ImageSource.camera);
                     },
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.camera_alt, color: Color(0xFF1A1A2E), size: 22),
-                          SizedBox(width: 10),
+                          const Icon(Icons.camera_alt, color: Color(0xFF1A1A2E), size: 22),
+                          const SizedBox(width: 10),
                           Text(
-                            'OPEN CAMERA',
-                            style: TextStyle(
+                            loc.t('openCamera'),
+                            style: const TextStyle(
                               color: Color(0xFF1A1A2E),
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -351,6 +420,251 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
         style: TextStyle(
           fontSize: 11,
           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  // ----------------------------------------------------- stage: preview ⭐
+
+  Widget _buildPreviewStage(ThemeData theme, bool isDark, AppLocalizations loc) {
+    return Column(
+      children: [
+        // Header
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          color: (isDark ? AppColors.bgCardDark : AppColors.bgCard).withOpacity(0.7),
+          child: Row(
+            children: [
+              Icon(Icons.photo_camera, size: 20, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loc.t('previewTitle'),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.bgCard : AppColors.bgDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Image preview with pinch-to-zoom
+        Expanded(
+          child: Container(
+            color: isDark ? AppColors.bgDarker : Colors.black12,
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 5.0,
+              child: Center(
+                child: _imagePath != null
+                    ? Image.file(
+                        File(_imagePath!),
+                        fit: BoxFit.contain,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ),
+        // Hint
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: AppColors.warning.withOpacity(0.1),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loc.t('previewHint'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.bgCard : AppColors.bgDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Error message (if OCR failed previously)
+        if (_errorMessage != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.danger.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: AppColors.danger, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: AppColors.danger, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Action buttons
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+            border: Border(
+              top: BorderSide(
+                color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary).withOpacity(0.2),
+              ),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Top row: Retake (with menu) + Crop
+              Row(
+                children: [
+                  // Retake — opens a menu with Camera + Gallery options
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showRetakeMenu(isDark, loc),
+                      icon: Icon(Icons.refresh, size: 18),
+                      label: Text(loc.t('retake')),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: isDark ? AppColors.bgCard : AppColors.bgDark,
+                        side: BorderSide(
+                          color: (isDark ? AppColors.bgCard : AppColors.bgDark).withOpacity(0.3),
+                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Crop
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _cropImage,
+                      icon: Icon(Icons.crop, size: 18),
+                      label: Text(loc.t('crop')),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: AppColors.info,
+                        side: BorderSide(color: AppColors.info.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Calculate (primary CTA)
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.primaryDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: _confirmAndProcess,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.calculate, color: AppColors.bgDark, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              loc.t('calculateNow'),
+                              style: TextStyle(
+                                color: AppColors.bgDark,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showRetakeMenu(bool isDark, AppLocalizations loc) {
+    FeedbackService().tap();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                loc.t('retake'),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.bgCard : AppColors.bgDark,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: AppColors.primary),
+              title: Text(
+                loc.t('openCamera'),
+                style: TextStyle(color: isDark ? AppColors.bgCard : AppColors.bgDark),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library, color: AppColors.info),
+              title: Text(
+                loc.t('chooseFromGallery'),
+                style: TextStyle(color: isDark ? AppColors.bgCard : AppColors.bgDark),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
@@ -521,7 +835,7 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _rescan,
+                  onPressed: _retake,
                   icon: Icon(Icons.refresh, size: 18),
                   label: Text(loc.t('rescan')),
                   style: OutlinedButton.styleFrom(
@@ -800,7 +1114,7 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                   Icons.refresh,
                   loc.t('rescan'),
                   isDark,
-                  onTap: _rescan,
+                  onTap: _retake,
                 ),
               ),
               const SizedBox(width: 6),
@@ -828,8 +1142,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                   isDark,
                   onTap: () {
                     FeedbackService().tap();
-                    // Simple share via clipboard (full share_plus integration
-                    // is a future enhancement).
                     final expr = result.columnSums.map(_formatNumber).join(' + ') +
                         ' = ${_formatNumber(result.grandTotal)}';
                     Clipboard.setData(ClipboardData(text: expr));

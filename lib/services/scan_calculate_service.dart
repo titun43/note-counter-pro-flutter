@@ -5,9 +5,9 @@
 // OCR-based number extraction + column detection + sum calculation.
 //
 // Flow:
-//   1. User captures/picks an image of a handwritten page
+//   1. User captures/picks an image of a handwritten page (optionally crops it)
 //   2. google_mlkit_text_recognition extracts text + bounding boxes
-//   3. We extract all numeric tokens (Bengali + English + decimals)
+//   3. We extract all numeric tokens from each LINE (Bengali + English + Hindi)
 //   4. We group numbers by X position into "columns"
 //   5. Within each column, we sort by Y to get row order
 //   6. Each column sum is computed, then all column sums are added
@@ -16,7 +16,6 @@
 // Output: ScanResult with columns, rows, per-column sums, and grand total.
 // =============================================================================
 
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
@@ -66,9 +65,10 @@ class ScanCalculateService {
   factory ScanCalculateService() => _instance;
   ScanCalculateService._();
 
-  final _recognizer = TextRecognizer(
-    script: TextRecognitionScript.latin,
-  );
+  // Use the DEFAULT script (no script parameter) so ML Kit uses its
+  // general Latin model that handles handwritten English digits well.
+  // For Bengali digits, we normalize manually after OCR.
+  final _recognizer = TextRecognizer();
 
   // ----------------------------------------------------------------- public
 
@@ -76,26 +76,25 @@ class ScanCalculateService {
   /// with columns detected by X-position grouping.
   Future<ScanResult> processImage(String imagePath) async {
     try {
+      debugPrint('ScanCalculate: starting OCR on $imagePath');
       final inputImage = InputImage.fromFilePath(imagePath);
       final recognizedText = await _recognizer.processImage(inputImage);
+      debugPrint('ScanCalculate: OCR done. blocks=${recognizedText.blocks.length}, '
+          'text length=${recognizedText.text.length}');
 
-      // Step 1: extract all numbers (with positions) from text blocks.
+      // Step 1: extract all numbers (with positions) from each LINE.
+      // We use line-level (not element-level) parsing because in handwritten
+      // text, multiple numbers often appear on one line and ML Kit merges
+      // them into a single element. Parsing the full line text with a regex
+      // captures every number reliably.
       final numbers = <DetectedNumber>[];
       for (final block in recognizedText.blocks) {
         for (final line in block.lines) {
-          for (final element in line.elements) {
-            final parsed = _tryParseNumber(element.text);
-            if (parsed != null) {
-              final b = element.boundingBox;
-              numbers.add(DetectedNumber(
-                value: parsed,
-                x: b.center.dx,
-                y: b.center.dy,
-              ));
-            }
-          }
+          final lineNumbers = _extractNumbersFromLine(line);
+          numbers.addAll(lineNumbers);
         }
       }
+      debugPrint('ScanCalculate: extracted ${numbers.length} numbers');
 
       if (numbers.isEmpty) {
         return ScanResult(
@@ -108,17 +107,19 @@ class ScanCalculateService {
 
       // Step 2: group numbers into columns by X position.
       final columns = _groupIntoColumns(numbers);
+      debugPrint('ScanCalculate: detected ${columns.length} columns');
 
       // Step 3: compute grand total (sum of column sums).
       final grandTotal = columns.fold(0.0, (a, c) => a + c.sum);
+      debugPrint('ScanCalculate: grand total = $grandTotal');
 
       return ScanResult(
         columns: columns,
         totalNumbers: numbers.length,
         grandTotal: grandTotal,
       );
-    } catch (e) {
-      debugPrint('ScanCalculateService.processImage failed: $e');
+    } catch (e, st) {
+      debugPrint('ScanCalculateService.processImage failed: $e\n$st');
       return ScanResult(
         columns: [],
         totalNumbers: 0,
@@ -130,31 +131,101 @@ class ScanCalculateService {
 
   // ----------------------------------------------------- number extraction
 
-  /// Try to parse [text] as a number.
-  /// Supports:
-  ///   - English digits: 123, 45.6
-  ///   - Bengali digits: ১২৩, ৪৫.৬
-  ///   - Hindi digits: १२३
-  ///   - Thousands separators: 1,234 → 1234
-  /// Returns null if not a number.
-  double? _tryParseNumber(String text) {
-    if (text.isEmpty) return null;
+  /// Extract all numbers from a single recognized LINE.
+  /// Returns one DetectedNumber per numeric token found, with position
+  /// approximated from the line's bounding box and the token's relative
+  /// position within the line text.
+  List<DetectedNumber> _extractNumbersFromLine(TextLine line) {
+    final results = <DetectedNumber>[];
+    final rawText = line.text;
+    if (rawText.isEmpty) return results;
 
-    // Normalize: convert Bengali/Hindi digits → English
-    String normalized = _normalizeDigits(text);
+    // Normalize digits (Bengali + Hindi → English) BEFORE regex.
+    final normalized = _normalizeDigits(rawText);
 
-    // Remove thousands separators (commas between digits)
-    normalized = normalized.replaceAll(RegExp(r'(?<=\d),(?=\d)'), '');
+    // Regex: match numbers with optional thousands separators and decimals.
+    // We capture:
+    //   - integer: 123
+    //   - decimal: 123.45 or 123,45 (European)
+    //   - with commas: 1,234
+    final numberRegex = RegExp(r'\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?');
 
-    // Match a valid number: optional decimal
-    final match = RegExp(r'^\d+\.?\d*$').firstMatch(normalized);
-    if (match == null) return null;
+    // Pre-decompose the line into "text elements" by splitting on whitespace
+    // so we can attempt to align each detected number back to an element's
+    // bounding box. If alignment fails, we fall back to distributing numbers
+    // evenly across the line's bounding box width.
+    final lineBox = line.boundingBox;
+    final lineLeft = lineBox.left;
+    final lineTop = lineBox.top;
+    final lineWidth = lineBox.width;
+    final lineCenterY = lineBox.center.dy;
 
-    final value = double.tryParse(normalized);
-    return value;
+    // Try to map each regex match to an element by comparing normalized text.
+    final elements = line.elements;
+    final elementMatches = <int, int>{}; // regexMatchIndex → elementIndex
+
+    final allMatches = numberRegex.allMatches(normalized).toList();
+    if (allMatches.isEmpty) return results;
+
+    // Build a parallel list of normalized element texts for matching.
+    final normElements = elements
+        .map((e) => _normalizeDigits(e.text).replaceAll(RegExp(r'[^\d.,]'), ''))
+        .toList();
+
+    for (var mi = 0; mi < allMatches.length; mi++) {
+      final match = allMatches[mi];
+      final matchText = match.group(0)!;
+      // Try to find an element whose normalized text contains this number.
+      int? bestElementIdx;
+      for (var ei = 0; ei < normElements.length; ei++) {
+        if (normElements[ei] == matchText ||
+            normElements[ei].endsWith(matchText) ||
+            normElements[ei].startsWith(matchText)) {
+          bestElementIdx = ei;
+          break;
+        }
+      }
+      elementMatches[mi] = bestElementIdx ?? -1;
+    }
+
+    // Now build DetectedNumber for each match.
+    for (var mi = 0; mi < allMatches.length; mi++) {
+      final match = allMatches[mi];
+      final raw = match.group(0)!;
+      final value = _parseNumberString(raw);
+      if (value == null) continue;
+
+      double x;
+      if (elementMatches[mi] != null && elementMatches[mi]! >= 0) {
+        // Use the element's bounding box center.
+        final el = elements[elementMatches[mi]!];
+        x = el.boundingBox.center.dx;
+      } else {
+        // Fallback: distribute across line width proportional to match start.
+        final charStart = match.start;
+        final charEnd = match.end;
+        final lineLen = normalized.length;
+        final ratioStart = lineLen == 0 ? 0.0 : charStart / lineLen;
+        final ratioEnd = lineLen == 0 ? 1.0 : charEnd / lineLen;
+        final ratioMid = (ratioStart + ratioEnd) / 2;
+        x = lineLeft + lineWidth * ratioMid;
+      }
+
+      results.add(DetectedNumber(value: value, x: x, y: lineCenterY));
+    }
+    return results;
+  }
+
+  /// Parse a normalized number string (English digits, optional comma
+  /// thousands separator, optional decimal point) into a double.
+  double? _parseNumberString(String s) {
+    // Remove thousands separators (commas between digits).
+    final cleaned = s.replaceAll(RegExp(r'(?<=\d),(?=\d)'), '');
+    return double.tryParse(cleaned);
   }
 
   /// Convert Bengali (০-৯) and Hindi (०-९) digits to English (0-9).
+  /// Also normalize Bengali decimal separator (।) to English dot.
   String _normalizeDigits(String text) {
     const bengali = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
     const hindi = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -163,7 +234,7 @@ class ScanCalculateService {
       result = result.replaceAll(bengali[i], i.toString());
       result = result.replaceAll(hindi[i], i.toString());
     }
-    // Also normalize Bengali decimal separator if used
+    // Bengali decimal separator (দাঁড়ি) → English dot
     result = result.replaceAll('।', '.');
     return result;
   }
@@ -171,7 +242,7 @@ class ScanCalculateService {
   // ----------------------------------------------------- column detection
 
   /// Group numbers into columns by X position.
-  /// Numbers with similar X (within [tolerance] px) are in the same column.
+  /// Numbers with similar X (within tolerance) are in the same column.
   /// Returns columns sorted left-to-right, each column's numbers sorted
   /// top-to-bottom by Y.
   List<ScanColumn> _groupIntoColumns(List<DetectedNumber> numbers) {
@@ -181,8 +252,7 @@ class ScanCalculateService {
     final sortedByX = List<DetectedNumber>.from(numbers)
       ..sort((a, b) => a.x.compareTo(b.x));
 
-    // Adaptive tolerance: 12% of the median X gap, clamped to a min of 40px.
-    // This handles both tight and wide column layouts.
+    // Adaptive tolerance: 40% of the median X gap, clamped to [40, 80]px.
     final tolerance = _computeXTolerance(sortedByX);
 
     final List<List<DetectedNumber>> groups = [];
@@ -215,8 +285,6 @@ class ScanCalculateService {
   double _computeXTolerance(List<DetectedNumber> sortedByX) {
     if (sortedByX.length < 2) return 50;
 
-    // Find the largest gap between consecutive X values — that's likely
-    // the inter-column gap. Tolerance = half of that gap, clamped.
     final gaps = <double>[];
     for (var i = 1; i < sortedByX.length; i++) {
       gaps.add(sortedByX[i].x - sortedByX[i - 1].x);

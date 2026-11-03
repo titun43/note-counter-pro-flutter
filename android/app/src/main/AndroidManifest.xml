@@ -49,6 +49,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
+
+        <!-- image_cropper (uCrop activity) for Scan & Calculate crop step -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/CropTheme"/>
     </application>
     
     <queries>
