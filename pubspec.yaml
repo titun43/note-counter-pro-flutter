@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.46.0+215
+version: 3.47.0+216
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -89,6 +89,10 @@ dependencies:
 
   # Sound effects on button press (paired with haptic feedback)
   audioplayers: ^5.2.1
+
+  # Scan & Calculate — handwritten bill OCR (offline, free)
+  google_mlkit_text_recognition: ^0.14.0
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

@@ -26,6 +26,7 @@ import 'send_money_screen.dart';
 import 'saved_upi_screen.dart';
 import 'converter_screen.dart';
 import 'inventory_screen.dart';
+import 'scan_calculate_screen.dart';
 import 'settings_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
@@ -166,6 +167,21 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const InventoryScreen()),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+              _buildToolCard(
+                icon: Icons.document_scanner_outlined,
+                iconColor: const Color(0xFF10B981),
+                title: loc.t('scanCalculate'),
+                subtitle: loc.t('scanCalculateShortDesc'),
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ScanCalculateScreen()),
                   );
                 },
                 theme: theme,
