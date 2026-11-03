@@ -52,7 +52,184 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
   String? _imagePath;
   String? _errorMessage;
 
+  // Editable flat list of numbers (mirrors _result.columns flattened).
+  // User can edit, add, or delete entries from this list on the result stage.
+  // The grand total is recomputed live from this list.
+  final List<double> _editableNumbers = [];
+
   // --------------------------------------------------------------- capture
+
+  /// Reset the editable numbers list (called before showing result stage).
+  void _initEditableNumbers() {
+    _editableNumbers.clear();
+    final r = _result;
+    if (r == null) return;
+    // Flatten columns → numbers (read top-to-bottom, left-to-right).
+    final maxRows = r.rowCount;
+    for (var row = 0; row < maxRows; row++) {
+      for (final col in r.columns) {
+        if (row < col.numbers.length) {
+          _editableNumbers.add(col.numbers[row].value);
+        }
+      }
+    }
+  }
+
+  /// Recompute the grand total from the editable numbers list.
+  double get _editableGrandTotal =>
+      _editableNumbers.fold(0.0, (a, n) => a + n);
+
+  /// Edit a single number at [index] via a small dialog.
+  Future<void> _editNumber(int index, bool isDark) async {
+    if (index < 0 || index >= _editableNumbers.length) return;
+    final controller =
+        TextEditingController(text: _formatNumber(_editableNumbers[index]));
+    final result = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+        title: Text(
+          context.loc.t('editNumber'),
+          style: TextStyle(
+            color: isDark ? AppColors.bgCard : AppColors.bgDark,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true, signed: false),
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: context.loc.t('number'),
+            labelStyle: TextStyle(
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+          style: TextStyle(
+            color: isDark ? AppColors.bgCard : AppColors.bgDark,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'KhataHandwriting',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              context.loc.t('cancel'),
+              style: TextStyle(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              final v = double.tryParse(controller.text.trim());
+              Navigator.pop(ctx, v);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.bgDark,
+            ),
+            child: Text(context.loc.t('save')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result != null) {
+      setState(() {
+        _editableNumbers[index] = result;
+      });
+      FeedbackService().success();
+    }
+  }
+
+  /// Add a new number (appends to the list).
+  Future<void> _addNumber(bool isDark) async {
+    final controller = TextEditingController();
+    final result = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+        title: Text(
+          context.loc.t('addNumber'),
+          style: TextStyle(
+            color: isDark ? AppColors.bgCard : AppColors.bgDark,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true, signed: false),
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: context.loc.t('number'),
+            labelStyle: TextStyle(
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+          style: TextStyle(
+            color: isDark ? AppColors.bgCard : AppColors.bgDark,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'KhataHandwriting',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              context.loc.t('cancel'),
+              style: TextStyle(
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              final v = double.tryParse(controller.text.trim());
+              Navigator.pop(ctx, v);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(context.loc.t('add')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result != null) {
+      setState(() {
+        _editableNumbers.add(result);
+      });
+      FeedbackService().success();
+    }
+  }
+
+  /// Delete a number at [index].
+  void _deleteNumber(int index) {
+    FeedbackService().error();
+    setState(() {
+      _editableNumbers.removeAt(index);
+    });
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -160,6 +337,7 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
 
   void _confirmAndShowResult() {
     FeedbackService().click();
+    _initEditableNumbers(); // populate _editableNumbers from _result
     setState(() => _stage = _Stage.result);
   }
 
@@ -1006,154 +1184,352 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
   // ----------------------------------------------------- stage: result
 
   Widget _buildResultStage(ThemeData theme, bool isDark, AppLocalizations loc) {
-    final result = _result;
-    if (result == null) return const SizedBox.shrink();
+    final total = _editableGrandTotal;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Success header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check_circle, color: AppColors.success, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                loc.t('scanComplete'),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.success,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Data table
-          _buildResultTable(result, theme, isDark, loc),
-          const SizedBox(height: 16),
-
-          // Grand total
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [AppColors.primary, AppColors.primaryDark]
-                    : [AppColors.bgDark, const Color(0xFF2A2A4E)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withOpacity(0.5)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withOpacity(0.2),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
+    return Column(
+      children: [
+        // === Top: Editable numbers list (scrollable) ===
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Success header
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.success, size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        loc.t('scanComplete'),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
+                    // Add number button (top right)
+                    IconButton(
+                      onPressed: () => _addNumber(isDark),
+                      icon: const Icon(Icons.add_circle, color: AppColors.success),
+                      tooltip: loc.t('addNumber'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  loc.t('grandTotal'),
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  loc.t('editNumbersHint'),
+                  style: TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatNumber(result.grandTotal),
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 48,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: 'KhataHandwriting',
-                    height: 1,
+                const SizedBox(height: 12),
+
+                // Detected numbers — wrap as chips
+                if (_editableNumbers.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.sentiment_neutral,
+                            size: 48,
+                            color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)
+                                .withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            loc.t('noNumbersFound'),
+                            style: TextStyle(
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () => _addNumber(isDark),
+                            icon: Icon(Icons.add, size: 16),
+                            label: Text(loc.t('addNumber')),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.success,
+                              side: BorderSide(color: AppColors.success.withOpacity(0.5)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (int i = 0; i < _editableNumbers.length; i++)
+                        _buildNumberChip(i, _editableNumbers[i], isDark, loc),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-                // Sum expression: 15 + 20 + 22 = 57
-                Text(
-                  result.columnSums.map(_formatNumber).join(' + ') +
-                      ' = ${_formatNumber(result.grandTotal)}',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+        ),
 
-          // Stats row
-          Row(
+        // === Bottom: Grand total + actions (fixed) ===
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+            border: Border(
+              top: BorderSide(
+                color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)
+                    .withOpacity(0.2),
+              ),
+            ),
+          ),
+          child: Column(
             children: [
-              _statPill('${result.columns.length}', loc.t('columns'), isDark),
-              const SizedBox(width: 6),
-              _statPill('${result.rowCount}', loc.t('rows'), isDark),
-              const SizedBox(width: 6),
-              _statPill('${result.totalNumbers}', loc.t('numbers'), isDark),
+              // Grand total
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.primary, AppColors.primaryDark]
+                        : [AppColors.bgDark, const Color(0xFF2A2A4E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.t('grandTotal'),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Sum expression: 5 + 4 + 6 + ... = 57
+                          Text(
+                            _editableNumbers.isEmpty
+                                ? '—'
+                                : _editableNumbers.map(_formatNumber).join(' + '),
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatNumber(total),
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        fontFamily: 'KhataHandwriting',
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Stats row
+              Row(
+                children: [
+                  _statPill('${_editableNumbers.length}', loc.t('numbers'), isDark),
+                  const SizedBox(width: 6),
+                  _statPill(
+                      '${_result?.columns.length ?? 0}', loc.t('columns'), isDark),
+                  const SizedBox(width: 6),
+                  _statPill('${_result?.rowCount ?? 0}', loc.t('rows'), isDark),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: _actButton(
+                      Icons.refresh,
+                      loc.t('rescan'),
+                      isDark,
+                      onTap: _retake,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _actButton(
+                      Icons.copy,
+                      loc.t('copy'),
+                      isDark,
+                      onTap: () {
+                        FeedbackService().tap();
+                        final expr = _editableNumbers.isEmpty
+                            ? _formatNumber(total)
+                            : '${_editableNumbers.map(_formatNumber).join(' + ')} = ${_formatNumber(total)}';
+                        Clipboard.setData(ClipboardData(text: expr));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(loc.t('copiedToClipboard'))),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _actButton(
+                      Icons.share,
+                      loc.t('share'),
+                      isDark,
+                      onTap: () {
+                        FeedbackService().tap();
+                        final expr = _editableNumbers.isEmpty
+                            ? _formatNumber(total)
+                            : '${_editableNumbers.map(_formatNumber).join(' + ')} = ${_formatNumber(total)}';
+                        Clipboard.setData(ClipboardData(text: expr));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(loc.t('copiedToClipboard'))),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 16),
+        ),
+      ],
+    );
+  }
 
-          // Action buttons
-          Row(
+  /// A single number chip: tap to edit, long-press to delete.
+  Widget _buildNumberChip(int index, double value, bool isDark, AppLocalizations loc) {
+    return Container(
+      decoration: BoxDecoration(
+        color: (isDark ? AppColors.bgCardDark : AppColors.bgCard).withOpacity(0.8),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _editNumber(index, isDark),
+        onLongPress: () {
+          // Confirm delete
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+              title: Text(
+                loc.t('deleteNumber'),
+                style: TextStyle(
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Text(
+                '${loc.t('deleteNumberConfirm')} ${_formatNumber(value)}?',
+                style: TextStyle(
+                  color: isDark ? AppColors.bgCard : AppColors.bgDark,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    loc.t('cancel'),
+                    style: TextStyle(
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _deleteNumber(index);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.danger,
+                  ),
+                  child: Text(loc.t('delete')),
+                ),
+              ],
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: _actButton(
-                  Icons.refresh,
-                  loc.t('rescan'),
-                  isDark,
-                  onTap: _retake,
+              // Index badge
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _actButton(
-                  Icons.copy,
-                  loc.t('copy'),
-                  isDark,
-                  onTap: () {
-                    FeedbackService().tap();
-                    final expr = result.columnSums.map(_formatNumber).join(' + ') +
-                        ' = ${_formatNumber(result.grandTotal)}';
-                    Clipboard.setData(ClipboardData(text: expr));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.t('copiedToClipboard'))),
-                    );
-                  },
+              const SizedBox(width: 8),
+              // Value
+              Text(
+                _formatNumber(value),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.bgCard : AppColors.bgDark,
+                  fontFamily: 'KhataHandwriting',
                 ),
               ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _actButton(
-                  Icons.share,
-                  loc.t('share'),
-                  isDark,
-                  onTap: () {
-                    FeedbackService().tap();
-                    final expr = result.columnSums.map(_formatNumber).join(' + ') +
-                        ' = ${_formatNumber(result.grandTotal)}';
-                    Clipboard.setData(ClipboardData(text: expr));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.t('copiedToClipboard'))),
-                    );
-                  },
-                ),
+              const SizedBox(width: 4),
+              // Edit icon
+              Icon(
+                Icons.edit,
+                size: 12,
+                color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)
+                    .withOpacity(0.6),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
