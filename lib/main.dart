@@ -8,6 +8,7 @@ import 'services/storage_service.dart';
 import 'services/admob_service.dart';
 import 'services/notification_service.dart';
 import 'services/premium_service.dart';
+import 'utils/constants.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/referral_service.dart';
 import 'services/saved_upi_service.dart';
@@ -271,8 +272,8 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
       await Future.delayed(const Duration(seconds: 4));
       if (!mounted) return;
 
-      final loc = AppLocalizations(storage.languageCode.isEmpty
-          ? 'en' : storage.languageCode);
+      final loc = AppLocalizations(context.read<StorageService>().languageCode.isEmpty
+          ? 'en' : context.read<StorageService>().languageCode);
 
       showDialog(
         context: context,
