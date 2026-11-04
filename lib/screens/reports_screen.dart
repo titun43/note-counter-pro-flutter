@@ -329,7 +329,7 @@ class ReportsScreen extends StatelessWidget {
 
   Widget _buildWeeklyChart(List<double> data, String symbol, bool isDark) {
     final maxVal = data.isEmpty ? 1.0 : data.reduce((a, b) => a > b ? a : b);
-    if (maxVal == 0) maxVal = 1;
+    final safeMax = maxVal == 0 ? 1.0 : maxVal;
     final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     return Container(
@@ -346,7 +346,7 @@ class ReportsScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: List.generate(7, (i) {
-          final height = (data[i] / maxVal) * 100;
+          final height = (data[i] / safeMax) * 100;
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
