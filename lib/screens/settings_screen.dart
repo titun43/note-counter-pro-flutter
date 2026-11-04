@@ -844,12 +844,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // ===== RECEIPT TEMPLATES (Feature C) =====
               const _Divider(),
-              ListTile(
-                leading: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
-                title: Text(loc.t('receiptTemplates')),
-                subtitle: Text(loc.t('templateClassic')),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _showTemplatePicker(context, loc),
+              Consumer<StorageService>(
+                builder: (context, storage, _) {
+                  final current = storage.receiptTemplate;
+                  final subtitleKey = current == 'modern'
+                      ? 'templateModern'
+                      : current == 'minimal'
+                          ? 'templateMinimal'
+                          : current == 'premium'
+                              ? 'templatePremium'
+                              : 'templateClassic';
+                  return ListTile(
+                    leading: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
+                    title: Text(loc.t('receiptTemplates')),
+                    subtitle: Text(loc.t(subtitleKey)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showTemplatePicker(context, loc, storage),
+                  );
+                },
               ),
             ],
           ),
@@ -1492,13 +1504,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Receipt Template picker (Feature C)
-  void _showTemplatePicker(BuildContext context, AppLocalizations loc) {
+  /// Receipt Template picker (Feature C) — saves selection to SharedPreferences.
+  void _showTemplatePicker(BuildContext context, AppLocalizations loc, StorageService storage) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentTemplate = storage.receiptTemplate;
+
     final templates = [
-      {'name': loc.t('templateClassic'), 'icon': Icons.description, 'color': AppColors.textSecondary},
-      {'name': loc.t('templateModern'), 'icon': Icons.gradient, 'color': AppColors.info},
-      {'name': loc.t('templateMinimal'), 'icon': Icons.minimize, 'color': AppColors.success},
-      {'name': loc.t('templatePremium'), 'icon': Icons.workspace_premium, 'color': const Color(0xFFD4AF37)},
+      {'id': 'classic', 'name': loc.t('templateClassic'), 'icon': Icons.description, 'color': AppColors.textSecondary},
+      {'id': 'modern', 'name': loc.t('templateModern'), 'icon': Icons.gradient, 'color': AppColors.info},
+      {'id': 'minimal', 'name': loc.t('templateMinimal'), 'icon': Icons.minimize, 'color': AppColors.success},
+      {'id': 'premium', 'name': loc.t('templatePremium'), 'icon': Icons.workspace_premium, 'color': const Color(0xFFD4AF37)},
     ];
 
     showModalBottomSheet(
@@ -1509,36 +1524,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? AppColors.bgCardDark
-              : AppColors.bgCard,
+          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
-              Text(
-                loc.t('receiptTemplates'),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : AppColors.bgDark,
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 12),
-              ...templates.map((t) => ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: (t['color'] as Color).withOpacity(0.2),
-                      child: Icon(t['icon'] as IconData, color: t['color'] as Color, size: 20),
+              // Title
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  loc.t('receiptTemplates'),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.bgDark,
+                  ),
+                ),
+              ),
+              // Template options
+              ...templates.map((t) {
+                final isSelected = t['id'] == currentTemplate;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: (t['color'] as Color).withOpacity(0.2),
+                    child: Icon(t['icon'] as IconData, color: t['color'] as Color, size: 20),
+                  ),
+                  title: Text(
+                    t['name'] as String,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isDark ? Colors.white : AppColors.bgDark,
                     ),
-                    title: Text(t['name'] as String),
-                    trailing: const Icon(Icons.check_circle, color: AppColors.primary, size: 18),
-                    onTap: () => Navigator.pop(ctx),
-                  )),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: AppColors.primary, size: 20)
+                      : Icon(Icons.radio_button_unchecked,
+                          color: (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)
+                              .withOpacity(0.4),
+                          size: 20),
+                  onTap: () {
+                    storage.setReceiptTemplate(t['id'] as String);
+                    FeedbackService().success();
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
               const SizedBox(height: 16),
             ],
           ),
