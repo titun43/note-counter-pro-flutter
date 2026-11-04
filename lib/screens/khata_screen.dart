@@ -13,6 +13,7 @@ import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../widgets/reminder_template_picker.dart';
 import '../widgets/send_reminder_to_all_dialog.dart';
+import '../widgets/custom_dialog.dart';
 import 'customer_detail_screen.dart';
 import 'customers_screen.dart';
 import 'reminder_history_screen.dart';
@@ -41,38 +42,79 @@ class _KhataScreenState extends State<KhataScreen> {
 
   Future<void> _addCustomer() async {
     final loc = context.loc;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final result = await showModalBottomSheet<bool>(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              loc.t('addCustomer'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.contact_phone, color: AppColors.info, size: 32),
-              title: Text(loc.t('pickFromContacts')),
-              subtitle: Text(loc.t('pickFromContacts')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.pop(context, true),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.person_add, color: AppColors.success, size: 32),
-              title: Text(loc.t('manualAdd')),
-              subtitle: Text(loc.t('manualAdd')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.pop(context, false),
-            ),
-            const SizedBox(height: 10),
-          ],
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.textSecondary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Icon(Icons.person_add, color: AppColors.primary, size: 24),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.t('addCustomer'),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.bgDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Pick from Contacts card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildOptionCard(
+                  icon: Icons.contact_phone,
+                  iconColor: AppColors.info,
+                  title: loc.t('pickFromContacts'),
+                  subtitle: loc.t('pickFromContactsDesc'),
+                  isDark: isDark,
+                  onTap: () => Navigator.pop(context, true),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Manual Add card
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildOptionCard(
+                  icon: Icons.edit,
+                  iconColor: AppColors.success,
+                  title: loc.t('manualAdd'),
+                  subtitle: loc.t('manualAddDesc'),
+                  isDark: isDark,
+                  onTap: () => Navigator.pop(context, false),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -105,66 +147,56 @@ class _KhataScreenState extends State<KhataScreen> {
     final emailController = TextEditingController();
     final addressController = TextEditingController();
 
-    final result = await showDialog<bool>(
+    final result = await showCustomDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.person_add, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(loc.t('addCustomer')),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: '${loc.t('name')} *',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.person),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneController,
-                decoration: InputDecoration(
-                  labelText: loc.t('phone'),
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: loc.t('email'),
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: addressController,
-                decoration: InputDecoration(
-                  labelText: loc.t('address'),
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.location_on),
-                ),
-                maxLines: 2,
-              ),
-            ],
+      title: loc.t('addCustomer'),
+      icon: Icons.person_add,
+      iconColor: AppColors.primary,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              labelText: '${loc.t('name')} *',
+              prefixIcon: const Icon(Icons.person),
+            ),
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(loc.t('cancel')),
+          const SizedBox(height: 12),
+          TextField(
+            controller: phoneController,
+            decoration: InputDecoration(
+              labelText: loc.t('phone'),
+              prefixIcon: const Icon(Icons.phone),
+            ),
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: emailController,
+            decoration: InputDecoration(
+              labelText: loc.t('email'),
+              prefixIcon: const Icon(Icons.email),
+            ),
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: addressController,
+            decoration: InputDecoration(
+              labelText: loc.t('address'),
+              prefixIcon: const Icon(Icons.location_on),
+            ),
+            maxLines: 2,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(loc.t('cancel')),
           ),
           FilledButton(
             onPressed: () {
@@ -206,6 +238,79 @@ class _KhataScreenState extends State<KhataScreen> {
     phoneController.dispose();
     emailController.dispose();
     addressController.dispose();
+  }
+
+  /// Premium card-based option for bottom sheets (Pick from Contacts / Manual Add).
+  Widget _buildOptionCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.bgDarker.withOpacity(0.6)
+                : AppColors.bgLight.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: iconColor.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : AppColors.bgDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _showCustomerOptions(Customer customer) async {
