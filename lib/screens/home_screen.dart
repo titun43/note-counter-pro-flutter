@@ -2384,9 +2384,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // === ACTION BUTTONS ROW ===
+          // === ACTION BUTTONS ROW (compact) ===
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
               color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
               border: Border(
@@ -2401,90 +2401,86 @@ class _HomeScreenState extends State<HomeScreen> {
                       FeedbackService().click();
                       _saveEntry(true);
                     },
-                    icon: const Icon(Icons.south, size: 18),
-                    label: Text(loc.t('saveIn'), style: TextStyle(fontSize: 13)),
+                    icon: const Icon(Icons.south, size: 16),
+                    label: Text(loc.t('saveIn'), style: const TextStyle(fontSize: 11)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.success,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
                 ),
                 IconButton(
                   onPressed: () {
-                    // Professional: silent (haptic only).
                     HapticFeedback.selectionClick();
                     _sendToCalculator();
                   },
                   icon: const Icon(Icons.calculate),
                   color: AppColors.info,
                   tooltip: loc.t('calculator'),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                  iconSize: 24,
+                  padding: const EdgeInsets.all(2),
+                  constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                  iconSize: 20,
                 ),
                 // === HISTORY BUTTON (center) ===
-                // Click to view Save In/Out + QR history
                 IconButton(
                   onPressed: () {
-                    // Professional: silent (haptic only).
                     HapticFeedback.selectionClick();
                     _showHistorySheet();
                   },
                   icon: const Icon(Icons.history),
                   color: AppColors.primaryDark,
                   tooltip: loc.t('history'),
-                  padding: const EdgeInsets.all(4),
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                  iconSize: 24,
+                  padding: const EdgeInsets.all(2),
+                  constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                  iconSize: 20,
                 ),
-                // NOTE: UPI Tools button REMOVED in v3.26.0 — UPI now has its own tab.
-                // Calculator icon remains — it's the "send amount to calculator" cross-tab flow.
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () {
                       FeedbackService().click();
                       _saveEntry(false);
                     },
-                    icon: const Icon(Icons.north, size: 18),
-                    label: Text(loc.t('saveOut'), style: TextStyle(fontSize: 13)),
+                    icon: const Icon(Icons.north, size: 16),
+                    label: Text(loc.t('saveOut'), style: const TextStyle(fontSize: 11)),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.danger,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          
-          // === SUMMARY FOOTER ===
+
+          // === SUMMARY FOOTER (compact) ===
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             color: isDark ? AppColors.bgDarker : Colors.grey[100],
             child: Column(
               children: [
+                // Cash / Other / Online — compact inline
                 Row(
                   children: [
                     Expanded(
-                      child: _summaryBox(
+                      child: _summaryBoxCompact(
                         loc.t('cashTotal'),
                         '$_currencySymbol${_cashTotal.toStringAsFixed(2)}',
                         Colors.amber[100]!,
                         isDark,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Expanded(
-                      child: _summaryBox(
+                      child: _summaryBoxCompact(
                         loc.t('other'),
                         '$_currencySymbol${_otherAmount.toStringAsFixed(2)}',
                         Colors.cyan[100]!,
                         isDark,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     Expanded(
-                      child: _summaryBox(
+                      child: _summaryBoxCompact(
                         loc.t('online'),
                         '$_currencySymbol${_onlineAmount.toStringAsFixed(2)}',
                         Colors.purple[100]!,
@@ -2493,19 +2489,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
+                // Grand Total — compact
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       loc.t('grandTotal'),
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       '$_currencySymbol ${_grandTotal.toStringAsFixed(2)}',
-                      style: theme.textTheme.headlineSmall?.copyWith(
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
                       ),
@@ -2543,6 +2540,39 @@ class _HomeScreenState extends State<HomeScreen> {
             value,
             style: TextStyle(
               fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Compact version of _summaryBox — smaller padding + font for
+  /// the bottom footer so the note grid gets more vertical space.
+  Widget _summaryBoxCompact(String label, String value, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
+      decoration: BoxDecoration(
+        color: isDark ? color.withOpacity(0.15) : color,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 10,
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : Colors.black87,
             ),
