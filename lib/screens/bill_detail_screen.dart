@@ -128,6 +128,29 @@ ${_bill!.notes != null && _bill!.notes!.isNotEmpty ? 'Notes: ${_bill!.notes}\n' 
     await Share.share(msg, subject: 'Invoice ${_bill!.billNumber}');
   }
 
+  /// Share bill directly on WhatsApp (Feature A).
+  Future<void> _shareOnWhatsApp() async {
+    if (_bill == null) return;
+    FeedbackService().tap();
+    final symbol = AppConstants.getCurrencySymbol(_bill!.currency);
+    final itemsStr = _bill!.items.map((item) =>
+        '• ${item.name} x${item.quantity} = $symbol${item.total.toStringAsFixed(0)}').join('\n');
+    final msg = '🧾 *${_bill!.billNumber}*\n\n'
+        '$itemsStr\n\n'
+        '*Total: $symbol${_bill!.total.toStringAsFixed(0)}*\n'
+        '${_bill!.isPaid ? "PAID" : "Due: $symbol${_bill!.remainingAmount.toStringAsFixed(0)}"}\n\n'
+        '— Note Counter Pro';
+    final phone = _bill?.customerPhone?.replaceAll(RegExp(r'[^0-9]'), '');
+    if (phone != null && phone.isNotEmpty) {
+      final waUrl = 'https://wa.me/$phone?text=${Uri.encodeComponent(msg)}';
+      if (await canLaunchUrl(Uri.parse(waUrl))) {
+        await launchUrl(Uri.parse(waUrl), mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+    await Share.share(msg);
+  }
+
   Future<void> _callCustomer() async {
     if (_bill?.customerPhone == null || _bill!.customerPhone!.isEmpty) return;
     final uri = Uri.parse('tel:${_bill!.customerPhone}');
@@ -966,6 +989,19 @@ ${_bill!.paidAmount > 0 ? 'Paid: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\
                   icon: const Icon(Icons.share),
                   label: Text(loc.t('share')),
                   style: OutlinedButton.styleFrom(foregroundColor: AppColors.info),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _shareOnWhatsApp,
+                  icon: const Icon(Icons.chat, size: 18),
+                  label: Text(loc.t('shareOnWhatsApp'), style: const TextStyle(fontSize: 11)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
                 ),
               ),
             ],

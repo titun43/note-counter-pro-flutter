@@ -202,6 +202,7 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
     // trigger this — only the initial app launch does.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showAppLockIfEnabled();
+      _showOnboardingIfFirstTime();
     });
     _checkForUpdate();
 
@@ -258,7 +259,167 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
       });
     }
   }
-  
+
+  /// Show onboarding welcome dialog on first app launch (Feature E).
+  /// Uses SharedPreferences to track if user has seen it.
+  Future<void> _showOnboardingIfFirstTime() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('hasSeenOnboarding') == true) return;
+
+      // Wait for splash to finish.
+      await Future.delayed(const Duration(seconds: 4));
+      if (!mounted) return;
+
+      final loc = AppLocalizations(storage.languageCode.isEmpty
+          ? 'en' : storage.languageCode);
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 360),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF16213E), Color(0xFF0A0A1A)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primary, AppColors.primaryDark],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Center(
+                          child: Text('🧮', style: TextStyle(fontSize: 36)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        loc.t('welcomeTitle'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        loc.t('welcomeSubtitle'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Feature icons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _onboardingFeature('🧮', loc.t('counter')),
+                      _onboardingFeature('💰', loc.t('khata')),
+                      _onboardingFeature('🧾', loc.t('bills')),
+                      _onboardingFeature('🛠️', loc.t('tools')),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Button
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryDark],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            FeedbackService().click();
+                            prefs.setBool('hasSeenOnboarding', true);
+                            Navigator.pop(ctx);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Text(
+                              loc.t('getStarted'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Color(0xFF1A1A2E),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Onboarding failed: $e');
+    }
+  }
+
+  Widget _onboardingFeature(String emoji, String label) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.white.withOpacity(0.6),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _checkForUpdate() async {
     try {
       const platform = MethodChannel('com.lokhnathtechnical.notecounterpro/update');
