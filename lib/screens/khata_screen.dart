@@ -197,8 +197,8 @@ class _KhataScreenState extends State<KhataScreen> {
         TextButton(
           onPressed: () => Navigator.pop(context, false),
           child: Text(loc.t('cancel')),
-          ),
-          FilledButton(
+        ),
+        FilledButton(
             onPressed: () {
               if (nameController.text.trim().isEmpty) return;
               Navigator.pop(context, true);
