@@ -841,6 +841,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // NOTE: Reports & Analytics moved to Khata tab overflow menu (v3.26.0).
               // Business Details stays in Settings because it's setup-once data
               // (business name, GST number, address) used by Bills.
+
+              // ===== RECEIPT TEMPLATES (Feature C) =====
+              const _Divider(),
+              ListTile(
+                leading: const Icon(Icons.receipt_long_outlined, color: AppColors.info),
+                title: Text(loc.t('receiptTemplates')),
+                subtitle: Text(loc.t('templateClassic')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showTemplatePicker(context, loc),
+              ),
             ],
           ),
 
@@ -900,6 +910,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(loc.t('exportSubtitle')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _showExportMenu(),
+              ),
+              // ===== BACKUP PRO toggles (Feature D) =====
+              const _Divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.backup_outlined, color: AppColors.success),
+                title: Text(loc.t('autoBackup')),
+                subtitle: Text(loc.t('lastBackup') + ': ' +
+                    (storage.lastBackupTime ?? '—')),
+                value: storage.autoBackupEnabled,
+                onChanged: (v) => storage.setAutoBackupEnabled(v),
+              ),
+              const _Divider(),
+              SwitchListTile(
+                secondary: const Icon(Icons.lock_outline, color: AppColors.info),
+                title: Text(loc.t('encryptedBackup')),
+                value: storage.encryptedBackup,
+                onChanged: (v) => storage.setEncryptedBackup(v),
               ),
             ],
           ),
@@ -1460,6 +1487,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 8),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Receipt Template picker (Feature C)
+  void _showTemplatePicker(BuildContext context, AppLocalizations loc) {
+    final templates = [
+      {'name': loc.t('templateClassic'), 'icon': Icons.description, 'color': AppColors.textSecondary},
+      {'name': loc.t('templateModern'), 'icon': Icons.gradient, 'color': AppColors.info},
+      {'name': loc.t('templateMinimal'), 'icon': Icons.minimize, 'color': AppColors.success},
+      {'name': loc.t('templatePremium'), 'icon': Icons.workspace_premium, 'color': const Color(0xFFD4AF37)},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.bgCardDark
+              : AppColors.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Text(
+                loc.t('receiptTemplates'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppColors.bgDark,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...templates.map((t) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: (t['color'] as Color).withOpacity(0.2),
+                      child: Icon(t['icon'] as IconData, color: t['color'] as Color, size: 20),
+                    ),
+                    title: Text(t['name'] as String),
+                    trailing: const Icon(Icons.check_circle, color: AppColors.primary, size: 18),
+                    onTap: () => Navigator.pop(ctx),
+                  )),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

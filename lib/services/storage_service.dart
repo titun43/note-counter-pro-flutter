@@ -149,6 +149,26 @@ class StorageService extends ChangeNotifier {
     await _prefs?.setBool('buttonSound', value);
     notifyListeners();
   }
+
+  // === Backup Pro (Feature D) ===
+  bool get autoBackupEnabled => _prefs?.getBool('autoBackupEnabled') ?? false;
+  Future<void> setAutoBackupEnabled(bool value) async {
+    await _prefs?.setBool('autoBackupEnabled', value);
+    notifyListeners();
+  }
+
+  bool get encryptedBackup => _prefs?.getBool('encryptedBackup') ?? false;
+  Future<void> setEncryptedBackup(bool value) async {
+    await _prefs?.setBool('encryptedBackup', value);
+    notifyListeners();
+  }
+
+  // === Receipt Template (Feature C) ===
+  String get receiptTemplate => _prefs?.getString('receiptTemplate') ?? 'classic';
+  Future<void> setReceiptTemplate(String value) async {
+    await _prefs?.setString('receiptTemplate', value);
+    notifyListeners();
+  }
   
   // === App Lock (Fingerprint/PIN) ===
   bool get appLockEnabled => _prefs?.getBool('appLockEnabled') ?? false;
