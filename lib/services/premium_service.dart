@@ -1,22 +1,25 @@
 // =============================================================================
-// Note Counter Pro - Premium Service (Local-Only, No IAP)
+// Note Counter Pro - Premium Service (IAP + Rewarded Ad Trial)
 // =============================================================================
-// In-App Purchase plugin temporarily removed due to Play Billing 16 KB
-// page size + version conflict with Flutter 3.35.5.
 //
-// Premium is now local-only:
-//   - Rewarded ad trial still works (grantRewardedTrialDays)
-//   - No purchase flow (purchasePlan returns false with message)
-//   - No restore from Google Play
-//   - Debug toggle still works for testing
+// In-App Purchase using google_mobile_ads + in_app_purchase plugin.
 //
-// Will re-add in_app_purchase when Flutter ships 16 KB compatible .so files.
+// Plans:
+//   - premium_monthly   (₹49/month, subscription)
+//   - premium_yearly    (₹299/year, subscription)
+//   - premium_lifetime  (₹499 one-time, non-consumable)
+//
+// Also supports:
+//   - Rewarded ad trial (1 day / 30 day premium)
+//   - Restore purchases
+//   - Debug toggle for testing
 // =============================================================================
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
 class PremiumService extends ChangeNotifier {
   PremiumService._();
@@ -30,6 +33,11 @@ class PremiumService extends ChangeNotifier {
   bool _isPremium = false;
   String _activePlan = '';
   int _trialExpiryMs = 0;
+
+  // IAP instance
+  final InAppPurchase _iap = InAppPurchase.instance;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
+  bool _iapInitialized = false;
 
   bool get isPremium {
     if (_isPremium) return true;
@@ -93,26 +101,172 @@ class PremiumService extends ChangeNotifier {
     },
   ];
 
+  /// Initialize: load prefs + set up IAP listener.
   Future<void> init() async {
-    debugPrint('PremiumService: init() (local-only, no IAP)');
+    debugPrint('PremiumService: init()');
     try {
       final prefs = await SharedPreferences.getInstance();
       _isPremium = prefs.getBool(_prefsKey) ?? false;
       _activePlan = prefs.getString(_prefsPlanKey) ?? '';
       _trialExpiryMs = prefs.getInt(_prefsTrialExpiryKey) ?? 0;
-      debugPrint('PremiumService: loaded — isPremium=$_isPremium, trial=$_trialExpiryMs');
+
+      // Check if trial expired
+      if (_trialExpiryMs > 0 &&
+          DateTime.now().millisecondsSinceEpoch >= _trialExpiryMs) {
+        _trialExpiryMs = 0;
+        await prefs.remove(_prefsTrialExpiryKey);
+      }
     } catch (e) {
       debugPrint('PremiumService init failed: $e');
     }
+
+    // Initialize IAP
+    _initIAP();
     notifyListeners();
   }
 
+  void _initIAP() {
+    if (_iapInitialized) return;
+    _iapInitialized = true;
+
+    try {
+      _purchaseSub = _iap.purchaseStream.listen(
+        _onPurchaseUpdated,
+        onError: (e) {
+          debugPrint('PremiumService: purchase stream error: $e');
+        },
+      );
+      // Set pending purchases to be handled automatically
+      _iap.initConnection().then((connected) {
+        debugPrint('PremiumService: IAP connected = $connected');
+        if (connected) {
+          // Restore any pending purchases
+          _iap.queryPastPurchases();
+        }
+      });
+    } catch (e) {
+      debugPrint('PremiumService: IAP init failed: $e');
+    }
+  }
+
+  void _onPurchaseUpdated(List<PurchaseDetails> purchases) {
+    for (final purchase in purchases) {
+      _handlePurchase(purchase);
+    }
+  }
+
+  void _handlePurchase(PurchaseDetails purchase) async {
+    debugPrint('PremiumService: purchase status = ${purchase.status}');
+
+    switch (purchase.status) {
+      case PurchaseStatus.restored:
+      case PurchaseStatus.purchased:
+        // Verify and grant premium
+        await _grantPremiumFromPurchase(purchase);
+        // Complete the purchase (tell Google Play we handled it)
+        if (purchase.pendingCompletePurchase) {
+          try {
+            await _iap.completePurchase(purchase);
+            debugPrint('PremiumService: purchase completed');
+          } catch (e) {
+            debugPrint('PremiumService: completePurchase failed: $e');
+          }
+        }
+        break;
+
+      case PurchaseStatus.error:
+        debugPrint('PremiumService: purchase error: ${purchase.error}');
+        break;
+
+      case PurchaseStatus.canceled:
+        debugPrint('PremiumService: purchase canceled');
+        break;
+
+      case PurchaseStatus.pending:
+        debugPrint('PremiumService: purchase pending');
+        break;
+    }
+  }
+
+  Future<void> _grantPremiumFromPurchase(PurchaseDetails purchase) async {
+    // Determine plan from product ID
+    String plan = 'lifetime';
+    if (purchase.productID == 'premium_monthly') {
+      plan = 'monthly';
+    } else if (purchase.productID == 'premium_yearly') {
+      plan = 'yearly';
+    }
+
+    await _setPremium(true, plan: plan);
+    debugPrint('PremiumService: premium granted! plan=$plan');
+  }
+
+  /// Purchase a plan — opens Google Play purchase flow.
+  /// Returns a tuple: (success, error message, error code)
+  Future<(bool, String?, String)> purchasePlanDebug(String productId) async {
+    try {
+      final available = await _iap.isAvailable();
+      if (!available) {
+        return (false, 'In-app purchase is not available on this device.', 'not_available');
+      }
+
+      // Query product details
+      final response = await _iap.queryProductDetails({productId});
+      if (response.error != null) {
+        return (false, response.error!.message, 'query_error');
+      }
+      if (response.productDetails.isEmpty) {
+        return (false, 'Product not found. Make sure it is published in Play Console.', 'product_not_found');
+      }
+
+      final product = response.productDetails.first;
+
+      // Determine purchase param based on subscription vs one-time
+      final isSubscription = productId != 'premium_lifetime';
+      final param = PurchaseParam(
+        productDetails: product,
+        offerToken: isSubscription ? (product as SubscriptionProductDetails).subscriptionOfferDetails?.first.offerToken : null,
+      );
+
+      // Start purchase flow
+      if (isSubscription) {
+        await _iap.buyNonConsumable(purchaseParam: param);
+      } else {
+        await _iap.buyNonConsumable(purchaseParam: param);
+      }
+
+      return (true, null, '');
+    } catch (e) {
+      debugPrint('PremiumService: purchasePlanDebug failed: $e');
+      return (false, e.toString(), 'exception');
+    }
+  }
+
+  /// Simple purchase (returns true if flow started successfully).
+  Future<bool> purchasePlan(String productId) async {
+    final (success, _, _) = await purchasePlanDebug(productId);
+    return success;
+  }
+
+  /// Purchase lifetime premium directly.
+  Future<bool> purchasePremium() async {
+    return await purchasePlan('premium_lifetime');
+  }
+
+  /// Restore previous purchases from Google Play.
+  Future<void> restorePurchases() async {
+    debugPrint('PremiumService: restorePurchases');
+    try {
+      await _iap.restorePurchases();
+    } catch (e) {
+      debugPrint('PremiumService: restorePurchases failed: $e');
+    }
+  }
+
+  /// Grant rewarded trial days (from watching ad).
   Future<void> grantRewardedTrialDays(int days) async {
-    final now = DateTime.now();
-    final baseMs = (_trialExpiryMs > now.millisecondsSinceEpoch)
-        ? _trialExpiryMs
-        : now.millisecondsSinceEpoch;
-    _trialExpiryMs = baseMs + (days * 24 * 60 * 60 * 1000);
+    final expiry = DateTime.now().add(Duration(days: days));
+    _trialExpiryMs = expiry.millisecondsSinceEpoch;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_prefsTrialExpiryKey, _trialExpiryMs);
@@ -121,29 +275,6 @@ class PremiumService extends ChangeNotifier {
     }
     debugPrint('PremiumService: granted $days day(s) trial');
     notifyListeners();
-  }
-
-  /// Purchase plan — currently disabled (no IAP plugin).
-  /// Returns a tuple indicating failure with a helpful message.
-  Future<(bool, String?, String)> purchasePlanDebug(String productId) async {
-    return (
-      false,
-      'In-app purchase is temporarily unavailable. '
-      'Please use "Watch Ad" to get free premium trial.',
-      'no_iap',
-    );
-  }
-
-  Future<bool> purchasePlan(String productId) async {
-    return false;
-  }
-
-  Future<bool> purchasePremium() async {
-    return false;
-  }
-
-  Future<void> restorePurchases() async {
-    debugPrint('PremiumService: restorePurchases (no-op, IAP removed)');
   }
 
   Future<void> _setPremium(bool value, {String? plan}) async {
@@ -160,12 +291,14 @@ class PremiumService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Debug toggle for testing (no real purchase).
   Future<void> debugTogglePremium() async {
     await _setPremium(!_isPremium);
   }
 
   @override
   void dispose() {
+    _purchaseSub?.cancel();
     super.dispose();
   }
 }
