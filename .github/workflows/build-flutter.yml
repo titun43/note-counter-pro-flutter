@@ -37,9 +37,11 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        # Flutter 3.35.5 — ONLY version whose .so files pass 16 KB check.
-        # 3.38.0 and 3.47.8 both FAIL 16 KB.
-        flutter-version: '3.35.5'
+        # Flutter 3.44.9 — Dart 3.12.2 (required by in_app_purchase_android 0.5.5
+        # which uses Play Billing Library 9.1.0; Google Play mandates >= 8.0.0
+        # since 1 Nov 2026). The 16 KB alignment diagnostic step below will
+        # verify .so files. If it FAILs, fall back to 3.35.5 + remove IAP.
+        flutter-version: '3.44.9'
         channel: stable
         cache: true
 
@@ -145,7 +147,7 @@ jobs:
         TAG="v${VERSION}-flutter"
         echo "Creating release with tag: $TAG (versionCode: $VERSION_CODE)"
 
-        NOTES=$(printf '# Note Counter Pro v%s (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: %s (versionCode: %s)\n- Flutter: 3.35.5\n- Target SDK: 36\n\n## Recent changes (v3.13.3)\n- Auto-hide Payable/Receivable toggle when counting notes (small Show button to bring back)\n- Smaller note widget UI for better fit (more notes visible without scrolling)\n- Added localization for "Show" button (English / Bengali / Hindi)\n- Test mode: real ads OFF (useTestAds = true) for testing before going live\n\nVersion: %s (versionCode: %s)' "$VERSION" "$VERSION" "$VERSION_CODE" "$VERSION" "$VERSION_CODE")
+        NOTES=$(printf '# Note Counter Pro v%s (Flutter)\n\n## Downloads\n\n- **note-counter-pro.aab** - AAB for Play Store upload (SIGNED)\n- note-counter-pro.apk - APK for direct install\n\n## Build Info\n- Version: %s (versionCode: %s)\n- Flutter: 3.44.9 / Dart 3.12.2\n- Target SDK: 36\n- Play Billing Library: 9.1.0 (via in_app_purchase_android 0.5.5)\n\n## Recent changes\n- Premium upgrade (In-App Purchase) re-enabled with Play Billing 9.1.0\n- Required by Google Play policy (1 Nov 2026 deadline)\n\nVersion: %s (versionCode: %s)' "$VERSION" "$VERSION" "$VERSION_CODE" "$VERSION" "$VERSION_CODE")
 
         # Check if release with same tag already exists, if so delete it first
         if gh release view "$TAG" >/dev/null 2>&1; then
@@ -158,6 +160,6 @@ jobs:
         gh release create "$TAG" \
           note-counter-pro.apk \
           note-counter-pro.aab \
-          --title "Note Counter Pro v${VERSION} (Flutter - Hide Toggle + Smaller Notes + Test Mode)" \
+          --title "Note Counter Pro v${VERSION} (Flutter - IAP Billing 9.1.0)" \
           --notes "$NOTES" \
           --latest

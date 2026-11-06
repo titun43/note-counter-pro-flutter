@@ -1,10 +1,10 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.57.0+228
+version: 3.58.0+229
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
+  sdk: '>=3.12.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -90,10 +90,10 @@ dependencies:
   # Sound effects on button press (paired with haptic feedback)
   audioplayers: ^5.2.1
 
-  # In-App Purchase — re-added v3.57.0 (testing 16KB compatibility)
-  # 3.3.1 needs Dart 3.10+, we have 3.9.2 on Flutter 3.35.5
-  # Using 3.1.0 which supports Dart 3.x on Flutter 3.35.x
-  in_app_purchase: ^3.1.0
+  # In-App Purchase — uses Play Billing Library 9.1.0 (via in_app_purchase_android 0.5.5)
+  # Required by Google Play policy (Billing 8.0+ since 1 Nov 2026).
+  # Needs Dart 3.10+ → Flutter 3.38+; we use 3.44.9 in CI.
+  in_app_purchase: ^3.3.1
 
   # Scan & Calculate — handwritten bill OCR (offline, free)
   google_mlkit_text_recognition: ^0.14.0
