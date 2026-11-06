@@ -136,14 +136,8 @@ class PremiumService extends ChangeNotifier {
           debugPrint('PremiumService: purchase stream error: $e');
         },
       );
-      // Set pending purchases to be handled automatically
-      _iap.initConnection().then((connected) {
-        debugPrint('PremiumService: IAP connected = $connected');
-        if (connected) {
-          // Restore any pending purchases
-          _iap.queryPastPurchases();
-        }
-      });
+      // In 3.1.0, connection is automatic — no initConnection() needed.
+      debugPrint('PremiumService: IAP purchase stream listening');
     } catch (e) {
       debugPrint('PremiumService: IAP init failed: $e');
     }
@@ -221,19 +215,11 @@ class PremiumService extends ChangeNotifier {
 
       final product = response.productDetails.first;
 
-      // Determine purchase param based on subscription vs one-time
-      final isSubscription = productId != 'premium_lifetime';
-      final param = PurchaseParam(
-        productDetails: product,
-        offerToken: isSubscription ? (product as SubscriptionProductDetails).subscriptionOfferDetails?.first.offerToken : null,
-      );
+      // PurchaseParam — 3.1.0 doesn't have offerToken
+      final param = PurchaseParam(productDetails: product);
 
-      // Start purchase flow
-      if (isSubscription) {
-        await _iap.buyNonConsumable(purchaseParam: param);
-      } else {
-        await _iap.buyNonConsumable(purchaseParam: param);
-      }
+      // Start purchase flow (both subscription and non-consumable use buyNonConsumable)
+      await _iap.buyNonConsumable(purchaseParam: param);
 
       return (true, null, '');
     } catch (e) {
