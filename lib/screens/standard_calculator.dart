@@ -42,10 +42,22 @@ class _StandardCalculatorState extends State<StandardCalculator> {
         _expression = '';
       } else if (value == '=') {
         if (_expression.isEmpty) return;
+        // Strip trailing operators (+, -, ×, ÷) so that
+        // "5+5+" → "5+5" = 10, "5+" → "5" = 5, etc.
+        // This prevents "Error" when user presses = with an
+        // operator at the end of the expression.
+        String expr = _expression;
+        while (expr.isNotEmpty && '+-×÷'.contains(expr[expr.length - 1])) {
+          expr = expr.substring(0, expr.length - 1);
+        }
+        if (expr.isEmpty) {
+          _display = '0';
+          return;
+        }
         try {
-          final result = _eval(_expression);
+          final result = _eval(expr);
           final formatted = _fmt(result);
-          _history.insert(0, '$_expression = $formatted');
+          _history.insert(0, '$expr = $formatted');
           if (_history.length > 20) _history.removeLast();
           _display = formatted;
           _expression = formatted;
@@ -60,8 +72,14 @@ class _StandardCalculatorState extends State<StandardCalculator> {
         }
       } else if (value == '%') {
         if (_expression.isNotEmpty) {
+          // Strip trailing operators before evaluating for %
+          String expr = _expression;
+          while (expr.isNotEmpty && '+-×÷'.contains(expr[expr.length - 1])) {
+            expr = expr.substring(0, expr.length - 1);
+          }
+          if (expr.isEmpty) return;
           try {
-            final val = _eval(_expression);
+            final val = _eval(expr);
             final pct = val / 100;
             _expression = _fmt(pct);
             _display = _fmt(pct);
