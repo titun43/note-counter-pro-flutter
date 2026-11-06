@@ -19,6 +19,7 @@ class StandardCalculator extends StatefulWidget {
 class _StandardCalculatorState extends State<StandardCalculator> {
   String _display = '0';
   String _expression = '';
+  String _liveResult = ''; // Real-time result preview (Feature: live result)
   final List<String> _history = [];
 
   @override
@@ -40,18 +41,18 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       if (value == 'AC') {
         _display = '0';
         _expression = '';
+        _liveResult = '';
       } else if (value == '=') {
         if (_expression.isEmpty) return;
         // Strip trailing operators (+, -, ×, ÷) so that
         // "5+5+" → "5+5" = 10, "5+" → "5" = 5, etc.
-        // This prevents "Error" when user presses = with an
-        // operator at the end of the expression.
         String expr = _expression;
         while (expr.isNotEmpty && '+-×÷'.contains(expr[expr.length - 1])) {
           expr = expr.substring(0, expr.length - 1);
         }
         if (expr.isEmpty) {
           _display = '0';
+          _liveResult = '';
           return;
         }
         try {
@@ -61,18 +62,20 @@ class _StandardCalculatorState extends State<StandardCalculator> {
           if (_history.length > 20) _history.removeLast();
           _display = formatted;
           _expression = formatted;
+          _liveResult = '';
         } catch (_) {
           _display = 'Error';
           _expression = '';
+          _liveResult = '';
         }
       } else if (value == '⌫') {
         if (_expression.isNotEmpty) {
           _expression = _expression.substring(0, _expression.length - 1);
           _display = _expression.isEmpty ? '0' : _expression;
         }
+        _updateLiveResult();
       } else if (value == '%') {
         if (_expression.isNotEmpty) {
-          // Strip trailing operators before evaluating for %
           String expr = _expression;
           while (expr.isNotEmpty && '+-×÷'.contains(expr[expr.length - 1])) {
             expr = expr.substring(0, expr.length - 1);
@@ -83,6 +86,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
             final pct = val / 100;
             _expression = _fmt(pct);
             _display = _fmt(pct);
+            _liveResult = '';
           } catch (_) {}
         }
       } else {
@@ -92,13 +96,44 @@ class _StandardCalculatorState extends State<StandardCalculator> {
           if ('+-×÷'.contains(last)) {
             _expression = _expression.substring(0, _expression.length - 1) + value;
             _display = _expression;
+            _updateLiveResult();
             return;
           }
         }
         _expression += value;
         _display = _expression;
+        _updateLiveResult();
       }
     });
+  }
+
+  /// Update the live result preview shown below the expression.
+  /// Strips trailing operators, tries to evaluate. If the expression
+  /// is valid and has an operator, shows the result. Otherwise empty.
+  void _updateLiveResult() {
+    String expr = _expression;
+    // Strip trailing operators
+    while (expr.isNotEmpty && '+-×÷'.contains(expr[expr.length - 1])) {
+      expr = expr.substring(0, expr.length - 1);
+    }
+    if (expr.isEmpty || !'+-×÷'.split('').any((op) => expr.contains(op))) {
+      // No operator in expression → no live result
+      _liveResult = '';
+      return;
+    }
+    try {
+      final result = _eval(expr);
+      final formatted = _fmt(result);
+      // Only show if result is different from the expression itself
+      // (avoids showing "5" when expression is just "5")
+      if (formatted != expr) {
+        _liveResult = formatted;
+      } else {
+        _liveResult = '';
+      }
+    } catch (_) {
+      _liveResult = '';
+    }
   }
 
   /// Robust expression evaluator — tokenizes then parses.
@@ -327,38 +362,52 @@ class _StandardCalculatorState extends State<StandardCalculator> {
               ],
             ),
           ),
-          // Display
+          // Display — expression on top, live result below
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
               alignment: Alignment.bottomRight,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (_expression.isNotEmpty && _expression != _display)
-                    Text(_expression,
-                        style: TextStyle(fontSize: 14,
-                            color: isDark ? Colors.grey[400] : Colors.grey[500]),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  // Expression (smaller, grey)
+                  if (_expression.isNotEmpty)
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(_expression,
+                          style: TextStyle(fontSize: 20,
+                              color: isDark ? Colors.grey[400] : Colors.grey[500]),
+                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
                   const SizedBox(height: 4),
+                  // Live result preview (gold, medium)
+                  if (_liveResult.isNotEmpty)
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('= $_liveResult',
+                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold,
+                              color: const Color(0xFFFF9500))),
+                    ),
+                  const SizedBox(height: 4),
+                  // Main display (big, white)
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(_display,
-                        style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold,
+                        style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : Colors.black)),
                   ),
                 ],
               ),
             ),
           ),
-          // Round buttons — bigger (72px)
+          // Round buttons — bigger (78px)
           Expanded(
             flex: 5,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -404,11 +453,11 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       fg = isDark ? Colors.white : Colors.black87;
     }
 
-    // Bigger buttons: 72px
+    // Bigger buttons: 78px for better touch target
     return Container(
-      width: 72,
-      height: 72,
-      margin: const EdgeInsets.all(3),
+      width: 78,
+      height: 78,
+      margin: const EdgeInsets.all(2),
       child: ElevatedButton(
         onPressed: () {
           // Professional: calculator buttons are silent (haptic only).
