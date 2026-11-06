@@ -26,10 +26,7 @@ jobs:
         export ANDROID_HOME=/usr/local/lib/android/sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
         yes | sdkmanager --licenses
-        # NDK r30 — latest, fully supports 16 KB memory page sizes.
-        # Required by Google Play from Nov 2025.
         sdkmanager "ndk;30.0.16248370" || true
-        # Also install r28 as fallback
         sdkmanager "ndk;28.0.12674087" || true
         echo "=== Installed NDK versions ==="
         ls -la $ANDROID_HOME/ndk/ 2>/dev/null || echo "No NDK found"
@@ -37,10 +34,6 @@ jobs:
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
       with:
-        # Flutter 3.44.9 — Dart 3.12.2 (required by in_app_purchase_android 0.5.5
-        # which uses Play Billing Library 9.1.0; Google Play mandates >= 8.0.0
-        # since 1 Nov 2026). The 16 KB alignment diagnostic step below will
-        # verify .so files. If it FAILs, fall back to 3.35.5 + remove IAP.
         flutter-version: '3.44.9'
         channel: stable
         cache: true
@@ -98,17 +91,12 @@ jobs:
         echo ""
         for f in $(find . -name "*.so" | sort); do
           echo "--- $f ---"
-          # For 64-bit ELF, readelf -l shows LOAD on two lines.
-          # Use objdump -p which shows alignment on one line.
           if command -v objdump &>/dev/null; then
             objdump -p "$f" 2>/dev/null | grep "LOAD" | head -3
-            # Extract the last field (alignment) from each LOAD line
             ALIGNS=$(objdump -p "$f" 2>/dev/null | grep "LOAD" | awk '{print $NF}' | sort -u)
             echo "Alignments: $ALIGNS"
-            # Check if any alignment < 0x4000 (16 KB)
             FAIL=0
             for a in $ALIGNS; do
-              # Convert hex to decimal
               DEC=$(printf "%d" "$a" 2>/dev/null || echo 0)
               if [ "$DEC" -lt 16384 ] 2>/dev/null; then
                 FAIL=1
