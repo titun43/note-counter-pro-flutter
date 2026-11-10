@@ -8,7 +8,6 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
 import java.text.DecimalFormat
-import java.util.Locale
 
 /**
  * Home Screen Widget Provider for Note Counter Pro
@@ -141,7 +140,7 @@ class CounterWidgetProvider : AppWidgetProvider() {
     private fun formatNumber(value: Int): String {
         if (value == 0) return "0"
         return try {
-            val formatter = DecimalFormat("#,##,##0", Locale("en", "IN"))
+            val formatter = DecimalFormat("#,##,##0")
             formatter.format(value)
         } catch (e: Exception) {
             value.toString()
