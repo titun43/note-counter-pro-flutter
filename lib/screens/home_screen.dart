@@ -198,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Calculate today's totals from storage entries
       final today = DateTime.now();
       final todayEntries = storage.entries.where((e) {
-        final entryDate = DateTime.fromMillisecondsSinceEpoch(e.timestamp);
+        final entryDate = e.date;
         return entryDate.year == today.year &&
                entryDate.month == today.month &&
                entryDate.day == today.day;
