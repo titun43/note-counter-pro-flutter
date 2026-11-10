@@ -2,7 +2,11 @@ package com.lokhnathtechnical.notecounterpro
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
@@ -18,6 +22,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity: FlutterFragmentActivity() {
     private val CONTACT_CHANNEL = "com.lokhnathtechnical.notecounterpro/contacts"
     private val UPDATE_CHANNEL = "com.lokhnathtechnical.notecounterpro/update"
+    private val WIDGET_CHANNEL = "com.lokhnathtechnical.notecounterpro/widget"
     private val PICK_CONTACT_REQUEST = 1001
     private var pendingResult: MethodChannel.Result? = null
     private var appUpdateManager: AppUpdateManager? = null
@@ -52,6 +57,65 @@ class MainActivity: FlutterFragmentActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+
+        // Widget data sync channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "updateWidget" -> {
+                    // Batch update: write all data + trigger widget refresh
+                    val prefsName = call.argument<String>("prefsName") ?: "NoteCounterWidgetPrefs"
+                    val data = call.argument<Map<String, Any>>("data") ?: emptyMap()
+                    val prefs = getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                    val editor = prefs.edit()
+                    for ((key, value) in data) {
+                        when (value) {
+                            is Int -> editor.putInt(key, value)
+                            is Long -> editor.putInt(key, value.toInt())
+                            is String -> editor.putString(key, value)
+                            is Boolean -> editor.putBoolean(key, value)
+                        }
+                    }
+                    editor.apply()
+                    triggerWidgetUpdate()
+                    result.success(true)
+                }
+                "updateWidgetData" -> {
+                    // Single key-value update
+                    val prefsName = call.argument<String>("prefsName") ?: "NoteCounterWidgetPrefs"
+                    val key = call.argument<String>("key") ?: ""
+                    val value = call.argument<Any>("value")
+                    val prefs = getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                    val editor = prefs.edit()
+                    when (value) {
+                        is Int -> editor.putInt(key, value)
+                        is Long -> editor.putInt(key, value.toInt())
+                        is String -> editor.putString(key, value)
+                        is Boolean -> editor.putBoolean(key, value)
+                    }
+                    editor.apply()
+                    result.success(true)
+                }
+                "triggerWidgetUpdate" -> {
+                    triggerWidgetUpdate()
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /**
+     * Send a broadcast to update all CounterWidgetProvider instances.
+     */
+    private fun triggerWidgetUpdate() {
+        try {
+            val intent = Intent(this, CounterWidgetProvider::class.java).apply {
+                action = "com.lokhnathtechnical.notecounterpro.UPDATE_WIDGET"
+            }
+            sendBroadcast(intent)
+        } catch (e: Exception) {
+            // Silent fail — widget update is non-critical
         }
     }
 

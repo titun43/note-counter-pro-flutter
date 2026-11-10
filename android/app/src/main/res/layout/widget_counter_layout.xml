@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="12dp">
+
+    <!-- Header: App name + icon -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="App icon" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Note Counter Pro"
+            android:textColor="#D4AF37"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginStart="6dp" />
+
+        <TextView
+            android:id="@+id/widget_total_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="₹0"
+            android:textColor="#D4AF37"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Denominations grid (2x2) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <!-- Row 1: ₹2000 + ₹500 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="₹2000"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/qty_2000"
+                android:layout_width="30dp"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="₹500"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/qty_500"
+                android:layout_width="30dp"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp"
+                android:gravity="center" />
+        </LinearLayout>
+
+        <!-- Row 2: ₹200 + ₹100 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="₹200"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/qty_200"
+                android:layout_width="30dp"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="₹100"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/qty_100"
+                android:layout_width="30dp"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="#F5E6D3"
+                android:textSize="12sp"
+                android:gravity="center" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Today's summary row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Today:"
+            android:textColor="#888888"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/widget_today_in"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="In ₹0"
+            android:textColor="#4CAF50"
+            android:textSize="11sp"
+            android:layout_marginStart="6dp" />
+
+        <TextView
+            android:id="@+id/widget_today_out"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Out ₹0"
+            android:textColor="#F44336"
+            android:textSize="11sp"
+            android:layout_marginStart="6dp" />
+    </LinearLayout>
+
+    <!-- Quick action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- Open App (Counter) -->
+        <TextView
+            android:id="@+id/btn_open_counter"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:text="💵 Count"
+            android:textColor="#D4AF37"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:background="@drawable/widget_btn_bg"
+            android:layout_marginEnd="4dp" />
+
+        <!-- Smart Pay -->
+        <TextView
+            android:id="@+id/btn_smart_pay"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:text="📲 Pay"
+            android:textColor="#D4AF37"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:background="@drawable/widget_btn_bg"
+            android:layout_marginEnd="4dp" />
+
+        <!-- Khata -->
+        <TextView
+            android:id="@+id/btn_khata"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:text="📖 Khata"
+            android:textColor="#D4AF37"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:background="@drawable/widget_btn_bg"
+            android:layout_marginEnd="4dp" />
+
+        <!-- Bill -->
+        <TextView
+            android:id="@+id/btn_bill"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:text="📄 Bill"
+            android:textColor="#D4AF37"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:background="@drawable/widget_btn_bg" />
+    </LinearLayout>
+</LinearLayout>

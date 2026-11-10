@@ -44,7 +44,27 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link for widget quick actions -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="notecounterpro"/>
+            </intent-filter>
         </activity>
+
+        <!-- Home Screen Widget — Counter Widget (4x2) -->
+        <receiver
+            android:name=".CounterWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="com.lokhnathtechnical.notecounterpro.UPDATE_WIDGET"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_counter_info"/>
+        </receiver>
         
         <meta-data
             android:name="flutterEmbedding"

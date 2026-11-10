@@ -668,6 +668,12 @@ class AppLocalizations {
       'limitInfoFull3': 'Only ₹2,000 limit (same mobile)',
       'limitInfoFull4': 'Scan here:',
       'limitInfoFull5': 'Extract UPI ID → send up to ₹1,00,000',
+      'homeWidget': 'Home Screen Widget',
+      'homeWidgetDesc': 'Add a quick counter widget to your home screen',
+      'homeWidgetSetup': 'Widget Setup',
+      'homeWidgetSetupDesc': 'Long-press your home screen → Add Widget → Note Counter Pro',
+      'widgetAdded': 'Widget added!',
+      'widgetAddedMsg': 'Check your home screen. You can resize the widget by long-pressing it.',
     },
     'bn': {
       'appTitle': 'নোট কাউন্টার প্রো',
@@ -1331,6 +1337,12 @@ class AppLocalizations {
       'limitInfoFull3': 'মাত্র ₹2,000 পর্যন্ত (একই মোবাইল)',
       'limitInfoFull4': 'এখানে স্ক্যান করুন:',
       'limitInfoFull5': 'UPI ID বের হবে → ₹1,00,000 পর্যন্ত পাঠাতে পারবেন',
+      'homeWidget': 'হোম স্ক্রিন উইজেট',
+      'homeWidgetDesc': 'আপনার হোম স্ক্রিনে দ্রুত কাউন্টার উইজেট যোগ করুন',
+      'homeWidgetSetup': 'উইজেট সেটআপ',
+      'homeWidgetSetupDesc': 'হোম স্ক্রিনে লং-প্রেস করুন → উইজেট যোগ করুন → Note Counter Pro',
+      'widgetAdded': 'উইজেট যোগ হয়েছে!',
+      'widgetAddedMsg': 'আপনার হোম স্ক্রিন চেক করুন। লং-প্রেস করে উইজেট রিসাইজ করতে পারবেন।',
     },
     'hi': {
       'appTitle': 'नोट काउंटर प्रो',
@@ -1994,6 +2006,12 @@ class AppLocalizations {
       'limitInfoFull3': 'केवल ₹2,000 सीमा (एक ही मोबाइल)',
       'limitInfoFull4': 'यहां स्कैन करें:',
       'limitInfoFull5': 'UPI ID निकालें → ₹1,00,000 तक भेजें',
+      'homeWidget': 'होम स्क्रीन विजेट',
+      'homeWidgetDesc': 'अपनी होम स्क्रीन पर तेज़ काउंटर विजेट जोड़ें',
+      'homeWidgetSetup': 'विजेट सेटअप',
+      'homeWidgetSetupDesc': 'होम स्क्रीन को लॉन्ग-प्रेस करें → विजेट जोड़ें → Note Counter Pro',
+      'widgetAdded': 'विजेट जोड़ा गया!',
+      'widgetAddedMsg': 'अपनी होम स्क्रीन देखें। लॉन्ग-प्रेस करके विजेट को रीसाइज़ कर सकते हैं।',
     },
   };
   

@@ -12,6 +12,7 @@ import '../services/admob_service.dart';
 import '../services/tts_service.dart';
 import '../services/premium_service.dart';
 import '../services/feedback_service.dart';
+import '../services/widget_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import '../models/entry.dart';
@@ -188,6 +189,63 @@ class _HomeScreenState extends State<HomeScreen> {
     _onlineAmountController.clear();
     _hideTransactionToggle = false; // Show toggle again on reset
     setState(() {});
+  }
+
+  /// Update home screen widget with today's cash in/out summary.
+  /// Called after every entry save (cash in or cash out).
+  void _updateWidgetWithTodaySummary(StorageService storage) {
+    try {
+      // Calculate today's totals from storage entries
+      final today = DateTime.now();
+      final todayEntries = storage.entries.where((e) {
+        final entryDate = DateTime.fromMillisecondsSinceEpoch(e.timestamp);
+        return entryDate.year == today.year &&
+               entryDate.month == today.month &&
+               entryDate.day == today.day;
+      });
+
+      int todayIn = 0;
+      int todayOut = 0;
+      for (final entry in todayEntries) {
+        if (entry.type == 'cash_in') {
+          todayIn += entry.amount.toInt();
+        } else if (entry.type == 'cash_out') {
+          todayOut += entry.amount.toInt();
+        }
+      }
+
+      // Also update counter quantities for the widget display
+      int qty2000 = 0, qty500 = 0, qty200 = 0, qty100 = 0;
+      for (final denom in _denominations) {
+        final value = denom['value'] as int;
+        final count = _getCount(value);
+        switch (value) {
+          case 2000:
+            qty2000 = count;
+            break;
+          case 500:
+            qty500 = count;
+            break;
+          case 200:
+            qty200 = count;
+            break;
+          case 100:
+            qty100 = count;
+            break;
+        }
+      }
+
+      WidgetService.updateWidget(
+        qty2000: qty2000,
+        qty500: qty500,
+        qty200: qty200,
+        qty100: qty100,
+        todayIn: todayIn,
+        todayOut: todayOut,
+      );
+    } catch (e) {
+      debugPrint('Widget update failed: $e');
+    }
   }
 
   /// Quick Actions menu (#70) — one-tap access to create bills, products,
@@ -512,6 +570,9 @@ class _HomeScreenState extends State<HomeScreen> {
     // INSTANT: play feedback immediately, then fire-and-forget save
     FeedbackService().success();
     storage.addEntry(entry);
+
+    // Update home screen widget with today's summary
+    _updateWidgetWithTodaySummary(storage);
 
     // #35 — If a customer was selected, update their balance.
     // Payable (cash_out from user's perspective = money given to customer

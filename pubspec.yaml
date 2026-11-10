@@ -1,7 +1,7 @@
 name: note_counter_pro
 description: Professional Cash Note Counter App - Multi-currency support with business mode
 publish_to: 'none'
-version: 3.58.1+230
+version: 3.59.0+231
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
@@ -99,6 +99,9 @@ dependencies:
   google_mlkit_text_recognition: ^0.14.0
   image_picker: ^1.1.2
   image_cropper: ^8.0.2
+
+  # Home Screen Widget — quick counter, today's summary, shortcuts
+  home_widget: ^0.7.0
 
 dev_dependencies:
   flutter_test:

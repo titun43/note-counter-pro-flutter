@@ -8,6 +8,7 @@ import 'services/storage_service.dart';
 import 'services/admob_service.dart';
 import 'services/notification_service.dart';
 import 'services/premium_service.dart';
+import 'services/widget_service.dart';
 import 'utils/constants.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/referral_service.dart';
@@ -206,6 +207,7 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
       _showOnboardingIfFirstTime();
     });
     _checkForUpdate();
+    _handleDeepLink();
 
     // Splash overlay: show for 3 seconds (text needs time to read),
     // then fade away. Was 1s — too fast, user couldn't read the text.
@@ -214,6 +216,48 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
         setState(() => _showSplash = false);
       }
     });
+  }
+
+  /// Handle deep links from the Home Screen Widget.
+  /// Deep links: notecounterpro://counter, ://smartpay, ://khata, ://bill
+  void _handleDeepLink() {
+    // Check if app was launched from a deep link
+    if (WidgetsBinding.instance.platformDispatcher.defaultRouteName != '/') {
+      final route = WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+      final uri = Uri.tryParse(route);
+      if (uri != null) {
+        final target = WidgetService.parseDeepLink(uri);
+        if (target != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigateToDeepLink(target);
+          });
+        }
+      }
+    }
+  }
+
+  /// Navigate to the appropriate tab based on deep link target.
+  void _navigateToDeepLink(String target) {
+    int tabIndex;
+    switch (target) {
+      case '/counter':
+        tabIndex = 0; // Home/Counter tab
+        break;
+      case '/khata':
+        tabIndex = 1; // Khata tab
+        break;
+      case '/smartpay':
+        tabIndex = 2; // UPI/Smart Pay tab
+        break;
+      case '/bill':
+        tabIndex = 1; // Khata tab (Bills is inside Khata)
+        break;
+      default:
+        tabIndex = 0;
+    }
+    if (mounted) {
+      setState(() => _currentIndex = tabIndex);
+    }
   }
 
   void _showAppLockIfEnabled() {
