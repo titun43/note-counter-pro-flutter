@@ -5,11 +5,9 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
 import android.widget.RemoteViews
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.text.DecimalFormat
 import java.util.Locale
 
 /**
@@ -137,28 +135,16 @@ class CounterWidgetProvider : AppWidgetProvider() {
     }
 
     /**
-     * Format a number with Indian comma style (e.g., 12500 → "12,500")
+     * Format a number with Indian comma style (e.g., 12500 → "12,500").
+     * Uses DecimalFormat with Indian grouping pattern.
      */
     private fun formatNumber(value: Int): String {
         if (value == 0) return "0"
         return try {
-            val formatter = SimpleDateFormat("#,##,##0", Locale("en", "IN"))
-            formatter.format(NumberFormatHelper(value))
+            val formatter = DecimalFormat("#,##,##0", Locale("en", "IN"))
+            formatter.format(value)
         } catch (e: Exception) {
             value.toString()
         }
     }
-}
-
-/**
- * Helper to format integer with Indian grouping.
- * Indian format: 12,34,567 (lakhs grouping)
- */
-private class NumberFormatHelper(val value: Int) : Number() {
-    override fun toByte(): Byte = value.toByte()
-    override fun toDouble(): Double = value.toDouble()
-    override fun toFloat(): Float = value.toFloat()
-    override fun toInt(): Int = value
-    override fun toLong(): Long = value.toLong()
-    override fun toShort(): Short = value.toShort()
 }

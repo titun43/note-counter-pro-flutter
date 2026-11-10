@@ -100,8 +100,8 @@ dependencies:
   image_picker: ^1.1.2
   image_cropper: ^8.0.2
 
-  # Home Screen Widget — quick counter, today's summary, shortcuts
-  home_widget: ^0.7.0
+  # Note: Home Screen Widget uses native MethodChannel (no Flutter package needed).
+  # Widget data is synced via SharedPreferences + broadcast intents in Kotlin.
 
 dev_dependencies:
   flutter_test:
