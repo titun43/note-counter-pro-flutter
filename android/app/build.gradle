@@ -71,8 +71,9 @@ android {
             } else {
                 signingConfig signingConfigs.debug
             }
-            minifyEnabled false
-            shrinkResources false
+            // R8 code shrinking + obfuscation (required by Google Play DEX optimization)
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {

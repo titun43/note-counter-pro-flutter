@@ -31,7 +31,17 @@ import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Edge-to-edge display (Android 15+ / API 35+ compliance)
+  // Fixes Play Console warning: "deprecated APIs for edge-to-edge"
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
+
   SharedPreferences? prefs;
   try {
     prefs = await SharedPreferences.getInstance();
