@@ -56,7 +56,8 @@
         <!-- Home Screen Widget — Counter Widget (4x2) -->
         <receiver
             android:name=".CounterWidgetProvider"
-            android:exported="true">
+            android:exported="true"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
                 <action android:name="com.lokhnathtechnical.notecounterpro.UPDATE_WIDGET"/>
