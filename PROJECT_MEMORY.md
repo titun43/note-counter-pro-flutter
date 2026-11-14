@@ -277,7 +277,47 @@ f0588c2 feat: add banner ad to calculator tab mode (wrong fix)
 
 ---
 
-**Last updated:** 2026-10-31 (commit `cd95685`)
-**Project:** Note Counter Pro (Flutter) v3.36.2+164
+## 🧑‍🤝‍🧑 Group Split Feature (v3.60.0+234 — completed 2026-11-14)
+
+Splitwise-style expense sharing **without Firebase** — one user manages the
+group on-device and shares the rendered settlement image/SMS/PDF via
+WhatsApp; recipients never need the app.
+
+**Entry points:** Tools tab → "Group Split" section card; Khata screen →
+3-dot overflow menu → "Group Split".
+
+**New files:**
+- `lib/models/group_expense.dart` — `GroupExpenseGroup`, `GroupMember`,
+  `GroupExpense`, `GroupSettlement`, `GroupExpenseCategory` (6 categories).
+- `lib/services/group_split_service.dart` — singleton, SharedPreferences
+  CRUD, greedy **min-transactions** settlement algorithm.
+- `lib/services/group_split_pdf_service.dart` — settlement PDF (uses
+  `PdfColor.fromHex`, NOT `fromInt`; never `const` on `pw.BoxDecoration`
+  with a factory color).
+- `lib/widgets/settlement_card.dart` — screenshot-ready share image, fixed
+  dark-navy+gold theme for consistent rendering on any recipient phone.
+- `lib/screens/group_split_screen.dart` — group list + create/edit dialog
+  (unlimited members, optional UPI ID per member, currency picker).
+- `lib/screens/group_detail_screen.dart` — expenses + settlement + 3 share
+  paths (image/SMS/PDF) + tappable settlement rows that open a UPI payment
+  QR for the receiver.
+
+**Share paths:** `Share.shareXFiles([XFile(png)])` for image+PDF,
+`Share.share(text)` for SMS. SettlementCard is wrapped in a visible
+`Screenshot(controller:)` (NOT `Offstage` — Offstage does not lay out, so
+`capture()` returns null).
+
+**Compliance:** 3 languages (59 new keys × en/bn/hi; reused 4 existing keys
+`cancel`/`shareImage`/`enterAmount`/`settled`), dark/light mode on all
+screens, AdMob policy (banner top + interstitial on user actions only).
+
+**CI lesson:** the localization insertion script must check for pre-existing
+keys before adding — 4 duplicates caused a compile failure on first push
+(run #43565984663). Fixed in follow-up commit `aedce54`; build #2 passed.
+
+---
+
+**Last updated:** 2026-11-14 (commit `aedce54`, CI green)
+**Project:** Note Counter Pro (Flutter) v3.60.0+234
 **Owner:** titun43
 **Repo:** https://github.com/titun43/note-counter-pro-flutter
