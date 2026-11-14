@@ -61,7 +61,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        top: false,
+        // top: true (default) — pushes BannerAd below the system status bar
+        // so it no longer overlaps the mobile clock/time. Matches the pattern
+        // used by other standalone pushed screens (calculator_screen, etc.).
         child: Column(
           children: [
             const BannerAdWidget(),
@@ -139,6 +141,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                         group: group,
                         settlements: settlements,
                         loc: loc,
+                        isDark: isDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -201,46 +204,58 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
   Widget _buildSummaryCard(GroupExpenseGroup g, List<GroupSettlement> settlements,
       ThemeData theme, bool isDark, AppLocalizations loc, String sym) {
+    // Theme-aware palette matching the app's brand (amber/gold + navy).
+    // Dark mode keeps the premium navy→black gradient with bright gold accents.
+    // Light mode uses a clean white→faint-amber card with readable dark/gold
+    // text — previously the light branch also used dark navy colors, making the
+    // whole card appear black in light mode.
+    final gradientColors = isDark
+        ? [const Color(0xFF16213E), const Color(0xFF0A0A1A)]
+        : [AppColors.bgCard, AppColors.primary.withOpacity(0.10)];
+    final totalColor = isDark ? AppColors.primary : const Color(0xFFB45309); // amber-700: readable on white
+    final membersColor = isDark ? Colors.white : AppColors.textPrimary;
+    final perPersonColor = isDark ? const Color(0xFF86EFAC) : AppColors.success;
+    final labelColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final dividerColor = AppColors.primary.withOpacity(isDark ? 0.3 : 0.4);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark
-              ? [const Color(0xFF16213E), const Color(0xFF0A0A1A)]
-              : [const Color(0xFF1A1A2E), const Color(0xFF0A0A1A)],
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        border: Border.all(color: dividerColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryCell(loc.t('totalExpense'), '$sym${_fmt(g.totalExpenses)}', AppColors.primary),
-          _vDivider(),
-          _summaryCell(loc.t('members'), '${g.members.length}', Colors.white),
-          _vDivider(),
-          _summaryCell(loc.t('perPerson'), '$sym${_fmt(g.perPersonShare)}', const Color(0xFF86EFAC)),
+          _summaryCell(loc.t('totalExpense'), '$sym${_fmt(g.totalExpenses)}', totalColor, labelColor),
+          _vDivider(dividerColor),
+          _summaryCell(loc.t('members'), '${g.members.length}', membersColor, labelColor),
+          _vDivider(dividerColor),
+          _summaryCell(loc.t('perPerson'), '$sym${_fmt(g.perPersonShare)}', perPersonColor, labelColor),
         ],
       ),
     );
   }
 
-  Widget _summaryCell(String label, String value, Color valueColor) {
+  Widget _summaryCell(String label, String value, Color valueColor, Color labelColor) {
     return Expanded(
       child: Column(
         children: [
           Text(value, style: TextStyle(color: valueColor, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 10), textAlign: TextAlign.center),
+          Text(label, style: TextStyle(color: labelColor, fontSize: 10), textAlign: TextAlign.center),
         ],
       ),
     );
   }
 
-  Widget _vDivider() => Container(width: 1, height: 36, color: AppColors.primary.withOpacity(0.3));
+  Widget _vDivider(Color color) => Container(width: 1, height: 36, color: color);
 
   Widget _infoCard(String text, IconData icon, Color color, bool isDark, ThemeData theme) {
     return Container(

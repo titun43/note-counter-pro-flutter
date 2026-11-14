@@ -54,7 +54,9 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        top: false,
+        // top: true (default) — pushes BannerAd below the system status bar
+        // so it no longer overlaps the mobile clock/time. Matches the pattern
+        // used by other standalone pushed screens (calculator_screen, etc.).
         child: Column(
           children: [
             const BannerAdWidget(),
