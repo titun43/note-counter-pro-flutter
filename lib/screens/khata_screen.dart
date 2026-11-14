@@ -16,6 +16,7 @@ import '../widgets/send_reminder_to_all_dialog.dart';
 import '../widgets/custom_dialog.dart';
 import 'customer_detail_screen.dart';
 import 'customers_screen.dart';
+import 'group_split_screen.dart';
 import 'reminder_history_screen.dart';
 import 'reports_screen.dart';
 import 'premium_screen.dart';
@@ -828,6 +829,14 @@ class _KhataScreenState extends State<KhataScreen> {
                                 MaterialPageRoute(builder: (_) => const CustomersScreen()),
                               );
                               break;
+                            case 'groupSplit':
+                              if (!mounted) return;
+                              AdMobService.showInterstitial();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const GroupSplitScreen()),
+                              );
+                              break;
                             // 'bills' case removed — Bills is now a
                             // top-level tab. The PopupMenuItem was also
                             // removed; this case is kept as a no-op for
@@ -892,6 +901,16 @@ class _KhataScreenState extends State<KhataScreen> {
                                 const Icon(Icons.people, size: 20, color: Color(0xFF8B0000)),
                                 const SizedBox(width: 12),
                                 Text(loc.t('customers')),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'groupSplit',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.groups, size: 20, color: Color(0xFF8B0000)),
+                                const SizedBox(width: 12),
+                                Text(loc.t('groupSplit')),
                               ],
                             ),
                           ),

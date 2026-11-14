@@ -13,6 +13,7 @@ import 'utils/constants.dart';
 import 'services/cloud_backup_service.dart';
 import 'services/referral_service.dart';
 import 'services/saved_upi_service.dart';
+import 'services/group_split_service.dart';
 import 'services/feedback_service.dart';
 import 'utils/themes.dart';
 import 'utils/app_localizations.dart';
@@ -115,6 +116,13 @@ void main() async {
   Future.delayed(const Duration(seconds: 7), () {
     SavedUpiService().init().catchError((e) {
       debugPrint('SavedUpiService init failed: $e');
+    });
+  });
+
+  // Initialize Group Split service — load groups from prefs
+  Future.delayed(const Duration(seconds: 7), () {
+    GroupSplitService().init().catchError((e) {
+      debugPrint('GroupSplitService init failed: $e');
     });
   });
 }

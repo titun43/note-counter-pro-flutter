@@ -27,6 +27,7 @@ import 'saved_upi_screen.dart';
 import 'converter_screen.dart';
 import 'inventory_screen.dart';
 import 'scan_calculate_screen.dart';
+import 'group_split_screen.dart';
 import 'settings_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
@@ -182,6 +183,28 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const ScanCalculateScreen()),
+                  );
+                },
+                theme: theme,
+                isDark: isDark,
+              ),
+
+              const SizedBox(height: 20),
+
+              // Group Split section (NEW v3.60.0) — split expenses with
+              // friends & family; auto-settlement + share as image/SMS/PDF.
+              _buildSectionHeader(loc.t('groupSplitSection'), Icons.groups, theme),
+              const SizedBox(height: 8),
+              _buildToolCard(
+                icon: Icons.groups,
+                iconColor: const Color(0xFF8B5CF6),
+                title: loc.t('groupSplit'),
+                subtitle: loc.t('groupSplitDesc'),
+                onTap: () {
+                  AdMobService.showInterstitial();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const GroupSplitScreen()),
                   );
                 },
                 theme: theme,
