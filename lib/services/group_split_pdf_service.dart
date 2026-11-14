@@ -164,7 +164,7 @@ class GroupSplitPdfService {
       },
       children: [
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: PdfColor.fromHex('1A1A2E')),
+          decoration: pw.BoxDecoration(color: PdfColor.fromHex('1A1A2E')),
           children: [
             _cellHeader(loc.t('whoPaid')),
             _cellHeader(loc.t('categoryLabel')),
@@ -195,7 +195,7 @@ class GroupSplitPdfService {
       },
       children: [
         pw.TableRow(
-          decoration: const pw.BoxDecoration(color: PdfColor.fromHex('1A1A2E')),
+          decoration: pw.BoxDecoration(color: PdfColor.fromHex('1A1A2E')),
           children: [
             _cellHeader('From'),
             _cellHeader(''),
