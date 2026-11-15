@@ -320,6 +320,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                                   loc.t('limitBannerTitle'),
                                   style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                     color: const Color(0xFFD4AF37),
                                   ),
                                 ),
@@ -357,6 +358,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                                     loc.t('limitBannerRed'),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                       color: AppColors.danger,
                                       height: 1.4,
                                     ),
@@ -396,6 +398,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                                     loc.t('limitBannerGreen'),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                       color: AppColors.success,
                                       height: 1.4,
                                     ),
@@ -556,6 +559,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                                         : loc.t('scanFromGallery'),
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 16,
                                   color: isDark ? Colors.white70 : Colors.black54,
                                 ),
                               ),
@@ -589,7 +593,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 14,
+                                          fontSize: 16,
                                         ),
                                       ),
                                     ],
@@ -661,7 +665,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                         children: [
                           Icon(Icons.history, size: 18, color: AppColors.primary),
                           const SizedBox(width: 8),
-                          Text(loc.t('scanHistory'), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                          Text(loc.t('scanHistory'), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary)),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -726,7 +730,7 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
                               upiId,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, fontSize: 16),
                             ),
                             subtitle: Row(
                               children: [
@@ -845,8 +849,8 @@ class _SmartPayScreenState extends State<SmartPayScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: isDark ? Colors.white70 : Colors.black54)),
-        Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+        Text(label, style: theme.textTheme.bodySmall?.copyWith(fontSize: 13, color: isDark ? Colors.white70 : Colors.black54)),
+        Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black)),
       ],
     );
   }

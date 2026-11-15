@@ -168,7 +168,7 @@ class _BillsScreenState extends State<BillsScreen> {
                     loc.t('bills'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 22,
+                      fontSize: 24,
                     ),
                   ),
                   const Spacer(),
@@ -264,12 +264,12 @@ class _BillsScreenState extends State<BillsScreen> {
                             Text(
                               loc.t('totalBills'),
                               style: const TextStyle(
-                                  fontSize: 11, color: AppColors.textSecondary),
+                                  fontSize: 12, color: AppColors.textSecondary),
                             ),
                             Text(
                               '${allBills.length}',
                               style: const TextStyle(
-                                  fontSize: 22,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   ),
                             ),
@@ -281,11 +281,11 @@ class _BillsScreenState extends State<BillsScreen> {
                         children: [
                           Text(loc.t('totalAmount'),
                               style: const TextStyle(
-                                  fontSize: 11, color: AppColors.textSecondary)),
+                                  fontSize: 12, color: AppColors.textSecondary)),
                           Text(
                             '$symbol${totalAmount.toStringAsFixed(0)}',
                             style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.danger),
                           ),
@@ -394,7 +394,8 @@ class _BillsScreenState extends State<BillsScreen> {
                                 ? (loc.t('noBills'))
                                 : (loc.t('noBillsFound')),
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
                             ),
                           ),
@@ -574,14 +575,14 @@ class _BillsScreenState extends State<BillsScreen> {
                             bill.billNumber,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 16,
                             ),
                           ),
                           Text(
                             bill.customerName ??
                                 (loc.t('walkInCustomer')),
                             style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 13,
                                 color: AppColors.textSecondary),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

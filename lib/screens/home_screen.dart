@@ -1868,7 +1868,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           '$_totalNotes',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                             height: 1.1,
@@ -1970,30 +1970,41 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const Spacer(),
-                  // --- Grand Total (hero — gradient box) ---
-                  // Light mode: dark navy gradient + gold text (premium contrast)
-                  // Dark mode: gold/amber gradient + dark text (pops on dark bg)
+                  // --- Grand Total (hero — theme-matching card box) ---
+                  // Card bg + subtle border in both modes (mirrors the
+                  // adjacent Notes count box). Gold text for emphasis.
+                  // FittedBox + ConstrainedBox: large numbers shrink to fit.
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [AppColors.primary, AppColors.primaryDark]
-                            : [AppColors.bgDark, const Color(0xFF2A2A4E)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      // Theme-matching: card bg + subtle border in both modes,
+                      // mirroring the adjacent "Notes count" box for harmony.
+                      color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.textSecondaryDark.withOpacity(0.25)
+                            : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
                     ),
                     child: Column(
                       children: [
-                        Text(
-                          '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? AppColors.bgDark : AppColors.primary,
-                            height: 1.1,
+                        // FittedBox + ConstrainedBox: large numbers (5000,
+                        // 999999) shrink to fit instead of clipping.
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 140),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                                height: 1.1,
+                              ),
+                            ),
                           ),
                         ),
                         Text(
@@ -2001,8 +2012,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             fontSize: 9,
                             color: isDark
-                                ? AppColors.bgDark.withOpacity(0.7)
-                                : AppColors.textSecondaryDark,
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondary,
                             letterSpacing: 0.5,
                           ),
                         ),
