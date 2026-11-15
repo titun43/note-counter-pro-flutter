@@ -142,14 +142,14 @@ class GlassNavBar extends StatelessWidget {
           children: [
             Icon(
               tab.activeIcon,
-              size: 22,
+              size: 24,
               color: const Color(0xFF1A1A2E),
             ),
             const SizedBox(height: 2),
             Text(
               tab.label,
               style: const TextStyle(
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1A1A2E),
               ),
@@ -170,7 +170,7 @@ class GlassNavBar extends StatelessWidget {
           children: [
             Icon(
               tab.icon,
-              size: 22,
+              size: 24,
               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
             ),
             if (tab.isPremium && !PremiumService().isPremium)
@@ -196,8 +196,8 @@ class GlassNavBar extends StatelessWidget {
         Text(
           tab.label,
           style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
           ),
           maxLines: 1,

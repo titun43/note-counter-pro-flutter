@@ -1782,8 +1782,9 @@ class _HomeScreenState extends State<HomeScreen> {
           // All header elements (Currency / Notes / Tools / Total) live
           // inside ONE rounded-border card. Each sub-element has its own
           // subtle inner box so the row feels organized, not crowded.
-          // Total is the "hero" — dark gradient (light mode) or gold
-          // gradient (dark mode) so it pops against the other elements.
+          // Total is the "hero" — theme-matching card bg + gold text,
+          // wrapped in Expanded+Align+FittedBox so large numbers shrink
+          // to fit the leftover Row width (never clips).
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
@@ -1969,55 +1970,61 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const Spacer(),
                   // --- Grand Total (hero — theme-matching card box) ---
-                  // Card bg + subtle border in both modes (mirrors the
-                  // adjacent Notes count box). Gold text for emphasis.
-                  // FittedBox + ConstrainedBox: large numbers shrink to fit.
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      // Theme-matching: card bg + subtle border in both modes,
-                      // mirroring the adjacent "Notes count" box for harmony.
-                      color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.textSecondaryDark.withOpacity(0.25)
-                            : const Color(0xFFE5E7EB),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        // FittedBox + ConstrainedBox: large numbers (5000,
-                        // 999999) shrink to fit instead of clipping.
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 140),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                                height: 1.1,
+                  // Expanded+Align gives this ALL leftover Row width so the
+                  // FittedBox can shrink large numbers to fit (no clipping).
+                  // Spacer removed: it greedily took leftover, leaving the
+                  // total to overflow → "5000" clipped to "500".
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          // Theme-matching: card bg + subtle border in both modes,
+                          // mirroring the adjacent "Notes count" box for harmony.
+                          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark
+                                ? AppColors.textSecondaryDark.withOpacity(0.25)
+                                : const Color(0xFFE5E7EB),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // FittedBox + ConstrainedBox: large numbers (5000,
+                            // 999999) shrink to fit the leftover width.
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 140),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                    height: 1.1,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            Text(
+                              loc.t('total'),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          loc.t('total'),
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondary,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
