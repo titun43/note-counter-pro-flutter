@@ -1,18 +1,22 @@
 // =============================================================================
-// Note Counter Pro - Tools Tab Screen
+// Note Counter Pro - Tools Screen (pushed, was a bottom-nav tab)
 // =============================================================================
 // Hub for all utility tools:
 //   - Calculators (Standard / Scientific / Programmer / Date)
 //   - Converters (Currency / Unit / etc.)
 //   - Printer (Bluetooth thermal printer)
 //
-// This screen wraps CalculatorScreen which already has modes + converters
-// built-in, and adds a Printer card for easy access.
+// v3.61.0: Tools moved out of the bottom nav (Group Split took its slot).
+// This screen is now opened via the toolbox (🧰) icon in the top bar of
+// every main tab. It wraps CalculatorScreen (modes + converters built-in)
+// and adds cards for QR, Inventory, Printer, etc.
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/admob_service.dart';
 import '../services/premium_service.dart';
+import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
 import 'calculator_screen.dart';
@@ -27,13 +31,14 @@ import 'saved_upi_screen.dart';
 import 'converter_screen.dart';
 import 'inventory_screen.dart';
 import 'scan_calculate_screen.dart';
-import 'group_split_screen.dart';
 import 'settings_screen.dart';
 
 class ToolsTabScreen extends StatefulWidget {
-  final String currencyCode;
-
-  const ToolsTabScreen({super.key, required this.currencyCode});
+  /// Tools is now a PUSHED screen (v3.61.0) — opened via the toolbox (🧰)
+  /// icon in the top bar of every main tab. It was previously the 5th
+  /// bottom-nav tab; that slot is now Group Split (হিসাব ভাগ).
+  /// currencyCode is read internally from StorageService (no longer passed in).
+  const ToolsTabScreen({super.key});
 
   @override
   State<ToolsTabScreen> createState() => _ToolsTabScreenState();
@@ -45,20 +50,32 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final loc = context.loc;
+    // currencyCode is read internally (was passed via constructor pre-v3.61).
+    final currencyCode = context.select<StorageService, String>(
+      (s) => s.defaultCurrency,
+    );
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        top: false, // MainScaffold handles top padding for banner ad
+        // top: true (default) — Tools is now a pushed screen with its own
+        // back button, so the header must sit below the system status bar.
+        // (Previously top:false because the MainScaffold banner sat above it.)
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // === Top bar with title + gear icon ===
-              // Settings is no longer a tab — gear icon opens SettingsScreen.
+              // === Top bar: back + title + gear ===
+              // Tools is now a pushed screen (was a bottom-nav tab in v3.60).
+              // Back returns to the calling tab; gear opens Settings.
               Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: AppColors.info),
+                    tooltip: loc.t('back'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                   Icon(Icons.construction, size: 24, color: AppColors.info),
                   const SizedBox(width: 8),
                   Text(
@@ -96,7 +113,7 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => CalculatorScreen(
-                        currencyCode: widget.currencyCode,
+                        currencyCode: currencyCode,
                       ),
                     ),
                   );
@@ -115,7 +132,7 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => CalculatorScreen(
-                        currencyCode: widget.currencyCode,
+                        currencyCode: currencyCode,
                         initialEmi: true,
                       ),
                     ),
@@ -135,7 +152,7 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => CalculatorScreen(
-                        currencyCode: widget.currencyCode,
+                        currencyCode: currencyCode,
                         initialGst: true,
                       ),
                     ),
@@ -190,26 +207,6 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
               ),
 
               const SizedBox(height: 20),
-
-              // Group Split section (NEW v3.60.0) — split expenses with
-              // friends & family; auto-settlement + share as image/SMS/PDF.
-              _buildSectionHeader(loc.t('groupSplitSection'), Icons.groups, theme),
-              const SizedBox(height: 8),
-              _buildToolCard(
-                icon: Icons.groups,
-                iconColor: const Color(0xFF8B5CF6),
-                title: loc.t('groupSplit'),
-                subtitle: loc.t('groupSplitDesc'),
-                onTap: () {
-                  AdMobService.showInterstitial();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const GroupSplitScreen()),
-                  );
-                },
-                theme: theme,
-                isDark: isDark,
-              ),
 
               const SizedBox(height: 20),
 
@@ -299,7 +296,7 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => CalculatorScreen(
-                        currencyCode: widget.currencyCode,
+                        currencyCode: currencyCode,
                         initialDateCalc: true,
                       ),
                     ),

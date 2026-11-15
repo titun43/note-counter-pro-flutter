@@ -5,7 +5,8 @@
 // (name + members + optional UPI IDs + currency), and opens a group's detail
 // screen on tap. Long-press a group for edit/delete.
 //
-// Entry points: Tools tab card + Khata 3-dot overflow menu.
+// Entry point: 5th bottom-nav tab (হিসাব ভাগ) since v3.61.0 — promoted
+// from a buried Tools-tab card + Khata 3-dot overflow item (hard to find).
 // Storage: on-device SharedPreferences via GroupSplitService (no Firebase).
 // =============================================================================
 
@@ -16,8 +17,9 @@ import '../services/admob_service.dart';
 import '../services/feedback_service.dart';
 import '../utils/constants.dart';
 import '../utils/app_localizations.dart';
-import '../widgets/banner_ad_widget.dart';
 import 'group_detail_screen.dart';
+import 'settings_screen.dart';
+import 'tools_tab_screen.dart';
 
 class GroupSplitScreen extends StatefulWidget {
   const GroupSplitScreen({super.key});
@@ -54,21 +56,18 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.bgDark : AppColors.bgLight,
       body: SafeArea(
-        // top: true (default) — pushes BannerAd below the system status bar
-        // so it no longer overlaps the mobile clock/time. Matches the pattern
-        // used by other standalone pushed screens (calculator_screen, etc.).
+        // top: false — the MainScaffold hosting this tab in its IndexedStack
+        // already renders the shared BannerAd above the tab content, so this
+        // tab must NOT add its own banner (would duplicate). v3.61.0: this
+        // screen is now a bottom-nav tab (was a pushed screen pre-v3.61).
+        top: false,
         child: Column(
           children: [
-            const BannerAdWidget(),
-            // === Header ===
+            // === Header (tab mode: no back button; 🧰 Tools + ⚙️ Settings) ===
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+              padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
                   Icon(Icons.groups, size: 24, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Expanded(
@@ -84,6 +83,30 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
                     icon: const Icon(Icons.add_circle, color: AppColors.primary),
                     tooltip: loc.t('newGroup'),
                     onPressed: () => _showNewGroupDialog(),
+                  ),
+                  // Tools — moved out of bottom nav (v3.61); reachable from
+                  // every main tab's top bar via this 🧰 icon. Plain navigation
+                  // (no interstitial) — matches the ⚙️ Settings pattern; each
+                  // individual tool inside still fires its own interstitial.
+                  IconButton(
+                    icon: const Icon(Icons.construction_outlined, color: AppColors.primary),
+                    tooltip: loc.t('tools'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ToolsTabScreen()),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: AppColors.primary),
+                    tooltip: loc.t('settings'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                      );
+                    },
                   ),
                 ],
               ),

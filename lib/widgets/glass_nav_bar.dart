@@ -7,12 +7,14 @@
 //   - No border
 //   - 64px height (compact)
 //   - Active tab = gold gradient pill
-//   - 5 tabs: Counter, Khata, Smart Pay, Bills, Tools
+//   - 5 tabs: Counter, Khata, Smart Pay, Bills, হিসাব ভাগ (Group Split)
 // =============================================================================
-// Settings moved out of the nav bar — accessible via gear icon (⚙️) in the
-// top bar of every main tab screen (commit history: previously tab index 4
-// was Settings). Bills & Invoices is now a top-level tab (was previously
-// only reachable via Khata ⋮ menu, premium-gated).
+// Tools moved OUT of the nav bar (v3.61.0) — accessible via the toolbox
+// icon (🧰) in the top bar of every main tab screen, beside the gear (⚙️)
+// Settings icon. Group Split (হিসাব ভাগ) takes the 5th nav slot because it
+// is a flagship consumer feature (split bills with friends) that benefits
+// from direct visibility. Settings remains via the gear icon (⚙️) in the
+// top bar. Bills & Invoices is a top-level tab (was Khata ⋮ menu, premium).
 // =============================================================================
 
 import 'dart:ui';
@@ -20,6 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/premium_service.dart';
 import '../utils/constants.dart';
+import '../utils/app_localizations.dart';
 
 class GlassNavBar extends StatelessWidget {
   final int currentIndex;
@@ -64,10 +67,10 @@ class GlassNavBar extends StatelessWidget {
         isPremium: true,
       ),
       _NavBarItem(
-        icon: Icons.construction_outlined,
-        activeIcon: Icons.construction,
-        label: 'Tools',
-        color: AppColors.info,
+        icon: Icons.groups_outlined,
+        activeIcon: Icons.groups,
+        label: context.loc.t('groupSplitTab'),
+        color: const Color(0xFF8B5CF6),
       ),
     ];
 

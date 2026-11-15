@@ -16,11 +16,11 @@ import '../widgets/send_reminder_to_all_dialog.dart';
 import '../widgets/custom_dialog.dart';
 import 'customer_detail_screen.dart';
 import 'customers_screen.dart';
-import 'group_split_screen.dart';
 import 'reminder_history_screen.dart';
 import 'reports_screen.dart';
 import 'premium_screen.dart';
 import 'settings_screen.dart';
+import 'tools_tab_screen.dart';
 
 
 class KhataScreen extends StatefulWidget {
@@ -784,6 +784,17 @@ class _KhataScreenState extends State<KhataScreen> {
                           ),
                         ),
                       ),
+                      // Tools — moved out of bottom nav (v3.61); 🧰 in top bar
+                      IconButton(
+                        icon: const Icon(Icons.construction_outlined, color: Color(0xFFD4AF37)),
+                        tooltip: loc.t('tools'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ToolsTabScreen()),
+                          );
+                        },
+                      ),
                       // Gear icon → Settings (replaces old Settings tab)
                       IconButton(
                         icon: const Icon(Icons.settings_outlined, color: Color(0xFFD4AF37)),
@@ -829,13 +840,12 @@ class _KhataScreenState extends State<KhataScreen> {
                                 MaterialPageRoute(builder: (_) => const CustomersScreen()),
                               );
                               break;
+                            // 'groupSplit' case removed — Group Split is now
+                            // a top-level bottom-nav tab (v3.61, tab index 4).
+                            // Kept as a no-op for backward compatibility in
+                            // case any saved state still references it.
                             case 'groupSplit':
                               if (!mounted) return;
-                              AdMobService.showInterstitial();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const GroupSplitScreen()),
-                              );
                               break;
                             // 'bills' case removed — Bills is now a
                             // top-level tab. The PopupMenuItem was also
@@ -904,16 +914,9 @@ class _KhataScreenState extends State<KhataScreen> {
                               ],
                             ),
                           ),
-                          PopupMenuItem<String>(
-                            value: 'groupSplit',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.groups, size: 20, color: Color(0xFF8B0000)),
-                                const SizedBox(width: 12),
-                                Text(loc.t('groupSplit')),
-                              ],
-                            ),
-                          ),
+                          // Group Split item removed — now a top-level
+                          // bottom-nav tab (v3.61, tab index 4). Keeping this
+                          // entry would be redundant.
                           // Bills & Invoices item removed — now a top-level
                           // tab in the bottom navigation (tab index 3).
                           // Keeping this entry would be redundant.

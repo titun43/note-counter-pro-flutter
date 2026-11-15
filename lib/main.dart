@@ -24,7 +24,7 @@ import 'screens/home_screen.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/khata_screen.dart';
 import 'screens/upi_tab_screen.dart';
-import 'screens/tools_tab_screen.dart';
+import 'screens/group_split_screen.dart';
 import 'screens/bills_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/lock_screen.dart';
@@ -540,21 +540,24 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
     // Dark mode toggle no longer rebuilds MainScaffold — the theme
     // change is handled by the Selector in NoteCounterProApp which
     // just updates MaterialApp.themeMode without rebuilding screens.
-    final currencyCode = context.select<StorageService, String>(
-      (s) => s.defaultCurrency,
-    );
+    //
+    // v3.61.0: currencyCode is no longer read here — ToolsTabScreen (the
+    // only former consumer) now reads it internally via its own
+    // context.select. Each tab screen subscribes to currency changes
+    // itself, so MainScaffold does not need to rebuild on currency change.
     final loc = context.loc;
 
     // Cache the screens list so it doesn't get recreated on every build.
-    // We rebuild only when currencyCode changes.
     //
-    // 5-tab navigation (v3.37.0):
+    // 5-tab navigation (v3.61.0):
     //   0. Counter    — note counting (main)
     //   1. Khata      — customer ledger
     //   2. Smart Pay  — UPI scan (premium-locked for free users)
     //   3. Bills      — Bills & Invoices (free users: 5-bill cap, premium: unlimited)
-    //   4. Tools      — Calculator, Converter, Inventory, Printer
+    //   4. হিসাব ভাগ  — Group Split: split expenses with friends (was Tools)
     //
+    // Tools moved to top bar — accessible via toolbox icon (🧰) in the top
+    // bar of every main tab screen (Calculator, QR, Inventory, Printer, etc).
     // Settings is no longer a tab — accessible via gear icon (⚙️) in the
     // top bar of every main tab screen. Tap gear → Navigator.push(SettingsScreen).
     final List<Widget> screens = [
@@ -562,7 +565,7 @@ class _MainScaffoldState extends State<MainScaffold> with WidgetsBindingObserver
       const KhataScreen(),
       const UpiTabScreen(),
       const BillsScreen(),
-      ToolsTabScreen(currencyCode: currencyCode),
+      const GroupSplitScreen(),
     ];
 
     return PopScope(

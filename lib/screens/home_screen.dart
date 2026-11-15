@@ -21,6 +21,7 @@ import 'calculator_screen.dart';
 import 'upi_generate_screen.dart';
 import 'premium_screen.dart';
 import 'settings_screen.dart';
+import 'tools_tab_screen.dart';
 import 'bill_form_screen.dart';
 import 'customers_screen.dart';
 import '../models/customer.dart';
@@ -1926,6 +1927,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: const Icon(Icons.add_circle_outline),
                           color: const Color(0xFFD4AF37),
                           tooltip: loc.t('quickActions'),
+                          iconSize: 20,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                        ),
+                        // Tools — moved out of bottom nav (v3.61); 🧰 in top bar
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ToolsTabScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.construction_outlined),
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
+                          tooltip: loc.t('tools'),
                           iconSize: 20,
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(minWidth: 30, minHeight: 30),

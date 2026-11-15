@@ -676,6 +676,7 @@ class AppLocalizations {
       'widgetAddedMsg': 'Check your home screen. You can resize the widget by long-pressing it.',
       // === Group Split (v3.60.0) ===
       'groupSplit': 'Group Split',
+      'groupSplitTab': 'Split',
       'groupSplitDesc': 'Split expenses with friends & family',
       'groupSplitSection': 'Group Split',
       'newGroup': 'New Group',
@@ -1405,6 +1406,7 @@ class AppLocalizations {
       'widgetAddedMsg': 'আপনার হোম স্ক্রিন চেক করুন। লং-প্রেস করে উইজেট রিসাইজ করতে পারবেন।',
       // === Group Split (v3.60.0) ===
       'groupSplit': 'গ্রুপ স্প্লিট',
+      'groupSplitTab': 'হিসাব',
       'groupSplitDesc': 'বন্ধু ও পরিবারের সাথে খরচ ভাগ করুন',
       'groupSplitSection': 'গ্রুপ স্প্লিট',
       'newGroup': 'নতুন গ্রুপ',
@@ -2134,6 +2136,7 @@ class AppLocalizations {
       'widgetAddedMsg': 'अपनी होम स्क्रीन देखें। लॉन्ग-प्रेस करके विजेट को रीसाइज़ कर सकते हैं।',
       // === Group Split (v3.60.0) ===
       'groupSplit': 'ग्रुप स्प्लिट',
+      'groupSplitTab': 'हिसाब',
       'groupSplitDesc': 'दोस्तों और परिवार के साथ खर्च बांटें',
       'groupSplitSection': 'ग्रुप स्प्लिट',
       'newGroup': 'नया ग्रुप',

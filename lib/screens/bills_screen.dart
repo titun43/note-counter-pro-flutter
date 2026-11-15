@@ -23,6 +23,7 @@ import '../utils/app_localizations.dart';
 import 'bill_form_screen.dart';
 import 'bill_detail_screen.dart';
 import 'settings_screen.dart';
+import 'tools_tab_screen.dart';
 import 'premium_screen.dart';
 
 class BillsScreen extends StatefulWidget {
@@ -172,6 +173,17 @@ class _BillsScreenState extends State<BillsScreen> {
                     ),
                   ),
                   const Spacer(),
+                  // Tools — moved out of bottom nav (v3.61); 🧰 in top bar
+                  IconButton(
+                    icon: const Icon(Icons.construction_outlined),
+                    tooltip: loc.t('tools'),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ToolsTabScreen()),
+                      );
+                    },
+                  ),
                   // Gear icon → Settings
                   IconButton(
                     icon: const Icon(Icons.settings_outlined),
