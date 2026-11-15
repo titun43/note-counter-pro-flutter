@@ -117,7 +117,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
             color: isDark ? AppColors.bgCard : AppColors.bgDark,
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            fontFamily: 'KhataHandwriting',
           ),
         ),
         actions: [
@@ -188,7 +187,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
             color: isDark ? AppColors.bgCard : AppColors.bgDark,
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            fontFamily: 'KhataHandwriting',
           ),
         ),
         actions: [
@@ -1131,7 +1129,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: isDark ? AppColors.bgCard : AppColors.bgDark,
-                fontFamily: 'KhataHandwriting',
               ),
             ),
           ),
@@ -1195,7 +1192,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
           color: isHeader
               ? AppColors.primary
               : (isDark ? AppColors.bgCard : AppColors.bgDark),
-          fontFamily: isLabel || isHeader ? null : 'KhataHandwriting',
         ),
       ),
     );
@@ -1370,7 +1366,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                         color: AppColors.primary,
                         fontSize: 36,
                         fontWeight: FontWeight.w800,
-                        fontFamily: 'KhataHandwriting',
                         height: 1,
                       ),
                     ),
@@ -1536,7 +1531,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: isDark ? AppColors.bgCard : AppColors.bgDark,
-                  fontFamily: 'KhataHandwriting',
                 ),
               ),
               const SizedBox(width: 4),
@@ -1647,7 +1641,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                     : (isLabel
                         ? (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)
                         : (isDark ? AppColors.bgCard : AppColors.bgDark))),
-            fontFamily: (isLabel || isHeader) ? null : 'KhataHandwriting',
           ),
         ),
       ),
@@ -1673,7 +1666,6 @@ class _ScanCalculateScreenState extends State<ScanCalculateScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
-                fontFamily: 'KhataHandwriting',
               ),
             ),
             const SizedBox(height: 2),

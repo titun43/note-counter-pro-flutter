@@ -2,10 +2,52 @@ import 'package:flutter/material.dart';
 import 'constants.dart';
 
 class AppThemes {
-  static ThemeData get lightTheme {
+  /// Returns the bundle-registered font family for the active language.
+  ///   'hi' → Hind (Devanagari + Latin)
+  ///   'bn' → HindSiliguri (Bengali + Latin)
+  ///   'en' (and fallback) → HindSiliguri — its Latin glyphs are clean
+  ///                         and match the Bengali design language.
+  static String fontFamilyFor(String languageCode) {
+    switch (languageCode) {
+      case 'hi':
+        return 'Hind';
+      default:
+        return 'HindSiliguri';
+    }
+  }
+
+  /// Heading hierarchy (display / headline / title) → w700 (bold).
+  /// Body + label → w400 (normal). Sizes follow Material 3 defaults so
+  /// existing layouts are not disturbed; only the weight changes.
+  static TextTheme _buildTextTheme(String fontFamily) {
+    return TextTheme(
+      displayLarge:   TextStyle(fontFamily: fontFamily, fontSize: 57, fontWeight: FontWeight.w700),
+      displayMedium:  TextStyle(fontFamily: fontFamily, fontSize: 45, fontWeight: FontWeight.w700),
+      displaySmall:   TextStyle(fontFamily: fontFamily, fontSize: 36, fontWeight: FontWeight.w700),
+      headlineLarge:  TextStyle(fontFamily: fontFamily, fontSize: 32, fontWeight: FontWeight.w700),
+      headlineMedium: TextStyle(fontFamily: fontFamily, fontSize: 28, fontWeight: FontWeight.w700),
+      headlineSmall:  TextStyle(fontFamily: fontFamily, fontSize: 24, fontWeight: FontWeight.w700),
+      titleLarge:     TextStyle(fontFamily: fontFamily, fontSize: 22, fontWeight: FontWeight.w700),
+      titleMedium:    TextStyle(fontFamily: fontFamily, fontSize: 16, fontWeight: FontWeight.w700),
+      titleSmall:     TextStyle(fontFamily: fontFamily, fontSize: 14, fontWeight: FontWeight.w700),
+      bodyLarge:      TextStyle(fontFamily: fontFamily, fontSize: 16, fontWeight: FontWeight.w400),
+      bodyMedium:     TextStyle(fontFamily: fontFamily, fontSize: 14, fontWeight: FontWeight.w400),
+      bodySmall:      TextStyle(fontFamily: fontFamily, fontSize: 12, fontWeight: FontWeight.w400),
+      labelLarge:     TextStyle(fontFamily: fontFamily, fontSize: 14, fontWeight: FontWeight.w400),
+      labelMedium:    TextStyle(fontFamily: fontFamily, fontSize: 12, fontWeight: FontWeight.w400),
+      labelSmall:     TextStyle(fontFamily: fontFamily, fontSize: 11, fontWeight: FontWeight.w400),
+    );
+  }
+
+  static ThemeData lightTheme(String languageCode) {
+    final fontFamily = fontFamilyFor(languageCode);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      // App-wide default font — every widget inherits unless it sets
+      // its own fontFamily. Locale-aware: Hindi → Hind, else → HindSiliguri.
+      fontFamily: fontFamily,
+      textTheme: _buildTextTheme(fontFamily),
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.light,
@@ -132,10 +174,13 @@ class AppThemes {
     );
   }
 
-  static ThemeData get darkTheme {
+  static ThemeData darkTheme(String languageCode) {
+    final fontFamily = fontFamilyFor(languageCode);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: fontFamily,
+      textTheme: _buildTextTheme(fontFamily),
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: Brightness.dark,

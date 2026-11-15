@@ -1150,7 +1150,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   isPremium ? loc.t('premiumStatus') : loc.t('freeUser'),
                   style: TextStyle(
-                    fontFamily: 'KhataHandwriting',
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: isPremium ? Colors.white : null,
@@ -1212,7 +1211,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fontWeight: FontWeight.bold,
               fontSize: 12,
               letterSpacing: 0.8,
-              fontFamily: 'KhataHandwriting',
             ),
           ),
         ],
@@ -1465,7 +1463,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'KhataHandwriting',
                 ),
               ),
             ),

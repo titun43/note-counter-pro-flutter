@@ -337,7 +337,6 @@ class _UpiToolsScreenState extends State<UpiToolsScreen> {
                     loc.t('upiTools'),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'KhataHandwriting',
                     ),
                   ),
                   const Spacer(),

@@ -614,7 +614,7 @@ ${_bill!.paidAmount > 0 ? 'Paid: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\
       appBar: AppBar(
         title: Text(
           bill.billNumber,
-          style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
+          style: const TextStyle(fontSize: 22),
         ),
         actions: [
           PopupMenuButton<String>(
@@ -779,7 +779,6 @@ ${_bill!.paidAmount > 0 ? 'Paid: $symbol${_bill!.paidAmount.toStringAsFixed(2)}\
                 loc.t('items'),
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontFamily: 'KhataHandwriting',
                     fontSize: 16),
               ),
             ),

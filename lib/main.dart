@@ -163,8 +163,8 @@ class NoteCounterProApp extends StatelessWidget {
           child: MaterialApp(
             title: 'Note Counter Pro',
             debugShowCheckedModeBanner: false,
-            theme: AppThemes.lightTheme,
-            darkTheme: AppThemes.darkTheme,
+            theme: AppThemes.lightTheme(languageCode),
+            darkTheme: AppThemes.darkTheme(languageCode),
             themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
             // Smooth dark/light theme transition — 350ms curve.
             // MaterialApp uses AnimatedTheme internally; this duration
@@ -829,7 +829,6 @@ class _SplashOverlayState extends State<_SplashOverlay>
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  fontFamily: 'Inter',
                   letterSpacing: 0.5,
                 ),
               ),
@@ -851,7 +850,6 @@ class _SplashOverlayState extends State<_SplashOverlay>
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: Color(0xFFD4AF37),
-                  fontFamily: 'Inter',
                 ),
               ),
               const Spacer(flex: 4),
@@ -866,7 +864,6 @@ class _SplashOverlayState extends State<_SplashOverlay>
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFD4AF37),
-                      fontFamily: 'Inter',
                     ),
                   ),
                 ],
@@ -878,7 +875,6 @@ class _SplashOverlayState extends State<_SplashOverlay>
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   color: Colors.white70,
-                  fontFamily: 'Inter',
                 ),
               ),
               const Spacer(flex: 1),

@@ -82,7 +82,6 @@ class _ToolsTabScreenState extends State<ToolsTabScreen> {
                     loc.t('tools'),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'KhataHandwriting',
                     ),
                   ),
                   const Spacer(),

@@ -299,7 +299,6 @@ class _BillFormScreenState extends State<BillFormScreen> {
               child: Text(
                 'Select Customer',
                 style: TextStyle(
-                  fontFamily: 'KhataHandwriting',
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -736,7 +735,7 @@ class _BillFormScreenState extends State<BillFormScreen> {
       appBar: AppBar(
         title: Text(
           _isEditing ? 'Edit Bill' : 'Create Bill',
-          style: const TextStyle(fontFamily: 'KhataHandwriting', fontSize: 22),
+          style: const TextStyle(fontSize: 22),
         ),
         actions: [
           TextButton.icon(
@@ -897,7 +896,6 @@ class _BillFormScreenState extends State<BillFormScreen> {
                       loc.t('items'),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'KhataHandwriting',
                         fontSize: 16,
                       ),
                     ),
@@ -1102,7 +1100,6 @@ class _BillFormScreenState extends State<BillFormScreen> {
                       loc.t('payment'),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'KhataHandwriting',
                         fontSize: 16,
                       ),
                     ),

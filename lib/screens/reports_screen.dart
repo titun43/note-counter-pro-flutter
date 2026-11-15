@@ -304,7 +304,6 @@ class ReportsScreen extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: color,
-                fontFamily: 'KhataHandwriting',
               ),
             ),
             const SizedBox(height: 2),

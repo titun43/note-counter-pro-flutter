@@ -896,7 +896,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         title: Text(
           _customer!.name,
           style: const TextStyle(
-            fontFamily: 'KhataHandwriting',
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -975,7 +974,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                         Text(
                           '${loc.t('pageNo')}: ${widget.pageNo ?? '-'}',
                           style: TextStyle(
-                            fontFamily: 'KhataHandwriting',
                             fontSize: 14,
                             color: textColor.withOpacity(0.6),
                             fontStyle: FontStyle.italic,
@@ -1027,7 +1025,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                         Text(
                           _customer!.name,
                           style: TextStyle(
-                            fontFamily: 'KhataHandwriting',
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: textColor,
@@ -1050,7 +1047,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             Text(
                               loc.t('balance'),
                               style: TextStyle(
-                                fontFamily: 'KhataHandwriting',
                                 fontSize: 16,
                                 color: textColor.withOpacity(0.7),
                               ),
@@ -1058,7 +1054,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             Text(
                               '$symbol ${balance.abs().toStringAsFixed(2)}',
                               style: TextStyle(
-                                fontFamily: 'KhataHandwriting',
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: balance > 0
@@ -1099,7 +1094,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                           child: Text(
                             loc.t('notes'),
                             style: TextStyle(
-                              fontFamily: 'KhataHandwriting',
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: textColor.withOpacity(0.7),
@@ -1111,7 +1105,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                           child: Text(
                             loc.t('description'),
                             style: TextStyle(
-                              fontFamily: 'KhataHandwriting',
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: textColor.withOpacity(0.7),
@@ -1123,7 +1116,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             loc.t('took'),
                             textAlign: TextAlign.end,
                             style: TextStyle(
-                              fontFamily: 'KhataHandwriting',
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF2E7D32),
@@ -1135,7 +1127,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             loc.t('gave'),
                             textAlign: TextAlign.end,
                             style: TextStyle(
-                              fontFamily: 'KhataHandwriting',
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFFC62828),
@@ -1156,7 +1147,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                         child: Text(
                           loc.t('noTransactions'),
                           style: TextStyle(
-                            fontFamily: 'KhataHandwriting',
                             fontSize: 16,
                             color: textColor.withOpacity(0.5),
                           ),
@@ -1194,7 +1184,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                   child: Text(
                                     '${entry.date.day}/${entry.date.month}',
                                     style: TextStyle(
-                                      fontFamily: 'KhataHandwriting',
                                       fontSize: 13,
                                       color: textColor.withOpacity(0.6),
                                     ),
@@ -1208,7 +1197,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                         ? entry.notes!
                                         : (isCredit ? loc.t('amountGiven') : loc.t('amountTaken')),
                                     style: TextStyle(
-                                      fontFamily: 'KhataHandwriting',
                                       fontSize: 14,
                                       color: textColor,
                                     ),
@@ -1222,7 +1210,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                         : '',
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
-                                      fontFamily: 'KhataHandwriting',
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: const Color(0xFF2E7D32),
@@ -1237,7 +1224,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                                         : '',
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
-                                      fontFamily: 'KhataHandwriting',
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: const Color(0xFFC62828),
@@ -1273,7 +1259,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             child: Text(
                               'Total:',
                               style: TextStyle(
-                                fontFamily: 'KhataHandwriting',
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: textColor,
@@ -1285,7 +1270,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                               '$symbol${_customer!.totalDebit.toStringAsFixed(0)}',
                               textAlign: TextAlign.end,
                               style: TextStyle(
-                                fontFamily: 'KhataHandwriting',
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFF2E7D32),
@@ -1297,7 +1281,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                               '$symbol${_customer!.totalCredit.toStringAsFixed(0)}',
                               textAlign: TextAlign.end,
                               style: TextStyle(
-                                fontFamily: 'KhataHandwriting',
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFFC62828),
@@ -1422,7 +1405,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                             Text(
                               '${loc.t('bills')} (${_customerBills.length})',
                               style: TextStyle(
-                                fontFamily: 'KhataHandwriting',
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: textColor,

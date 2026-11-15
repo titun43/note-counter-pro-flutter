@@ -168,7 +168,6 @@ class _BillsScreenState extends State<BillsScreen> {
                     loc.t('bills'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'KhataHandwriting',
                       fontSize: 22,
                     ),
                   ),
@@ -272,7 +271,7 @@ class _BillsScreenState extends State<BillsScreen> {
                               style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  fontFamily: 'KhataHandwriting'),
+                                  ),
                             ),
                           ],
                         ),
@@ -395,7 +394,6 @@ class _BillsScreenState extends State<BillsScreen> {
                                 ? (loc.t('noBills'))
                                 : (loc.t('noBillsFound')),
                             style: TextStyle(
-                              fontFamily: 'KhataHandwriting',
                               fontSize: 18,
                               color: AppColors.textSecondary,
                             ),
@@ -577,7 +575,6 @@ class _BillsScreenState extends State<BillsScreen> {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
-                              fontFamily: 'KhataHandwriting',
                             ),
                           ),
                           Text(

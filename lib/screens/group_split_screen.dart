@@ -75,7 +75,6 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
                       loc.t('groupSplit'),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontFamily: 'KhataHandwriting',
                       ),
                     ),
                   ),

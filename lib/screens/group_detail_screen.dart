@@ -84,7 +84,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                           group.name,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontFamily: 'KhataHandwriting',
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
