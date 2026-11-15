@@ -1804,7 +1804,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   // --- Currency selector (white inner box) ---
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
                       borderRadius: BorderRadius.circular(8),
@@ -1850,10 +1850,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   // --- Notes count (white inner box) ---
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
                       borderRadius: BorderRadius.circular(8),
@@ -1888,7 +1888,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   // --- Tools (3 icon buttons grouped in one inner box) ---
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -1970,60 +1970,58 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  // --- Grand Total (hero — theme-matching card box) ---
-                  // Expanded+Align gives this ALL leftover Row width so the
-                  // FittedBox can shrink large numbers to fit (no clipping).
-                  // Spacer removed: it greedily took leftover, leaving the
-                  // total to overflow → "5000" clipped to "500".
+                  // --- Grand Total (hero — fills ALL leftover Row width) ---
+                  // No Align: Container fills the full Expanded width so the
+                  // box is visibly big (not content-sized with a gap beside
+                  // it). FittedBox shrinks large numbers to fit; Column is
+                  // right-aligned so the number hugs the right edge.
                   Expanded(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(
-                          // Theme-matching: card bg + subtle border in both modes,
-                          // mirroring the adjacent "Notes count" box for harmony.
-                          color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.textSecondaryDark.withOpacity(0.25)
-                                : const Color(0xFFE5E7EB),
-                            width: 1,
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        // Theme-matching: card bg + subtle border in both modes,
+                        // mirroring the adjacent "Notes count" box for harmony.
+                        color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark
+                              ? AppColors.textSecondaryDark.withOpacity(0.25)
+                              : const Color(0xFFE5E7EB),
+                          width: 1,
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // FittedBox + ConstrainedBox: large numbers (5000,
-                            // 999999) shrink to fit the leftover width.
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 140),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                    height: 1.1,
-                                  ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // FittedBox + ConstrainedBox: large numbers (5000,
+                          // 999999) shrink to fit the filled width.
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 160),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '$_currencySymbol${_grandTotal.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                  height: 1.1,
                                 ),
                               ),
                             ),
-                            Text(
-                              loc.t('total'),
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondary,
-                                letterSpacing: 0.5,
-                              ),
+                          ),
+                          Text(
+                            loc.t('total'),
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondary,
+                              letterSpacing: 0.5,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
