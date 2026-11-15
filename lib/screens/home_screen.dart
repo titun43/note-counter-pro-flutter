@@ -1914,9 +1914,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: const Icon(Icons.cleaning_services),
                           color: AppColors.danger,
                           tooltip: 'Clear',
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          iconSize: 18,
+                          padding: const EdgeInsets.all(3),
+                          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
                         ),
                         // Quick Actions
                         IconButton(
@@ -1927,9 +1927,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: const Icon(Icons.add_circle_outline),
                           color: const Color(0xFFD4AF37),
                           tooltip: loc.t('quickActions'),
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          iconSize: 18,
+                          padding: const EdgeInsets.all(3),
+                          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
                         ),
                         // Tools — moved out of bottom nav (v3.61); 🧰 in top bar
                         IconButton(
@@ -1945,9 +1945,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondary,
                           tooltip: loc.t('tools'),
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          iconSize: 18,
+                          padding: const EdgeInsets.all(3),
+                          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
                         ),
                         // Settings gear
                         IconButton(
@@ -1963,9 +1963,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondary,
                           tooltip: 'Settings',
-                          iconSize: 20,
-                          padding: const EdgeInsets.all(4),
-                          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                          iconSize: 18,
+                          padding: const EdgeInsets.all(3),
+                          constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
                         ),
                       ],
                     ),
@@ -1979,7 +1979,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           // Theme-matching: card bg + subtle border in both modes,
                           // mirroring the adjacent "Notes count" box for harmony.
