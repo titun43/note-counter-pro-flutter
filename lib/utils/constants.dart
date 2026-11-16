@@ -33,6 +33,7 @@ class AppColors {
     'GBP': Color(0xFF8B5CF6),    // Purple
     'BDT': Color(0xFF06B6D4),    // Cyan
     'NPR': Color(0xFFEC4899),    // Pink
+    'AED': Color(0xFFF97316),    // Orange (UAE Dirham)
   };
 }
 
@@ -61,6 +62,7 @@ class AppConstants {
     {'code': 'GBP', 'name': 'British Pound', 'symbol': '£', 'country': 'UK'},
     {'code': 'BDT', 'name': 'Bangladeshi Taka', 'symbol': '৳', 'country': 'Bangladesh'},
     {'code': 'NPR', 'name': 'Nepalese Rupee', 'symbol': 'रू', 'country': 'Nepal'},
+    {'code': 'AED', 'name': 'UAE Dirham', 'symbol': 'د.إ', 'country': 'UAE'},
   ];
   
   // Get currency symbol by code
@@ -144,6 +146,16 @@ class AppConstants {
       {'value': 5, 'name': 'रू5', 'color': 0xFF6B7280},
       {'value': 2, 'name': 'रू2', 'color': 0xFF8B5CF6},
       {'value': 1, 'name': 'रू1', 'color': 0xFF10B981},
+    ],
+    'AED': [
+      {'value': 1000, 'name': 'د.إ1000', 'color': 0xFF8B5CF6},
+      {'value': 500, 'name': 'د.إ500', 'color': 0xFF10B981},
+      {'value': 200, 'name': 'د.إ200', 'color': 0xFFF59E0B},
+      {'value': 100, 'name': 'د.إ100', 'color': 0xFF3B82F6},
+      {'value': 50, 'name': 'د.إ50', 'color': 0xFF06B6D4},
+      {'value': 20, 'name': 'د.إ20', 'color': 0xFFEC4899},
+      {'value': 10, 'name': 'د.إ10', 'color': 0xFF6B7280},
+      {'value': 5, 'name': 'د.إ5', 'color': 0xFFF97316},
     ],
   };
   
