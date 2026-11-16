@@ -21,6 +21,7 @@ class _StandardCalculatorState extends State<StandardCalculator> {
   String _expression = '';
   String _liveResult = ''; // Real-time result preview (Feature: live result)
   final List<String> _history = [];
+  double _memory = 0; // Calculator memory for M+/M-/MR/MC
 
   @override
   void initState() {
@@ -37,6 +38,35 @@ class _StandardCalculatorState extends State<StandardCalculator> {
   }
 
   void _onButton(String value) {
+    // Memory functions (M+/M-/MR/MC) — standard calculator memory.
+    if (value == 'MC') {
+      setState(() => _memory = 0);
+      return;
+    }
+    if (value == 'MR') {
+      setState(() {
+        final last = _expression.isEmpty ? '' : _expression[_expression.length - 1];
+        // Only recall into the expression after an operator (or when empty),
+        // so we don't merge into an existing number.
+        if (_expression.isEmpty || '+-×÷'.contains(last)) {
+          _expression += _fmt(_memory);
+          _display = _expression;
+          _updateLiveResult();
+        }
+      });
+      return;
+    }
+    if (value == 'M+' || value == 'M-') {
+      setState(() {
+        final v = _currentValue();
+        if (value == 'M+') {
+          _memory += v;
+        } else {
+          _memory -= v;
+        }
+      });
+      return;
+    }
     setState(() {
       if (value == 'AC') {
         _display = '0';
@@ -133,6 +163,21 @@ class _StandardCalculatorState extends State<StandardCalculator> {
       }
     } catch (_) {
       _liveResult = '';
+    }
+  }
+
+  /// Current numeric value of the expression (used by M+/M-).
+  /// Strips trailing operators, evaluates; returns 0 if empty/invalid.
+  double _currentValue() {
+    String expr = _expression;
+    while (expr.isNotEmpty && '+-×÷'.contains(expr[expr.length - 1])) {
+      expr = expr.substring(0, expr.length - 1);
+    }
+    if (expr.isEmpty) return 0;
+    try {
+      return _eval(expr);
+    } catch (_) {
+      return 0;
     }
   }
 
@@ -351,6 +396,18 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                       style: const TextStyle(fontSize: 10, color: Color(0xFFFF9500), fontWeight: FontWeight.bold),
                     ),
                   ),
+                if (_memory != 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF9500).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'M',
+                      style: TextStyle(fontSize: 10, color: Color(0xFFFF9500), fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.more_vert, size: 22),
@@ -401,6 +458,16 @@ class _StandardCalculatorState extends State<StandardCalculator> {
                   ),
                 ],
               ),
+            ),
+          ),
+          // Memory function row (M+/M-/MR/MC) — compact, above the main grid
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: ['MC', 'MR', 'M+', 'M-']
+                  .map((l) => _memButton(l, isDark))
+                  .toList(),
             ),
           ),
           // Round buttons — bigger (78px)
@@ -476,6 +543,33 @@ class _StandardCalculatorState extends State<StandardCalculator> {
           fit: BoxFit.scaleDown,
           child: Text(label,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w500)),
+        ),
+      ),
+    );
+  }
+
+  /// Compact rectangular memory button (M+/M-/MR/MC).
+  Widget _memButton(String label, bool isDark) {
+    return Container(
+      width: 72,
+      height: 40,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      child: ElevatedButton(
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          _onButton(label);
+        },
+        style: ElevatedButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: EdgeInsets.zero,
+          backgroundColor: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE8E8E8),
+          foregroundColor: const Color(0xFFFF9500),
+          elevation: 1,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         ),
       ),
     );
