@@ -392,6 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Save the current count as a Business entry, tagged with who gave it.
   Future<void> _saveBusinessEntry() async {
+    final loc = context.loc;
     final denominationMap = <String, int>{};
     for (final denom in _denominations) {
       final value = denom['value'] as int;
@@ -401,7 +402,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     if (_grandTotal <= 0 && denominationMap.isEmpty) {
-      HapticFeedback.heavyClick();
+      HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(loc.t('countNotesFirst')), duration: const Duration(seconds: 2)),
       );
@@ -466,6 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Show the Business log — who gave which amount (with note counts).
   void _showBusinessLog() {
+    final loc = context.loc;
     final storage = context.read<StorageService>();
     final entries = storage.entries
         .where((e) => e.type == 'cash_in' && e.category == 'business')
