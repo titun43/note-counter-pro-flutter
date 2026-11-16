@@ -246,7 +246,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(color: valueColor, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(color: valueColor, fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(color: labelColor, fontSize: 10), textAlign: TextAlign.center),
         ],
@@ -298,7 +298,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
         subtitle: hasUpi ? Text(loc.t('scanToPay'), style: const TextStyle(color: AppColors.info, fontSize: 11)) : null,
         trailing: Text(
           '$sym${_fmt(s.amount)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primary),
         ),
         onTap: () {
           FeedbackService().tap();
@@ -511,7 +511,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           children: [
             Text('${s.from} → ${s.to}', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 4),
-            Text('$sym${_fmt(s.amount)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary)),
+            Text('$sym${_fmt(s.amount)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),

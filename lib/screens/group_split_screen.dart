@@ -75,7 +75,7 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
                       loc.t('groupSplit'),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 26,
+                        fontSize: 22,
                       ),
                     ),
                   ),
@@ -159,7 +159,7 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
               loc.t('noGroups'),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 16,
                 color: isDark ? Colors.white : AppColors.bgDark,
               ),
             ),
@@ -228,7 +228,7 @@ class _GroupSplitScreenState extends State<GroupSplitScreen> {
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 13,
                 ),
               ),
             ],

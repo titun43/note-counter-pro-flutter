@@ -168,7 +168,7 @@ class _BillsScreenState extends State<BillsScreen> {
                     loc.t('bills'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 24,
+                      fontSize: 20,
                     ),
                   ),
                   const Spacer(),
@@ -269,7 +269,7 @@ class _BillsScreenState extends State<BillsScreen> {
                             Text(
                               '${allBills.length}',
                               style: const TextStyle(
-                                  fontSize: 24,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   ),
                             ),
@@ -285,7 +285,7 @@ class _BillsScreenState extends State<BillsScreen> {
                           Text(
                             '$symbol${totalAmount.toStringAsFixed(0)}',
                             style: const TextStyle(
-                                fontSize: 22,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.danger),
                           ),
@@ -394,7 +394,7 @@ class _BillsScreenState extends State<BillsScreen> {
                                 ? (loc.t('noBills'))
                                 : (loc.t('noBillsFound')),
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
                             ),
@@ -461,7 +461,7 @@ class _BillsScreenState extends State<BillsScreen> {
                 style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14)),
+                    fontSize: 13)),
             const SizedBox(height: 1),
             Text(label,
                 style: TextStyle(color: color, fontSize: 9)),
@@ -575,7 +575,7 @@ class _BillsScreenState extends State<BillsScreen> {
                             bill.billNumber,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 14,
                             ),
                           ),
                           Text(
@@ -597,7 +597,7 @@ class _BillsScreenState extends State<BillsScreen> {
                           '$symbol${bill.total.toStringAsFixed(0)}',
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 14,
                               color: AppColors.danger),
                         ),
                         const SizedBox(height: 2),

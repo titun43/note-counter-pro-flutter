@@ -79,7 +79,7 @@ class _KhataScreenState extends State<KhataScreen> {
                     Text(
                       loc.t('addCustomer'),
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white : AppColors.bgDark,
                       ),
@@ -285,7 +285,7 @@ class _KhataScreenState extends State<KhataScreen> {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : AppColors.bgDark,
                       ),
@@ -778,7 +778,7 @@ class _KhataScreenState extends State<KhataScreen> {
                           loc.t('myKhata'),
                           style: TextStyle(
                             color: const Color(0xFFD4AF37),
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1006,13 +1006,13 @@ class _KhataScreenState extends State<KhataScreen> {
                             onChanged: (v) => setState(() => _searchQuery = v),
                             style: TextStyle(
                               color: textColor,
-                              fontSize: 18,
+                              fontSize: 16,
                             ),
                             decoration: InputDecoration(
                               hintText: loc.t('searchCustomer'),
                               hintStyle: TextStyle(
                                 color: textColor.withOpacity(0.4),
-                                fontSize: 16,
+                                fontSize: 14,
                               ),
                               prefixIcon: Icon(Icons.search, color: textColor.withOpacity(0.5), size: 20),
                               filled: true,
@@ -1071,7 +1071,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                     Text(
                                       '${loc.t('monthlySummary')} - ${_monthName(now.month)} ${now.year}',
                                       style: TextStyle(
-                                        fontSize: 15,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         color: textColor,
                                       ),
@@ -1124,7 +1124,7 @@ class _KhataScreenState extends State<KhataScreen> {
                               Text(
                                 loc.t('allCustomers'),
                                 style: TextStyle(
-                                  fontSize: 18,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                   color: textColor,
                                 ),
@@ -1205,7 +1205,7 @@ class _KhataScreenState extends State<KhataScreen> {
                                               : loc.t('noCustomers'),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontSize: 18,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: textColor.withOpacity(0.5),
                                           ),
@@ -1294,7 +1294,7 @@ class _KhataScreenState extends State<KhataScreen> {
           value,
           style: TextStyle(
             color: color,
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1319,7 +1319,7 @@ class _KhataScreenState extends State<KhataScreen> {
           value,
           style: TextStyle(
             color: color,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1464,7 +1464,7 @@ class _KhataEntry extends StatelessWidget {
                       _avatarInitial(customer.name),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1479,7 +1479,7 @@ class _KhataEntry extends StatelessWidget {
                       Text(
                         customer.name,
                         style: TextStyle(
-                          fontSize: 21,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: textColor,
                           height: 1.1,
@@ -1565,7 +1565,7 @@ class _KhataEntry extends StatelessWidget {
                       Text(
                         '$currencySymbol${balance.abs().toStringAsFixed(0)}',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: balanceColor,
                         ),

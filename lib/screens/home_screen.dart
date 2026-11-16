@@ -419,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Padding(
                             padding: const EdgeInsets.all(16),
                             child: Text(loc.t('selectCustomer'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                           ),
                           const Divider(height: 1),
                           Flexible(
@@ -474,7 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? (storage.customers.firstWhere((c) => c.id == selectedCustomerId).name)
                         : loc.t('selectCustomer'),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       color: selectedCustomerId != null
                           ? null
                           : (Theme.of(ctx).brightness == Brightness.dark ? Colors.white54 : Colors.black54),
@@ -491,7 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 prefixIcon: const Icon(Icons.person),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 14),
               autofocus: storage.customers.isEmpty,
               textCapitalization: TextCapitalization.words,
             ),
@@ -504,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 prefixIcon: const Icon(Icons.note),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 14),
             ),
           ],
         ),
@@ -669,7 +669,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             isCashIn ? loc.t('cashInCaps') : loc.t('cashOutCaps'),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1480,7 +1480,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       isIn ? loc.t('cashInCaps') : loc.t('cashOutCaps'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1821,7 +1821,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           _currencySymbol,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                             color: AppColors.info,
                           ),
@@ -1869,7 +1869,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           '$_totalNotes',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                             height: 1.1,
@@ -2434,7 +2434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
-                              fontSize: 14,
+                              fontSize: 13,
                             ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
