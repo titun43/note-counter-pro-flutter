@@ -1,0 +1,38 @@
+Play Store Release Notes — Note Counter Pro v3.62.5 (Android)
+Generated 2026-11-16. Paste each block into the matching language field
+in Play Console > Release > Release notes. Max 500 chars per language.
+
+========================================================================
+<en-US>
+What's new in this update:
+
+• Cleaner, lighter text across all 5 tabs — Counter, Khata, Smart Pay, Bills & Split are now easier to read
+• Bigger, bolder labels in the bottom navigation bar
+• The Grand Total on the Counter now shows the full amount in a larger box — numbers no longer get cut off
+• Smoother, more polished overall look
+
+We're always improving — update now for a clearer experience!
+</en-US>
+========================================================================
+<bn-BD>
+এই আপডেটে নতুন কী আছে:
+
+• ৫টি ট্যাবে ছোট ও পরিষ্কার ফন্ট — কাউন্টার, খাতা, স্মার্ট পে, বিল ও স্প্লিট এখন আরও সহজে পড়া যায়
+• নিচের নেভিগেশন বারের লেবেল বড় ও বোল্ড
+• কাউন্টারের মোট হিসাব এখন বড় বক্সে পুরো দেখায় — সংখ্যা আর কাটা পড়বে না
+• সব মিলিয়ে আরও পরিষ্কার ও মসৃণ ডিজাইন
+
+আরও ভালো অভিজ্ঞতার জন্য এখনই আপডেট করুন!
+</bn-BD>
+========================================================================
+<hi-IN>
+इस अपडेट में नया क्या है:
+
+• सभी 5 टैब पर छोटे और साफ़ फ़ॉन्ट — काउंटर, खाता, स्मार्ट पे, बिल और स्प्लिट अब पढ़ने में और भी आसान
+• नीचे के नेविगेशन बार के लेबल बड़े और बोल्ड
+• काउंटर का कुल हिसाब अब बड़े बॉक्स में पूरा दिखता है — अब संख्या कटेगी नहीं
+• साथ ही और भी साफ़-सुथरा और चिकना डिज़ाइन
+
+बेहतर अनुभव के लिए अभी अपडेट करें!
+</hi-IN>
+========================================================================
