@@ -383,6 +383,176 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
   
+  // === BUSINESS MODE (v3.62.8) ===
+  // "Business mode" lets the shopkeeper tag each counted amount with the
+  // person who gave it, then review who-gave-what in a dedicated log.
+  // Business entries are stored as cash_in with category='business', so
+  // they also appear correctly in the general cash-in history.
+  bool _businessMode = false;
+
+  /// Save the current count as a Business entry, tagged with who gave it.
+  Future<void> _saveBusinessEntry() async {
+    final denominationMap = <String, int>{};
+    for (final denom in _denominations) {
+      final value = denom['value'] as int;
+      final count = _getCount(value);
+      if (count > 0) {
+        denominationMap[value.toString()] = count;
+      }
+    }
+    if (_grandTotal <= 0 && denominationMap.isEmpty) {
+      HapticFeedback.heavyClick();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.t('countNotesFirst')), duration: const Duration(seconds: 2)),
+      );
+      return;
+    }
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(loc.t('saveToBusinessLog')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${loc.t('total')}: $_currencySymbol${_grandTotal.toStringAsFixed(0)}',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: loc.t('whoGaveThis'),
+                hintText: loc.t('whoGaveHint'),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text(loc.t('cancel'))),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, nameController.text.trim()),
+            child: Text(loc.t('save')),
+          ),
+        ],
+      ),
+    );
+    if (name == null) return; // cancelled
+    final personName = name.isEmpty ? loc.t('walkInCustomer') : name;
+    final storage = context.read<StorageService>();
+    final entry = Entry.create(
+      type: 'cash_in',
+      amount: _grandTotal,
+      currency: _selectedCurrency,
+      notes: 'Business - $_totalNotes notes | From: $personName',
+      denominationCounts: denominationMap,
+      category: 'business',
+      customerName: personName,
+    );
+    FeedbackService().success();
+    storage.addEntry(entry);
+    _updateWidgetWithTodaySummary(storage);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.t('businessSaved')), duration: const Duration(seconds: 2)),
+      );
+    }
+  }
+
+  /// Show the Business log — who gave which amount (with note counts).
+  void _showBusinessLog() {
+    final storage = context.read<StorageService>();
+    final entries = storage.entries
+        .where((e) => e.type == 'cash_in' && e.category == 'business')
+        .toList();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.business_center, size: 20),
+                    const SizedBox(width: 8),
+                    Text(loc.t('businessLog'),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    if (entries.isNotEmpty)
+                      Text('${entries.length}',
+                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              if (entries.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(loc.t('noBusinessEntries'),
+                      style: const TextStyle(color: Colors.grey), textAlign: TextAlign.center),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.6,
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: entries.length,
+                    itemBuilder: (ctx, i) {
+                      final e = entries[i];
+                      final symbol = AppConstants.getCurrencySymbol(e.currency);
+                      final noteCount = (e.denominationCounts != null && e.denominationCounts!.isNotEmpty)
+                          ? e.denominationCounts!.values.reduce((a, b) => a + b)
+                          : 0;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.primary.withOpacity(0.12),
+                          child: Text(
+                            (e.customerName != null && e.customerName!.isNotEmpty)
+                                ? e.customerName![0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        title: Text(e.customerName ?? loc.t('walkInCustomer'),
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                          '$symbol${e.amount.toStringAsFixed(0)}  ·  ${e.date.day}/${e.date.month}/${e.date.year}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.grey[300] : Colors.grey[700],
+                          ),
+                        ),
+                        trailing: noteCount > 0
+                            ? Text('$noteCount ${loc.t('notes')}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))
+                            : null,
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _saveEntry(bool isCashIn) async {
     if (_grandTotal == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2478,6 +2648,53 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
+          // === BUSINESS MODE ROW (toggle + actions) — v3.62.8 ===
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Row(
+              children: [
+                FilterChip(
+                  label: Text(loc.t('businessMode'), style: const TextStyle(fontSize: 11)),
+                  selected: _businessMode,
+                  onSelected: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _businessMode = v);
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                if (_businessMode) ...[
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () {
+                      FeedbackService().click();
+                      _saveBusinessEntry();
+                    },
+                    icon: const Icon(Icons.save_outlined, size: 16),
+                    label: Text(loc.t('save'), style: const TextStyle(fontSize: 11)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 32),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      _showBusinessLog();
+                    },
+                    icon: const Icon(Icons.list_alt, size: 16),
+                    label: Text(loc.t('viewLog'), style: const TextStyle(fontSize: 11)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 32),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
           // === ACTION BUTTONS ROW (compact) ===
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
