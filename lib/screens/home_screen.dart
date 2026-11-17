@@ -513,9 +513,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: ListView.builder(
                     shrinkWrap: true,
-                    itemCount: entries.length,
+                    // +1: summary card (total cash in + denominations) as first item.
+                    itemCount: entries.length + 1,
                     itemBuilder: (ctx, i) {
-                      final e = entries[i];
+                      if (i == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                          child: _buildCashSummaryCard(entries, isDark),
+                        );
+                      }
+                      final e = entries[i - 1];
                       final symbol = AppConstants.getCurrencySymbol(e.currency);
                       final noteCount = (e.denominationCounts != null && e.denominationCounts!.isNotEmpty)
                           ? e.denominationCounts!.values.reduce((a, b) => a + b)
@@ -1171,13 +1178,202 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Format a double with thousand separators (e.g. 12500 -> "12,500").
+  /// No external dependency — used by the cash summary card.
+  String _fmtNum(double v) {
+    final isWhole = v == v.roundToDouble();
+    final str = isWhole ? v.abs().toInt().toString() : v.abs().toStringAsFixed(2);
+    final parts = str.split('.');
+    final formattedInt = parts[0].replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+    final sign = v < 0 ? '-' : '';
+    return parts.length > 1 ? '$sign$formattedInt.${parts[1]}' : '$sign$formattedInt';
+  }
+
+  /// One label/value row inside the summary card.
+  Widget _summaryRow(String label, String value, Color color, ThemeData theme,
+      {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Reusable summary card for a list of cash entries.
+  ///
+  /// Shows, grouped per currency (so different currencies are never mixed):
+  ///   - Total Cash In
+  ///   - Total Cash Out  (only when cash-out entries exist for that currency)
+  ///   - Net Balance     (In − Out; only when Cash Out is shown)
+  /// Plus a denomination-wise breakdown (counts aggregated across entries)
+  /// and the total number of notes counted.
+  ///
+  /// Adaptive: in a cash-in-only view (e.g. Business Log) it shows just
+  /// Total Cash In + denominations, since Cash Out / Net would be redundant.
+  /// Used by both the general Save In/Out history and the Business log.
+  Widget _buildCashSummaryCard(List<Entry> entries, bool isDark) {
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    final loc = context.loc;
+    final theme = Theme.of(context);
+
+    // Aggregate totals + denomination counts, grouped by currency symbol.
+    final Map<String, double> inByCur = {};
+    final Map<String, double> outByCur = {};
+    final Map<String, Map<String, int>> denomByCur = {};
+    for (final e in entries) {
+      final sym = AppConstants.getCurrencySymbol(e.currency);
+      if (e.type == 'cash_in') {
+        inByCur[sym] = (inByCur[sym] ?? 0) + e.amount;
+      } else if (e.type == 'cash_out') {
+        outByCur[sym] = (outByCur[sym] ?? 0) + e.amount;
+      }
+      if (e.denominationCounts != null && e.denominationCounts!.isNotEmpty) {
+        denomByCur.putIfAbsent(sym, () => {});
+        e.denominationCounts!.forEach((denom, count) {
+          denomByCur[sym]![denom] = (denomByCur[sym]![denom] ?? 0) + count;
+        });
+      }
+    }
+
+    final currencies = <String>{
+      ...inByCur.keys,
+      ...outByCur.keys,
+    };
+    int totalNotes = 0;
+    for (final m in denomByCur.values) {
+      for (final c in m.values) {
+        totalNotes += c;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.bgCardDark : AppColors.bgCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryDark.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet, size: 18, color: AppColors.primaryDark),
+              const SizedBox(width: 6),
+              Text(
+                loc.t('summary'),
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Per-currency totals (cash-out + net only when cash out exists)
+          for (final sym in currencies) ...[
+            _summaryRow(
+              loc.t('totalCashIn'),
+              '$sym${_fmtNum(inByCur[sym] ?? 0)}',
+              AppColors.success,
+              theme,
+            ),
+            if ((outByCur[sym] ?? 0) > 0) ...[
+              _summaryRow(
+                loc.t('totalCashOut'),
+                '$sym${_fmtNum(outByCur[sym]!)}',
+                AppColors.danger,
+                theme,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Divider(
+                  height: 1,
+                  color: isDark ? Colors.white24 : Colors.black12,
+                ),
+              ),
+              _summaryRow(
+                loc.t('netBalance'),
+                '$sym${_fmtNum((inByCur[sym] ?? 0) - outByCur[sym]!)}',
+                AppColors.primaryDark,
+                theme,
+                bold: true,
+              ),
+            ],
+            const SizedBox(height: 4),
+          ],
+          // Denomination breakdown
+          if (denomByCur.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              loc.t('denominationBreakdown'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final entry in denomByCur.entries)
+                  for (final d in (entry.value.entries.toList()
+                        ..sort((a, b) {
+                          final av = double.tryParse(a.key) ?? 0;
+                          final bv = double.tryParse(b.key) ?? 0;
+                          return bv.compareTo(av);
+                        })))
+                    Chip(
+                      label: Text(
+                        '${entry.key}${d.key} × ${d.value}',
+                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      padding: EdgeInsets.zero,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${loc.t('totalNotes')}: $totalNotes',
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   /// Build Save In/Out history tab content.
   /// [storage] is injected by the caller so that this widget rebuilds
   /// when StorageService notifies (works inside modal sheets).
   Widget _buildSaveInOutHistoryTab(bool isDark, StorageService storage) {
     final loc = context.loc;
     final theme = Theme.of(context);
-    final entries = storage.entries.take(20).toList();
+    final allEntries = storage.entries;
+    final entries = allEntries.take(20).toList();
 
     if (entries.isEmpty) {
       return Center(
@@ -1203,10 +1399,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(8),
-      itemCount: entries.length,
+      // +1 item: a summary card (totals + net balance + denominations)
+      // is rendered as the first list item, computed over ALL entries
+      // (not just the 20 shown below) so the totals are always complete.
+      itemCount: entries.length + 1,
       separatorBuilder: (_, __) => const SizedBox(height: 6),
       itemBuilder: (context, index) {
-        final e = entries[index];
+        if (index == 0) {
+          return _buildCashSummaryCard(allEntries, isDark);
+        }
+        final e = entries[index - 1];
         final isIn = e.type == 'cash_in';
         final symbol = AppConstants.getCurrencySymbol(e.currency);
 
